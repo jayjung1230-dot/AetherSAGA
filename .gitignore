@@ -1,0 +1,38 @@
+# Built application files
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Gradle build cache and intermediate outputs
+.gradle/
+build/
+app/build/
+dist/
+
+# Local configuration file (contains personal SDK paths & credentials)
+local.properties
+
+# Android Studio / IntelliJ IDEA files
+.idea/
+*.iml
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Operating System specific
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Temporary scratch and test artifacts
+scratch_test*.py
+scratch_preview.png
+crash.log
+
+# Third-party local test fonts (Zero-Bundling Compliance)
+Fonts/
+
+# Antigravity agent work directories
+.gemini/

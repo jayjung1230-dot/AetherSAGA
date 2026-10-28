@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Aether SAGA</string>
+    <string name="nav_assist_label">Aether SAGA 뒤로가기 버튼</string>
+    <string name="nav_assist_description">안드로이드 시스템 파일 탐색기 화면 위에 [◀ 뒤로] / [✕ 탐색기 닫기] 버튼을 띄웁니다. 제스처 사용이 불편한 E-Ink 전자책 리더기용 기능이며, 시스템 탐색기가 열려 있을 때만 표시되고 화면 내용은 읽지 않습니다.</string>
+</resources>

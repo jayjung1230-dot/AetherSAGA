@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Aether SAGA</string>
+    <string name="nav_assist_label">Aether SAGA Back Button</string>
+    <string name="nav_assist_description">Overlays persistent [◀ Back] / [✕ Close Picker] buttons on the Android system document picker. Designed for E-Ink readers without physical gesture keys; only visible while the system picker is open.</string>
+</resources>
