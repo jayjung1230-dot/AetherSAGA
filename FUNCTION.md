@@ -408,19 +408,6 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 - **법적 및 마켓 분석:**
   개방형 표준 프로토콜 기반이므로 아마존 특허 비침해 및 프라이버시(Privacy-First) 준수.
 
----
-
-### 3.20. 로컬 무선 Wi-Fi 파일 전송 웹 리모트 서버
-
-- **개요 및 목적:**
-  USB 케이블 연결 없이 동일 Wi-Fi 네트워크상의 PC나 스마트폰 웹 브라우저에서 책을 드래그 앤 드롭으로 업로드할 수 있는 초경량 내장 HTTP 서버입니다.
-- **구현 파일 및 주요 심볼:**
-  - [WebRemoteServer.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/data/WebRemoteServer.kt)
-- **기술적 차별성 및 보안 생명주기 관리:**
-  - 무거운 Netty나 서블릿 컨테이너 없이, 표준 Java `ServerSocket` 기반의 초경량 단일 스레드 HTTP 서버로 구현되어 단 100KB 미만의 메모리만 점유.
-  - **일회용 PIN 인증 및 포트 생명주기 강제 폐쇄:** 로컬 웹 리모트 서버는 동일 Wi-Fi 망 내 비인가 단말의 무단 접속을 차단하기 위해 화면에 일회용 4~6자리 PIN 인증을 요구하며, 사용자가 전송 다이얼로그나 설정 창을 닫으면 백그라운드 상주를 엄격히 금지하고 `ServerSocket`이 즉시 폐쇄(close)되도록 생명주기를 엄격히 강제합니다.
-- **법적 및 마켓 분석:**
-  로컬 사설망(LAN) 내에서만 동작하며 외부 서버와 통신하지 않으므로 개인정보 보호법(GDPR/CCPA/개인정보보호법)에 완벽 부합.
 
 ---
 

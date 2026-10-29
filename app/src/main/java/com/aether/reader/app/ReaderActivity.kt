@@ -77,7 +77,6 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     private var pagesSincePurge = 0
     private var edgeBase = 0f
     private val navHistory = NavigationHistoryManager()
-    private var webRemoteServer: WebRemoteServer? = null
     private var pomodoroSeconds = 25 * 60
     private var pageStartTimeMs: Long = System.currentTimeMillis()
     private var avgSecondsPerPage: Double = 45.0
@@ -3738,23 +3737,10 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         }
         box.addView(focusCard)
 
-        box.addView(sectionHeader(L10n.t("무선 제어 및 학습 도구", "Remote Control & Learning Tools")))
+        box.addView(sectionHeader(L10n.t("학습 및 독서 통계 도구", "Learning & Reading Stats Tools")))
         val extraCard = settingsCardContainer()
 
-        // 1. 로컬 웹 리모컨 (E-Ink 및 LCD/OLED 전 기기 지원)
-        addToggleRow(
-            extraCard,
-            L10n.t("로컬 웹 리모컨 (Web Remote)", "Local Web Remote"),
-            L10n.t("스마트폰 브라우저로 QR 접속해 페이지 원격 넘김", "Control reading from phone browser via Wi-Fi"),
-            false,
-            { webRemoteServer?.isRunning == true }
-        ) {
-            dlg.dismiss()
-            toggleWebRemoteServer()
-        }
-        extraCard.addView(thinDivider())
-
-        // 2. 하이라이트 플래시카드 복습 (배경 박스 내부 배치)
+        // 1. 하이라이트 플래시카드 복습 (배경 박스 내부 배치)
         val studyBtn = pillButton(
             L10n.t("🎴 저장된 하이라이트 플래시카드 복습 열기", "🎴 Review Highlights with Flashcards"),
             ReaderTheme.EINK_INK,
@@ -3819,46 +3805,6 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             }
             view.pomodoroText = "⏱ " + (pomodoroSeconds / 60) + "m"
             handler.postDelayed(this, 60_000L)
-        }
-    }
-
-    private fun toggleWebRemoteServer() {
-        if (webRemoteServer != null && webRemoteServer!!.isRunning) {
-            webRemoteServer!!.stop()
-            webRemoteServer = null
-            toast("웹 리모컨 중지됨")
-        } else {
-            val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
-            val server = WebRemoteServer(8080, isLcd = isLcd) { action ->
-                runOnUiThread { perform(action) }
-            }
-            server.start()
-            webRemoteServer = server
-            @Suppress("DEPRECATION")
-            val wm = applicationContext.getSystemService(android.content.Context.WIFI_SERVICE) as android.net.wifi.WifiManager
-            val ip = wm.connectionInfo.ipAddress
-            val addr = "http://${ip and 0xff}.${ip shr 8 and 0xff}.${ip shr 16 and 0xff}.${ip shr 24 and 0xff}:8080"
-            val qr = WebRemoteServer.generateSimpleQr(addr, dp(180))
-
-            val layout = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                setPadding(dp(16), dp(16), dp(16), dp(16))
-                val iv = ImageView(this@ReaderActivity).apply { setImageBitmap(qr) }
-                addView(iv)
-                val tv = TextView(this@ReaderActivity).apply {
-                    val btnDesc = if (isLcd) "[이전] [다음]" else "[이전] [다음] [새로고침]"
-                    text = "\n스마트폰으로 접속하세요:\n$addr\n\n$btnDesc 리모컨"
-                    gravity = Gravity.CENTER
-                }
-                addView(tv)
-            }
-            AlertDialog.Builder(this)
-                .setTitle("무선 웹 리모컨 페어링")
-                .setView(layout)
-                .setPositiveButton("확인", null)
-                .create()
-                .showWithOptimalWidth(this)
         }
     }
 
@@ -3942,7 +3888,6 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         stopAutoPageTurn()
         handler.removeCallbacksAndMessages(null)
         tts.shutdown()
-        webRemoteServer?.stop()
         scope.cancel()
         engine.close()
         super.onDestroy()

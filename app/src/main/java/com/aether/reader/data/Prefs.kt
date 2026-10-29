@@ -88,7 +88,6 @@ class Prefs(ctx: Context) {
     var autoTurnEnabled by bool("autoTurnEnabled", false)
     var autoTurnSeconds by int("autoTurnSeconds", 20)
     var turboPaging by bool("turboPaging", false)
-    var webRemote by bool("webRemote", false)
     var experimentalOverride by bool("experimentalOverride", false)
 
     // Daily Reading Stats
@@ -150,7 +149,6 @@ class Prefs(ctx: Context) {
         dropCaps = false
         readingRuler = false
         pomodoroTimer = false
-        webRemote = false
 
         when {
             spec.isLowSpecEink -> {

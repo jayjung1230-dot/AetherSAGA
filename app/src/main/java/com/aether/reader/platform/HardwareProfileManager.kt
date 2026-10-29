@@ -10,7 +10,6 @@ import java.io.FileFilter
 
 enum class FeatureFlag(val title: String, val description: String) {
     FEATURE_TURBO_PAGING("터보 고속 넘김 (Turbo Paging)", "버튼 길게 누름 시 초당 5~10페이지 고속 프리뷰 넘김"),
-    FEATURE_LOCAL_WEB_REMOTE("로컬 웹 리모컨 (Web Remote)", "거치대 독서 시 스마트폰 브라우저로 원격 넘김"),
     FEATURE_INLINE_FOOTNOTE("인라인 각주 팝오버 (Inline Footnote)", "미주/각주 이동 없이 제자리 팝업으로 내용 열람"),
     FEATURE_JUMP_BACK_STACK("페이지 점프 히스토리 (Jump Back)", "목차/슬라이더 점프 시 이전 위치 스택 복귀"),
     FEATURE_READING_TIMER("포모도로 집중 타이머 (Timer)", "E-Ink 화면 갱신을 최소화한 저전력 독서 타이머"),
@@ -78,7 +77,6 @@ class HardwareProfileManager(
     fun isFeatureAllowedByDefault(flag: FeatureFlag): Boolean {
         return when (flag) {
             FeatureFlag.FEATURE_TURBO_PAGING -> !spec.isLowSpecEink
-            FeatureFlag.FEATURE_LOCAL_WEB_REMOTE -> true
             FeatureFlag.FEATURE_INLINE_FOOTNOTE -> true
             FeatureFlag.FEATURE_JUMP_BACK_STACK -> true
             FeatureFlag.FEATURE_READING_TIMER -> true
@@ -90,7 +88,6 @@ class HardwareProfileManager(
         if (isFeatureAllowedByDefault(flag)) return null
         return when (flag) {
             FeatureFlag.FEATURE_TURBO_PAGING -> "2GB RAM E-Ink 기기의 웨이브폼 크래시 및 잔상 방지를 위해 기본 비활성화됨"
-            FeatureFlag.FEATURE_LOCAL_WEB_REMOTE -> "가용 램 600~800MB 유지 및 백그라운드 OOM 방지를 위해 기본 비활성화됨"
             else -> null
         }
     }

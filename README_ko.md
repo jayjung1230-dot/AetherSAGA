@@ -102,7 +102,7 @@
     - Carta 1300/1200의 16단계 그레이스케일 패널에 맞추어 메뉴 묶음 카드에 따뜻한 연회색 배경(`ReaderTheme.EINK_CARD_BG`)과 2px 차콜 테두리(`ReaderTheme.EINK_BORDER_CONTRAST`)를 적용
     - 카드 내부의 모든 버튼과 아이콘에 화이트 필 배경과 2px 고대비 외곽선을 부여하여 시각적 경계선("바탕선") 선명화
     - **메뉴 항목 간 가로 구분선 옅은 점선(`DottedDividerView`) 적용**: 글자 스타일(현재 글꼴과 사용자 폰트 추가 사이 등), 화면/조명, 독서 보조도구, 환경설정의 모든 카드 내부 구분선을 부드러운 옅은 점선(`0xFF888888`, 3dp 대시/3dp 갭)으로 전환하여 직선의 답답함을 해소하고 시각적 계층감 완성
-    - 보조 도구 설정 메뉴에서 로컬 웹 리모컨, 플래시카드 복습, 독서 통계 대시보드를 전용 배경 박스(`extraCard`) 내부에 그룹화하고 E-Ink 기기에서도 로컬 웹 리모컨을 완전히 복원 지원
+    - 보조 도구 설정 메뉴에서 플래시카드 복습, 독서 통계 대시보드를 전용 배경 박스(`extraCard`) 내부에 그룹화하여 직관적인 조작 제공
   - **일일 독서 통계 트래커 & 주간/월간/연간 대시보드**:
     - 오늘 읽은 시간(분)과 페이지 수를 측정하여 서재 헤더에 표출
     - **주간(최근 7일) · 월간(최근 4주) · 연간(12개월)** 기간 비교 지원
@@ -228,7 +228,6 @@ com.aether.reader/
 │   ├── BackupRestoreManager.kt  # DB 및 설정 JSON/ZIP 백업 및 복원
 │   ├── FileImportManager.kt     # SAF/로컬 파일 서재 등록 처리
 │   ├── Services.kt              # CoverCache, WebDav 클라이언트, SMTP/공유 헬퍼
-│   └── WebRemoteServer.kt       # Wi-Fi 파일 전송용 내장 HTTP 서버
 │
 ├── domain/                      # 순수 도메인 모델 및 인터페이스 (Android 무의존)
 │   └── display/                 # DisplayKind, DisplaySettings, PageTransition 등
