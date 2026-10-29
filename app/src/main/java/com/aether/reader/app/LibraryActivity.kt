@@ -2002,7 +2002,7 @@ class LibraryActivity : Activity() {
                 "E-Ink: Carta 1300/1200 tuning, 10-step Edge Stroke Booster, anti-ghosting full refresh",
                 "E-Ink: High-contrast (2px) outlines for settings menu groups, tools, and pill buttons",
                 "E-Ink: Subtle dotted divider lines between items in typography, tools, and settings menus",
-                "E-Ink: Grouped extra tools card container & restored Local Web Remote across all devices",
+                "E-Ink: Grouped extra tools card container (Flashcards review & Reading Stats dashboard)",
                 "E-Ink: Solid line below book meta and soft dashed lines with 18dp margin between TOC chapters",
                 "E-Ink: High-contrast persistent custom vertical scrollbar (EinkScrollBarView)",
                 "LCD/OLED: 4 eye-care themes (White, Warm Sepia, Dark Charcoal, True Black)",

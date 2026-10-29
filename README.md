@@ -19,9 +19,14 @@
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version 1.0.0" />
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B%20(API%2026%2B)-green.svg" alt="Platform" />
-  <img src="https://img.shields.io/badge/APK%20Size-~650%20KB-success.svg" alt="APK Size" />
+  <img src="https://img.shields.io/badge/APK%20Size-~640%20KB-success.svg" alt="APK Size" />
   <img src="https://img.shields.io/badge/Dependencies-Zero%20Heavy%20Libs-orange.svg" alt="Dependencies" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-lightgrey.svg" alt="License" />
+</p>
+
+<p align="center">
+  🏷️ <strong>Topics & Keywords:</strong>
+  <code>ebook</code> • <code>e book</code> • <code>e-book</code> • <code>e-ink</code> • <code>reader</code> • <code>viewer</code> • <code>epub</code>
 </p>
 
 ---
@@ -30,7 +35,7 @@
 
 **Aether SAGA** is an ultra-lightweight, battery-efficient Android reader engineered specifically for **E-Ink devices** (Crema Luna X 6.0", Onyx Boox series) as well as modern **Android tablets and smartphones**.
 
-Adhering to a strict **Zero Heavy Library Policy** (no Jetpack Compose, no Glide/Coil, no Retrofit/OkHttp, no AppCompat), Aether SAGA delivers lightning-fast cold startups and butter-smooth page turns within a release APK of just **~650 KB**.
+Adhering to a strict **Zero Heavy Library Policy** (no Jetpack Compose, no Glide/Coil, no Retrofit/OkHttp, no AppCompat), Aether SAGA delivers lightning-fast cold startups and butter-smooth page turns within a release APK of just **~640 KB**.
 
 ---
 
@@ -84,7 +89,7 @@ A dual-rendering pipeline that adapts precisely to your display hardware:
 * **UI Framework**: Pure Android Native Framework Views (`ViewBinding`), zero heavy UI toolkits
 * **Local Persistence**: Android Jetpack Room (KSP) with SQLite
 * **Typography Engine**: Sub-pixel `StaticLayout` & hardware `Paint`
-* **Distribution Package**: Uncompressed ~650 KB standalone APK, zero multi-dex overhead
+* **Distribution Package**: Uncompressed ~640 KB standalone APK, zero multi-dex overhead
 
 ---
 
@@ -98,7 +103,7 @@ cd AetherSAGA
 # Run the 50 unit tests
 ./gradlew test
 
-# Assemble Release APK (~650 KB)
+# Assemble Release APK (~640 KB)
 ./gradlew assembleRelease
 ```
 

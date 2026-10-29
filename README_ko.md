@@ -1,6 +1,7 @@
 # Aether SAGA (에테르 사가) - journeys through endless stories
 
 > 🌐 **[English Documentation (README.md)](./README.md)** | **현재 버전:** `Ver. 1.0` (2026. 10. 28 정식 릴리즈) | [릴리즈 노트 전문 (RELEASE_NOTES.md)](./RELEASE_NOTES.md)  
+> 🏷️ **키워드 / 검색 태그:** `ebook` • `e book` • `e-book` • `e-ink` • `reader` • `viewer` • `전자책` • `리더기` • `뷰어`  
 > **E-Ink 전자책 단말기 및 저사양 Android 기기를 위한 초경량·고성능 전자책/만화 뷰어**  
 > *"Aether SAGA, journeys through endless stories"*
 
