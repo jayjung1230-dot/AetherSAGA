@@ -51,7 +51,7 @@ Access core reading assets directly from your library shelf without having to op
 ### 🎨 2. Aesthetic SNS Quote Card & Stats Sharing
 Transform your favorite reading moments into beautifully styled, high-resolution shareable image cards with a single tap:
 * **Custom Visual Themes**: Export quotes in Paper Minimalist, Warm Amber, Dark Obsidian, or AMOLED Pitch Black styling.
-* **Typographic Elegance**: Formatted with book title, author metadata, quotation marks, and optional user notes.
+* **Typographic Elegance & Cover Badge**: Formatted with book title, author metadata, an elegant 95×135px rounded book cover badge in the header, quotation marks, and optional user notes.
 * **Reading Milestone Cards**: Share your reading streaks (🔥), total reading hours, weekly books completed, and habit trends directly to **Instagram Stories, Twitter/X, social messengers**, or save directly to your gallery.
 
 ### ⚡ 3. Bifurcation Display Architecture (Hardware-Aware)

@@ -791,7 +791,7 @@ class LibraryActivity : Activity() {
                         }
                         val sampleQuote = hl.firstOrNull { it.kind == 0 }?.quote ?: L10n.t("'${b.title}' 독서 진행률 $pct% 달성!", "'${b.title}' reading progress: $pct%!")
                         val sampleMemo = hl.firstOrNull { it.kind == 0 && it.note.isNotBlank() }?.note
-                        AndroidShareHelper.showSnsShareDialog(this@LibraryActivity, b.title, b.author, sampleQuote, sampleMemo, isEink = !isLcd)
+                        val coverBmp = b.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }; AndroidShareHelper.showSnsShareDialog(this@LibraryActivity, b.title, b.author, sampleQuote, sampleMemo, isEink = !isLcd, coverBitmap = coverBmp)
                     }
                 }
                 optMulti -> enterSelectMode(b.path)
@@ -2315,7 +2315,7 @@ class LibraryActivity : Activity() {
                 val sampleQuote = hl.firstOrNull { it.kind == 0 }?.quote ?: L10n.t("'${b.title}' 독서 진행률 $pct% 달성!", "'${b.title}' reading progress: $pct%!")
                 val sampleMemo = hl.firstOrNull { it.kind == 0 && it.note.isNotBlank() }?.note
                 withContext(Dispatchers.Main) {
-                    AndroidShareHelper.showSnsShareDialog(this@LibraryActivity, b.title, b.author, sampleQuote, sampleMemo, isEink = !isLcd)
+                    val coverBmp = b.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }; AndroidShareHelper.showSnsShareDialog(this@LibraryActivity, b.title, b.author, sampleQuote, sampleMemo, isEink = !isLcd, coverBitmap = coverBmp)
                 }
             }
             return
@@ -2336,7 +2336,7 @@ class LibraryActivity : Activity() {
                 val sampleQuote = hl.firstOrNull { it.kind == 0 }?.quote ?: L10n.t("'${b.title}' 독서 진행률 $pct% 달성!", "'${b.title}' reading progress: $pct%!")
                 val sampleMemo = hl.firstOrNull { it.kind == 0 && it.note.isNotBlank() }?.note
                 withContext(Dispatchers.Main) {
-                    AndroidShareHelper.showSnsShareDialog(this@LibraryActivity, b.title, b.author, sampleQuote, sampleMemo, isEink = !isLcd)
+                    val coverBmp = b.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }; AndroidShareHelper.showSnsShareDialog(this@LibraryActivity, b.title, b.author, sampleQuote, sampleMemo, isEink = !isLcd, coverBitmap = coverBmp)
                 }
             }
         }
@@ -2624,6 +2624,7 @@ class LibraryActivity : Activity() {
                         minimumHeight = dp(28)
                     }
                     val cardBtn = pillButton(L10n.t("📷 SNS", "📷 SNS"), inkCol, btnBg, btnBorder, strokePx) {
+                        val coverBmp = b?.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }
                         AndroidShareHelper.showSnsShareDialog(
                             this@LibraryActivity,
                             bTitle,
@@ -2631,7 +2632,8 @@ class LibraryActivity : Activity() {
                             h.quote,
                             h.note.ifBlank { null },
                             isEink = !isLcd,
-                            onBack = { showMainHighlightsDialog() }
+                            onBack = { showMainHighlightsDialog() },
+                            coverBitmap = coverBmp
                         )
                     }.apply {
                         setPtSize(7.8f)

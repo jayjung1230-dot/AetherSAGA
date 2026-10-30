@@ -639,7 +639,8 @@ fun Activity.showReadingNotesShareDialog(
                 targetQuote,
                 targetMemo,
                 isEink = !isLcd,
-                onBack = { showReadingNotesShareDialog(app, book, highlights, totalChapters, rawCoverBytes, isLcd, initialQuote, onBack) }
+                onBack = { showReadingNotesShareDialog(app, book, highlights, totalChapters, rawCoverBytes, isLcd, initialQuote, onBack) },
+                coverBitmap = coverBmp
             )
         }
     }

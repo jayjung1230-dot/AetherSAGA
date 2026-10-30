@@ -938,7 +938,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                     dismissHighlightDeleteButton()
                     val bTitle = (book?.title?.ifBlank { null } ?: engine.bookTitle.ifBlank { null } ?: File(path).nameWithoutExtension)
                     val bAuthor = book?.author?.ifBlank { null } ?: engine.bookAuthor
-                    AndroidShareHelper.showSnsShareDialog(this@ReaderActivity, bTitle, bAuthor, h.quote, h.note.ifBlank { null }, isEink = !isLcd)
+                    val coverBmp = book?.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }; AndroidShareHelper.showSnsShareDialog(this@ReaderActivity, bTitle, bAuthor, h.quote, h.note.ifBlank { null }, isEink = !isLcd, coverBitmap = coverBmp)
                 }
             }
             container.addView(snsBtn)
@@ -1639,7 +1639,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 opt.startsWith("📷") || opt.startsWith("📱") -> {
                     val sampleQuote = highlights.firstOrNull { it.kind == 0 }?.quote ?: L10n.t("즐거운 독서의 여정", "A pleasant journey of reading")
                     val sampleMemo = highlights.firstOrNull { it.kind == 0 && it.note.isNotBlank() }?.note
-                    AndroidShareHelper.showSnsShareDialog(this, bTitle, bAuthor, sampleQuote, sampleMemo, isEink = !isLcd, onBack = { showTocAndNotesDialog() })
+                    val coverBmp = book?.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }; AndroidShareHelper.showSnsShareDialog(this, bTitle, bAuthor, sampleQuote, sampleMemo, isEink = !isLcd, onBack = { showTocAndNotesDialog() }, coverBitmap = coverBmp)
                 }
                 opt.startsWith("🎴") -> showFlashcardsDialog(onBack = { showTocAndNotesDialog() })
             }
@@ -2712,7 +2712,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 optSns -> {
                     val sampleQuote = highlights.firstOrNull { it.kind == 0 }?.quote ?: L10n.t("즐거운 독서의 여정", "A pleasant journey of reading")
                     val sampleMemo = highlights.firstOrNull { it.kind == 0 && it.note.isNotBlank() }?.note
-                    AndroidShareHelper.showSnsShareDialog(this, bTitle, bAuthor, sampleQuote, sampleMemo, isEink = !isLcd, onBack = { exportMenu(onBack) })
+                    val coverBmp = book?.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }; AndroidShareHelper.showSnsShareDialog(this, bTitle, bAuthor, sampleQuote, sampleMemo, isEink = !isLcd, onBack = { exportMenu(onBack) }, coverBitmap = coverBmp)
                 }
             }
         }
@@ -2787,7 +2787,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 when (a) {
                     0 -> pushHistoryAndJump(BookLocation(h.chapter, h.startChar, 0f))
                     1 -> showEmailShareDialog(h, onBack = { browseHighlights(onBack) })
-                    2 -> AndroidShareHelper.showSnsShareDialog(this, bTitle, bAuthor, h.quote, h.note.ifBlank { null }, isEink = !isLcd, onBack = { browseHighlights(onBack) })
+                    2 -> { val coverBmp = book?.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }; AndroidShareHelper.showSnsShareDialog(this, bTitle, bAuthor, h.quote, h.note.ifBlank { null }, isEink = !isLcd, onBack = { browseHighlights(onBack) }, coverBitmap = coverBmp) }
                     else -> scope.launch {
                         withContext(Dispatchers.IO) { app.db.highlights().delete(h.id) }
                         highlights = withContext(Dispatchers.IO) { app.db.highlights().forBook(path) }

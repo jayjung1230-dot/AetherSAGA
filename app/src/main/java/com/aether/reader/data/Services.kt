@@ -902,7 +902,8 @@ object AndroidShareHelper {
         bookTitle: String,
         bookAuthor: String,
         quote: String,
-        memo: String? = null
+        memo: String? = null,
+        coverBitmap: Bitmap? = null
     ): Bitmap {
         val w = 1080
         val h = 1080
@@ -923,6 +924,44 @@ object AndroidShareHelper {
         borderPaint.color = 0xFFB8B09E.toInt()
         c.drawRect(60f, 60f, w - 60f, h - 60f, borderPaint)
 
+        // Book Cover placement in Top Right (Option B: Compact Header Badge 95x135 px)
+        val isLocalCover = (coverBitmap == null)
+        val coverToDraw: Bitmap = coverBitmap ?: renderTypographicCover(bookTitle, bookAuthor, "")
+        try {
+            val coverW = 95f
+            val coverH = 135f
+            val coverX = w - 100f - coverW
+            val coverY = 75f
+
+            // 1. Soft drop shadow behind cover
+            val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0x33000000.toInt()
+            }
+            c.drawRoundRect(RectF(coverX + 3f, coverY + 4f, coverX + coverW + 3f, coverY + coverH + 4f), 6f, 6f, shadowPaint)
+
+            // 2. Rounded cover clipping & draw
+            val coverRect = RectF(coverX, coverY, coverX + coverW, coverY + coverH)
+            val clipPath = Path().apply {
+                addRoundRect(coverRect, 6f, 6f, Path.Direction.CW)
+            }
+            c.save()
+            c.clipPath(clipPath)
+            c.drawBitmap(coverToDraw, null, coverRect, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+            c.restore()
+
+            // 3. Subtle 1.5px border over cover
+            val coverBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                color = 0x55888888.toInt()
+                strokeWidth = 1.5f
+            }
+            c.drawRoundRect(coverRect, 6f, 6f, coverBorderPaint)
+        } finally {
+            if (isLocalCover && !coverToDraw.isRecycled) {
+                coverToDraw.recycle()
+            }
+        }
+
         val brandPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF1F5E9C.toInt()
             textSize = 32f
@@ -937,14 +976,14 @@ object AndroidShareHelper {
             typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
         }
         val unknownAuthor = L10n.t("저자 미상", "Unknown Author")
-        val metaText = "${bookTitle.take(35)} · ${bookAuthor.ifBlank { unknownAuthor }.take(20)}"
+        val metaText = "${bookTitle.take(30)} · ${bookAuthor.ifBlank { unknownAuthor }.take(18)}"
         c.drawText(metaText, 100f, 175f, bookInfoPaint)
 
         val rulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFE0DDD5.toInt()
             strokeWidth = 2f
         }
-        c.drawLine(100f, 210f, w - 100f, 210f, rulePaint)
+        c.drawLine(100f, 230f, w - 100f, 230f, rulePaint)
 
         val quoteMarkPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFD4CCBC.toInt()
@@ -967,11 +1006,11 @@ object AndroidShareHelper {
             .build()
 
         c.save()
-        c.translate(100f, 340f)
+        c.translate(100f, 350f)
         quoteLayout.draw(c)
         c.restore()
 
-        val nextY = 340f + quoteLayout.height + 40f
+        val nextY = 350f + quoteLayout.height + 40f
         if (!memo.isNullOrBlank()) {
             val memoRulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = 0xFF1F5E9C.toInt()
@@ -1293,10 +1332,11 @@ object AndroidShareHelper {
         bookTitle: String,
         bookAuthor: String,
         quote: String,
-        memo: String? = null
+        memo: String? = null,
+        coverBitmap: Bitmap? = null
     ) {
         if (target == SnsTarget.SAVE_IMAGE) {
-            val cardBmp = renderQuoteCard(bookTitle, bookAuthor, quote, memo)
+            val cardBmp = renderQuoteCard(bookTitle, bookAuthor, quote, memo, coverBitmap)
             val ok = saveCardToGallery(activity, cardBmp, "AetherSAGA_Quote")
             if (ok) {
                 Toast.makeText(activity, L10n.t("독서 카드가 갤러리(Pictures/AetherSAGA)에 저장되었습니다. 💾", "Reading card saved to Gallery (Pictures/AetherSAGA). 💾"), Toast.LENGTH_SHORT).show()
@@ -1307,7 +1347,7 @@ object AndroidShareHelper {
         }
 
         if (target == SnsTarget.SMS) {
-            val cardBmp = renderQuoteCard(bookTitle, bookAuthor, quote, memo)
+            val cardBmp = renderQuoteCard(bookTitle, bookAuthor, quote, memo, coverBitmap)
             val cardUri = prepareSnsCardUri(activity, cardBmp, "AetherSAGA_Quote_Card.png")
             val authorPart = bookAuthor.ifBlank { L10n.t("저자 미상", "Unknown Author") }
             val shareText = "📖 $bookTitle ($authorPart)\n\n\"${quote.take(180)}\"\n\n- Aether SAGA"
@@ -1320,7 +1360,7 @@ object AndroidShareHelper {
             return
         }
 
-        val cardBmp = renderQuoteCard(bookTitle, bookAuthor, quote, memo)
+        val cardBmp = renderQuoteCard(bookTitle, bookAuthor, quote, memo, coverBitmap)
         val cardUri = prepareSnsCardUri(activity, cardBmp, "AetherSAGA_Quote_Card.png")
         val authorPart = bookAuthor.ifBlank { L10n.t("저자 미상", "Unknown Author") }
         val hashPart = L10n.t("#독서 #책스타그램", "#Reading #Bookworm")
@@ -1855,7 +1895,8 @@ object AndroidShareHelper {
         quote: String,
         memo: String? = null,
         isEink: Boolean = false,
-        onBack: (() -> Unit)? = null
+        onBack: (() -> Unit)? = null,
+        coverBitmap: Bitmap? = null
     ) {
         showSnsTargetPicker(
             activity = activity,
@@ -1867,7 +1908,7 @@ object AndroidShareHelper {
             isEink = isEink,
             onBack = onBack
         ) { target ->
-            shareQuoteToSns(activity, target, bookTitle, bookAuthor, quote, memo)
+            shareQuoteToSns(activity, target, bookTitle, bookAuthor, quote, memo, coverBitmap)
         }
     }
 
