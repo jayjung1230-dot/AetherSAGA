@@ -1086,25 +1086,24 @@ object AndroidShareHelper {
         borderPaint.color = 0xFFB8B09E.toInt()
         c.drawRect(60f, 60f, w - 60f, h - 60f, borderPaint)
 
-        // Book Cover placement in Top Right (110x156 px)
+        // Book Cover placement in Top Right ([시안 A-2]: 175x248 px)
         val isLocalCover = (coverBitmap == null)
         val coverToDraw: Bitmap = coverBitmap ?: renderTypographicCover(bookTitle, bookAuthor, "")
+        val coverW = 175f
+        val coverH = 248f
+        val coverX = w - 100f - coverW
+        val coverY = 80f
         try {
-            val coverW = 110f
-            val coverH = 156f
-            val coverX = w - 100f - coverW
-            val coverY = 85f
-
             // 1. Soft drop shadow behind cover
             val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = 0x33000000.toInt()
             }
-            c.drawRoundRect(RectF(coverX + 3f, coverY + 4f, coverX + coverW + 3f, coverY + coverH + 4f), 8f, 8f, shadowPaint)
+            c.drawRoundRect(RectF(coverX + 4f, coverY + 6f, coverX + coverW + 4f, coverY + coverH + 6f), 10f, 10f, shadowPaint)
 
             // 2. Rounded cover clipping & draw
             val coverRect = RectF(coverX, coverY, coverX + coverW, coverY + coverH)
             val clipPath = Path().apply {
-                addRoundRect(coverRect, 8f, 8f, Path.Direction.CW)
+                addRoundRect(coverRect, 10f, 10f, Path.Direction.CW)
             }
             c.save()
             c.clipPath(clipPath)
@@ -1117,7 +1116,7 @@ object AndroidShareHelper {
                 color = 0x55888888.toInt()
                 strokeWidth = 1.5f
             }
-            c.drawRoundRect(coverRect, 8f, 8f, coverBorderPaint)
+            c.drawRoundRect(coverRect, 10f, 10f, coverBorderPaint)
         } finally {
             if (isLocalCover && !coverToDraw.isRecycled) {
                 coverToDraw.recycle()
@@ -1131,7 +1130,7 @@ object AndroidShareHelper {
             typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
             letterSpacing = 0.08f
         }
-        c.drawText("Aether SAGA", 100f, 130f, brandPaint)
+        c.drawText("Aether SAGA", 100f, 115f, brandPaint)
 
         val badgePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF888275.toInt()
@@ -1139,14 +1138,14 @@ object AndroidShareHelper {
             typeface = Typeface.create("sans-serif", Typeface.NORMAL)
             letterSpacing = 0.04f
         }
-        c.drawText(L10n.t("독서 노트 스토리 컬렉션", "Reading Notes Story Collection"), 100f, 168f, badgePaint)
+        c.drawText(L10n.t("독서 노트 스토리 컬렉션", "Reading Notes Story Collection"), 100f, 162f, badgePaint)
 
         val bookTitlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF2C2825.toInt()
-            textSize = 32f
+            textSize = 34f
             typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
         }
-        c.drawText(bookTitle.take(24), 100f, 212f, bookTitlePaint)
+        c.drawText(bookTitle.take(22), 100f, 210f, bookTitlePaint)
 
         val unknownAuthor = L10n.t("저자 미상", "Unknown Author")
         val bookAuthorPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -1154,24 +1153,24 @@ object AndroidShareHelper {
             textSize = 24f
             typeface = Typeface.create("sans-serif", Typeface.NORMAL)
         }
-        c.drawText(bookAuthor.ifBlank { unknownAuthor }.take(22), 100f, 248f, bookAuthorPaint)
+        c.drawText(bookAuthor.ifBlank { unknownAuthor }.take(22), 100f, 256f, bookAuthorPaint)
 
-        // Header Divider
+        // Header Divider (stops before cover)
         val rulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFE0DDD5.toInt()
             strokeWidth = 2f
         }
-        c.drawLine(100f, 275f, w - 100f, 275f, rulePaint)
+        c.drawLine(100f, 305f, coverX - 30f, 305f, rulePaint)
 
-        // Content Area: from y = 305f to y = 1810f (~1505px)
+        // Content Area: from y = 350f to y = 1810f (~1460px)
         val contentW = (w - 200).toInt()
         val bundleItems = items.take(4)
         val n = bundleItems.size.coerceAtLeast(1)
-        val slotH = 1505f / n
+        val slotH = 1460f / n
 
         val quoteMarkPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFD4CCBC.toInt()
-            textSize = if (n <= 2) 46f else 38f
+            textSize = if (n <= 2) 54f else 46f
             typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
         }
 
@@ -1183,42 +1182,42 @@ object AndroidShareHelper {
 
         val memoPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF1F5E9C.toInt()
-            textSize = if (n <= 2) 26f else 22f
+            textSize = if (n <= 2) 26f else 23f
             typeface = Typeface.create("sans-serif", Typeface.ITALIC)
         }
 
         val tagPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF8A8274.toInt()
-            textSize = 20f
+            color = 0xFF1F5E9C.toInt()
+            textSize = 21f
             typeface = Typeface.create("sans-serif", Typeface.BOLD)
         }
 
         val slotDividerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFFEAE6DC.toInt()
+            color = 0xFFE2DDD2.toInt()
             strokeWidth = 1.5f
             pathEffect = DashPathEffect(floatArrayOf(10f, 8f), 0f)
         }
 
         for ((idx, item) in bundleItems.withIndex()) {
-            val slotTop = 305f + (idx * slotH)
-            var curY = slotTop + 25f
+            val slotTop = 350f + (idx * slotH)
+            var curY = slotTop + 20f
 
             // Tag or Chapter info
             val tagText = buildString {
                 append(if (item.isBookmark) "🔖 " else "🖍 ")
                 if (!item.chapterTitle.isNullOrBlank()) {
-                    append(item.chapterTitle.take(28))
+                    append(item.chapterTitle.take(30))
                 } else {
                     append(L10n.t("인용구", "Quote"))
                     append(" #${idx + 1}")
                 }
             }
             c.drawText(tagText, 100f, curY, tagPaint)
-            curY += 32f
+            curY += 34f
 
             // Quote Mark
             c.drawText("“", 100f, curY + 6f, quoteMarkPaint)
-            curY += 28f
+            curY += 38f
 
             // Quote Text Layout
             val maxLinesForQuote = if (n <= 2) 8 else (if (n == 3) 5 else 4)
@@ -1273,7 +1272,7 @@ object AndroidShareHelper {
             typeface = Typeface.create("sans-serif", Typeface.NORMAL)
             textAlign = Paint.Align.RIGHT
         }
-        c.drawText("journeys through endless stories", w - 100f, 1865f, footerPaint)
+        c.drawText("journeys through endless stories", w - 100f, 1860f, footerPaint)
 
         val footerCountPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF8A8274.toInt()
@@ -1281,8 +1280,8 @@ object AndroidShareHelper {
             typeface = Typeface.create("sans-serif", Typeface.NORMAL)
             textAlign = Paint.Align.LEFT
         }
-        val countText = L10n.t("총 ${bundleItems.size}개 독서 기록", "${bundleItems.size} Selected Notes")
-        c.drawText(countText, 100f, 1865f, footerCountPaint)
+        val countText = L10n.t("선택된 독서 기록 ${bundleItems.size}건", "${bundleItems.size} Selected Notes")
+        c.drawText(countText, 100f, 1860f, footerCountPaint)
 
         return bmp
     }
@@ -1914,10 +1913,12 @@ object AndroidShareHelper {
         activity.grantUriPermission(igPackage, storyUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
         // 1. Try official Instagram Story Intent ("com.instagram.share.ADD_TO_STORY")
+        // Use clean background asset ONLY (omit interactive_asset_uri to prevent duplicate overlapping sticker)
         val storyIntent = Intent("com.instagram.share.ADD_TO_STORY").apply {
             setDataAndType(storyUri, "image/png")
-            putExtra("interactive_asset_uri", storyUri)
             putExtra("source_application", activity.packageName)
+            putExtra("top_background_color", "#F9F7F1")
+            putExtra("bottom_background_color", "#F9F7F1")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
