@@ -29,6 +29,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
@@ -352,6 +353,13 @@ class ShareFileProvider : ContentProvider() {
 }
 
 object AndroidShareHelper {
+
+    data class SnsQuoteItem(
+        val quote: String,
+        val memo: String? = null,
+        val chapterTitle: String? = null,
+        val isBookmark: Boolean = false
+    )
 
     /**
      * Decodes the book's full-color cover bitmap (from container coverBytes or cached coverPath),
@@ -1049,6 +1057,237 @@ object AndroidShareHelper {
     }
 
     /**
+     * Renders a vertical 9:16 (1080x1920) Story Card bundling up to 4 quotes/bookmarks/notes
+     * for Instagram/Facebook Stories.
+     */
+    fun renderStoryBundleCard(
+        bookTitle: String,
+        bookAuthor: String,
+        items: List<SnsQuoteItem>,
+        coverBitmap: Bitmap? = null
+    ): Bitmap {
+        val w = 1080
+        val h = 1920
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+
+        // Warm elegant paper tone
+        c.drawColor(0xFFF9F7F1.toInt())
+
+        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            color = 0xFFD8D2C2.toInt()
+            strokeWidth = 3f
+        }
+        c.drawRect(48f, 48f, w - 48f, h - 48f, borderPaint)
+
+        borderPaint.strokeWidth = 1.2f
+        borderPaint.color = 0xFFB8B09E.toInt()
+        c.drawRect(60f, 60f, w - 60f, h - 60f, borderPaint)
+
+        // Book Cover placement in Top Right (110x156 px)
+        val isLocalCover = (coverBitmap == null)
+        val coverToDraw: Bitmap = coverBitmap ?: renderTypographicCover(bookTitle, bookAuthor, "")
+        try {
+            val coverW = 110f
+            val coverH = 156f
+            val coverX = w - 100f - coverW
+            val coverY = 85f
+
+            // 1. Soft drop shadow behind cover
+            val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0x33000000.toInt()
+            }
+            c.drawRoundRect(RectF(coverX + 3f, coverY + 4f, coverX + coverW + 3f, coverY + coverH + 4f), 8f, 8f, shadowPaint)
+
+            // 2. Rounded cover clipping & draw
+            val coverRect = RectF(coverX, coverY, coverX + coverW, coverY + coverH)
+            val clipPath = Path().apply {
+                addRoundRect(coverRect, 8f, 8f, Path.Direction.CW)
+            }
+            c.save()
+            c.clipPath(clipPath)
+            c.drawBitmap(coverToDraw, null, coverRect, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+            c.restore()
+
+            // 3. Subtle 1.5px border over cover
+            val coverBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                style = Paint.Style.STROKE
+                color = 0x55888888.toInt()
+                strokeWidth = 1.5f
+            }
+            c.drawRoundRect(coverRect, 8f, 8f, coverBorderPaint)
+        } finally {
+            if (isLocalCover && !coverToDraw.isRecycled) {
+                coverToDraw.recycle()
+            }
+        }
+
+        // Brand & Subtitle
+        val brandPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF1F5E9C.toInt()
+            textSize = 34f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            letterSpacing = 0.08f
+        }
+        c.drawText("Aether SAGA", 100f, 130f, brandPaint)
+
+        val badgePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF888275.toInt()
+            textSize = 22f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+            letterSpacing = 0.04f
+        }
+        c.drawText(L10n.t("독서 노트 스토리 컬렉션", "Reading Notes Story Collection"), 100f, 168f, badgePaint)
+
+        val bookTitlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF2C2825.toInt()
+            textSize = 32f
+            typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+        }
+        c.drawText(bookTitle.take(24), 100f, 212f, bookTitlePaint)
+
+        val unknownAuthor = L10n.t("저자 미상", "Unknown Author")
+        val bookAuthorPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF7A7468.toInt()
+            textSize = 24f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        c.drawText(bookAuthor.ifBlank { unknownAuthor }.take(22), 100f, 248f, bookAuthorPaint)
+
+        // Header Divider
+        val rulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFE0DDD5.toInt()
+            strokeWidth = 2f
+        }
+        c.drawLine(100f, 275f, w - 100f, 275f, rulePaint)
+
+        // Content Area: from y = 305f to y = 1810f (~1505px)
+        val contentW = (w - 200).toInt()
+        val bundleItems = items.take(4)
+        val n = bundleItems.size.coerceAtLeast(1)
+        val slotH = 1505f / n
+
+        val quoteMarkPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFD4CCBC.toInt()
+            textSize = if (n <= 2) 46f else 38f
+            typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+        }
+
+        val quoteTextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF2C2825.toInt()
+            textSize = if (n <= 2) 32f else (if (n == 3) 28f else 25f)
+            typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
+        }
+
+        val memoPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF1F5E9C.toInt()
+            textSize = if (n <= 2) 26f else 22f
+            typeface = Typeface.create("sans-serif", Typeface.ITALIC)
+        }
+
+        val tagPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF8A8274.toInt()
+            textSize = 20f
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        }
+
+        val slotDividerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFEAE6DC.toInt()
+            strokeWidth = 1.5f
+            pathEffect = DashPathEffect(floatArrayOf(10f, 8f), 0f)
+        }
+
+        for ((idx, item) in bundleItems.withIndex()) {
+            val slotTop = 305f + (idx * slotH)
+            var curY = slotTop + 25f
+
+            // Tag or Chapter info
+            val tagText = buildString {
+                append(if (item.isBookmark) "🔖 " else "🖍 ")
+                if (!item.chapterTitle.isNullOrBlank()) {
+                    append(item.chapterTitle.take(28))
+                } else {
+                    append(L10n.t("인용구", "Quote"))
+                    append(" #${idx + 1}")
+                }
+            }
+            c.drawText(tagText, 100f, curY, tagPaint)
+            curY += 32f
+
+            // Quote Mark
+            c.drawText("“", 100f, curY + 6f, quoteMarkPaint)
+            curY += 28f
+
+            // Quote Text Layout
+            val maxLinesForQuote = if (n <= 2) 8 else (if (n == 3) 5 else 4)
+            val quoteLayout = StaticLayout.Builder.obtain(item.quote.trim(), 0, item.quote.trim().length, quoteTextPaint, contentW)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setLineSpacing(if (n <= 2) 6f else 4f, 1.18f)
+                .setMaxLines(maxLinesForQuote)
+                .setEllipsize(android.text.TextUtils.TruncateAt.END)
+                .build()
+
+            c.save()
+            c.translate(100f, curY)
+            quoteLayout.draw(c)
+            c.restore()
+
+            curY += quoteLayout.height + 15f
+
+            // Memo / Note
+            if (!item.memo.isNullOrBlank()) {
+                val memoRulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = 0xFF1F5E9C.toInt()
+                    strokeWidth = 3f
+                }
+                c.drawLine(100f, curY, 100f, curY + 36f, memoRulePaint)
+
+                val memoFull = "  ${L10n.t("메모: ", "Note: ")}${item.memo.trim().take(80)}"
+                val memoLayout = StaticLayout.Builder.obtain(memoFull, 0, memoFull.length, memoPaint, contentW - 20)
+                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                    .setMaxLines(2)
+                    .setEllipsize(android.text.TextUtils.TruncateAt.END)
+                    .build()
+
+                c.save()
+                c.translate(110f, curY + 2f)
+                memoLayout.draw(c)
+                c.restore()
+            }
+
+            // Divider between items (if not last)
+            if (idx < bundleItems.size - 1) {
+                val divY = slotTop + slotH - 8f
+                c.drawLine(120f, divY, w - 120f, divY, slotDividerPaint)
+            }
+        }
+
+        // Footer
+        c.drawLine(100f, 1830f, w - 100f, 1830f, rulePaint)
+
+        val footerPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF8A8274.toInt()
+            textSize = 22f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+            textAlign = Paint.Align.RIGHT
+        }
+        c.drawText("journeys through endless stories", w - 100f, 1865f, footerPaint)
+
+        val footerCountPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF8A8274.toInt()
+            textSize = 22f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+            textAlign = Paint.Align.LEFT
+        }
+        val countText = L10n.t("총 ${bundleItems.size}개 독서 기록", "${bundleItems.size} Selected Notes")
+        c.drawText(countText, 100f, 1865f, footerCountPaint)
+
+        return bmp
+    }
+
+
+    /**
      * Renders a stylish Reading Stats Card bitmap (1080x1080) for SNS feed sharing.
      */
     fun renderStatsCard(
@@ -1335,23 +1574,61 @@ object AndroidShareHelper {
         memo: String? = null,
         coverBitmap: Bitmap? = null
     ) {
+        shareQuotesToSns(
+            activity = activity,
+            target = target,
+            bookTitle = bookTitle,
+            bookAuthor = bookAuthor,
+            items = listOf(SnsQuoteItem(quote = quote, memo = memo)),
+            coverBitmap = coverBitmap
+        )
+    }
+
+    fun shareQuotesToSns(
+        activity: Activity,
+        target: SnsTarget,
+        bookTitle: String,
+        bookAuthor: String,
+        items: List<SnsQuoteItem>,
+        coverBitmap: Bitmap? = null,
+        isEink: Boolean = false
+    ) {
+        if (items.isEmpty()) return
+
+        // 1. Gallery Save
         if (target == SnsTarget.SAVE_IMAGE) {
-            val cardBmp = renderQuoteCard(bookTitle, bookAuthor, quote, memo, coverBitmap)
-            val ok = saveCardToGallery(activity, cardBmp, "AetherSAGA_Quote")
-            if (ok) {
-                Toast.makeText(activity, L10n.t("독서 카드가 갤러리(Pictures/AetherSAGA)에 저장되었습니다. 💾", "Reading card saved to Gallery (Pictures/AetherSAGA). 💾"), Toast.LENGTH_SHORT).show()
+            val saveLimit = 10
+            val sendItems = items.take(saveLimit)
+            var savedCount = 0
+            for ((idx, item) in sendItems.withIndex()) {
+                val cardBmp = renderQuoteCard(bookTitle, bookAuthor, item.quote, item.memo, coverBitmap)
+                val suffix = if (sendItems.size > 1) String.format("_%02d", idx + 1) else ""
+                val ok = saveCardToGallery(activity, cardBmp, "AetherSAGA_Quote$suffix")
+                if (ok) savedCount++
+                cardBmp.recycle()
+            }
+            if (savedCount > 0) {
+                val msg = if (savedCount > 1) {
+                    L10n.t("독서 카드 ${savedCount}장이 갤러리(Pictures/AetherSAGA)에 저장되었습니다. 💾", "Saved $savedCount reading cards to Gallery (Pictures/AetherSAGA). 💾")
+                } else {
+                    L10n.t("독서 카드가 갤러리(Pictures/AetherSAGA)에 저장되었습니다. 💾", "Reading card saved to Gallery (Pictures/AetherSAGA). 💾")
+                }
+                Toast.makeText(activity, msg, Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(activity, L10n.t("이미지 저장에 실패했습니다.", "Failed to save image."), Toast.LENGTH_SHORT).show()
             }
             return
         }
 
+        // 2. SMS / MMS
         if (target == SnsTarget.SMS) {
-            val cardBmp = renderQuoteCard(bookTitle, bookAuthor, quote, memo, coverBitmap)
+            val firstItem = items.first()
+            val cardBmp = renderQuoteCard(bookTitle, bookAuthor, firstItem.quote, firstItem.memo, coverBitmap)
             val cardUri = prepareSnsCardUri(activity, cardBmp, "AetherSAGA_Quote_Card.png")
             val authorPart = bookAuthor.ifBlank { L10n.t("저자 미상", "Unknown Author") }
-            val shareText = "📖 $bookTitle ($authorPart)\n\n\"${quote.take(180)}\"\n\n- Aether SAGA"
+            val shareText = "📖 $bookTitle ($authorPart)\n\n\"${firstItem.quote.take(180)}\"\n\n- Aether SAGA"
             dispatchSmsIntent(activity, shareText, cardUri)
+            cardBmp.recycle()
             return
         }
 
@@ -1360,12 +1637,63 @@ object AndroidShareHelper {
             return
         }
 
-        val cardBmp = renderQuoteCard(bookTitle, bookAuthor, quote, memo, coverBitmap)
-        val cardUri = prepareSnsCardUri(activity, cardBmp, "AetherSAGA_Quote_Card.png")
+        // 3. Instagram: Offer Story (max 4 bundled into 1) vs Feed (multi-card slides up to 10)
+        if (target == SnsTarget.INSTAGRAM) {
+            showInstagramModeChooser(
+                activity = activity,
+                itemsCount = items.size,
+                isEink = isEink,
+                onStoryChosen = {
+                    val storyItems = items.take(4)
+                    val storyBmp = renderStoryBundleCard(bookTitle, bookAuthor, storyItems, coverBitmap)
+                    val storyUri = prepareSnsCardUri(activity, storyBmp, "AetherSAGA_Story.png")
+                    if (storyUri != null) {
+                        dispatchInstagramStoryIntent(activity, storyUri)
+                    }
+                    storyBmp.recycle()
+                },
+                onFeedChosen = {
+                    val feedLimit = 10
+                    val feedItems = items.take(feedLimit)
+                    val uris = ArrayList<Uri>()
+                    for ((idx, item) in feedItems.withIndex()) {
+                        val cardBmp = renderQuoteCard(bookTitle, bookAuthor, item.quote, item.memo, coverBitmap)
+                        val uri = prepareSnsCardUri(activity, cardBmp, "AetherSAGA_Quote_${idx + 1}.png")
+                        if (uri != null) uris.add(uri)
+                        cardBmp.recycle()
+                    }
+                    val authorPart = bookAuthor.ifBlank { L10n.t("저자 미상", "Unknown Author") }
+                    val hashPart = L10n.t("#독서 #책스타그램", "#Reading #Bookworm")
+                    val shareText = "📖 $bookTitle ($authorPart)\n\n\"${feedItems.first().quote.take(180)}\"\n\n#AetherSAGA $hashPart"
+                    dispatchSnsMultipleIntent(activity, SnsTarget.INSTAGRAM, shareText, uris)
+                }
+            )
+            return
+        }
+
+        // 4. Other Social Targets (X, Facebook, Threads, KakaoTalk)
+        val platformLimit = when (target) {
+            SnsTarget.X -> 4
+            else -> 10
+        }
+        val sendItems = items.take(platformLimit)
+        val uris = ArrayList<Uri>()
+        for ((idx, item) in sendItems.withIndex()) {
+            val cardBmp = renderQuoteCard(bookTitle, bookAuthor, item.quote, item.memo, coverBitmap)
+            val uri = prepareSnsCardUri(activity, cardBmp, "AetherSAGA_Quote_${idx + 1}.png")
+            if (uri != null) uris.add(uri)
+            cardBmp.recycle()
+        }
+
         val authorPart = bookAuthor.ifBlank { L10n.t("저자 미상", "Unknown Author") }
         val hashPart = L10n.t("#독서 #책스타그램", "#Reading #Bookworm")
-        val shareText = "📖 $bookTitle ($authorPart)\n\n\"${quote.take(180)}\"\n\n#AetherSAGA $hashPart"
-        dispatchSnsIntent(activity, target, shareText, cardUri)
+        val shareText = "📖 $bookTitle ($authorPart)\n\n\"${sendItems.first().quote.take(180)}\"\n\n#AetherSAGA $hashPart"
+
+        if (uris.size == 1) {
+            dispatchSnsIntent(activity, target, shareText, uris[0])
+        } else {
+            dispatchSnsMultipleIntent(activity, target, shareText, uris)
+        }
     }
 
     fun shareStatsToSns(
@@ -1407,6 +1735,277 @@ object AndroidShareHelper {
         val hashPart = L10n.t("#독서기록 #독서통계", "#ReadingLog #BookStats")
         val shareText = "📊 [AetherSAGA] $statsHeader ($periodName)\n$summary\n\n#AetherSAGA $hashPart"
         dispatchSnsIntent(activity, target, shareText, cardUri)
+    }
+
+
+    private fun showInstagramModeChooser(
+        activity: Activity,
+        itemsCount: Int,
+        isEink: Boolean,
+        onStoryChosen: () -> Unit,
+        onFeedChosen: () -> Unit
+    ) {
+        val inkCol = ReaderTheme.EINK_INK
+        val cardBgCol = ReaderTheme.EINK_CARD_BG
+        val borderCol = if (isEink) ReaderTheme.EINK_BORDER_CONTRAST else ReaderTheme.EINK_BORDER
+        val strokeW = if (isEink) activity.dp(2) else activity.dp(1)
+        val mutedCol = ReaderTheme.EINK_MUTED
+
+        val root = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(activity.dp(18), activity.dp(16), activity.dp(18), activity.dp(16))
+        }
+
+        val subTv = TextView(activity).apply {
+            text = L10n.t(
+                "인스타그램에서 공유할 방식을 선택하세요.",
+                "Choose how to share on Instagram."
+            )
+            setPtSize(8.4f)
+            setTextColor(mutedCol)
+            setPadding(0, 0, 0, activity.dp(12))
+        }
+        root.addView(subTv)
+
+        val listCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = cardDrawable(cardBgCol, 8, borderCol, strokeW)
+            setPadding(activity.dp(8), activity.dp(6), activity.dp(8), activity.dp(6))
+        }
+
+        lateinit var dlg: AlertDialog
+
+        // 1. Stories option (max 4 items bundled)
+        val storyRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isClickable = true
+            isFocusable = true
+            background = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+                cornerRadius = activity.dp(6).toFloat()
+            }
+            setPadding(activity.dp(10), activity.dp(12), activity.dp(10), activity.dp(12))
+            setOnClickListener {
+                dlg.dismiss()
+                onStoryChosen()
+            }
+        }
+        val storyIcon = ImageView(activity).apply {
+            setImageDrawable(getSnsAppIcon(activity, SnsTarget.INSTAGRAM))
+            scaleType = ImageView.ScaleType.FIT_CENTER
+        }
+        storyRow.addView(storyIcon, LinearLayout.LayoutParams(activity.dp(38), activity.dp(38)))
+
+        val storyCol = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(activity.dp(12), 0, 0, 0)
+        }
+        val storyTitleTv = TextView(activity).apply {
+            text = L10n.t("✨ 스토리 (Story) - 1장 종합 카드", "✨ Stories (1 Bundled Card)")
+            setPtSize(9.2f)
+            typeface = ReaderTheme.uiFontBold
+            setTextColor(inkCol)
+        }
+        val storySubTv = TextView(activity).apply {
+            val countNotice = if (itemsCount > 1) {
+                L10n.t("선택한 문장 최대 4건을 9:16 세로형 1장 카드로 묶어 업로드", "Bundle up to 4 quotes into 1 vertical story card")
+            } else {
+                L10n.t("9:16 세로형 감성 독서 카드로 스토리에 업로드", "Upload as 9:16 vertical card to Stories")
+            }
+            text = countNotice
+            setPtSize(7.6f)
+            setTextColor(0xFF1F5E9C.toInt())
+        }
+        storyCol.addView(storyTitleTv)
+        storyCol.addView(storySubTv)
+        storyRow.addView(storyCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+
+        val storyChevron = TextView(activity).apply {
+            text = "›"
+            setPtSize(13f)
+            setTextColor(mutedCol)
+        }
+        storyRow.addView(storyChevron)
+        listCard.addView(storyRow)
+
+        // Divider
+        listCard.addView(View(activity).apply {
+            setBackgroundColor(borderCol)
+            layoutParams = LinearLayout.LayoutParams(-1, activity.dp(1)).apply {
+                setMargins(activity.dp(8), 0, activity.dp(8), 0)
+            }
+        })
+
+        // 2. Feed option (multi-card carousel)
+        val feedRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isClickable = true
+            isFocusable = true
+            background = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+                cornerRadius = activity.dp(6).toFloat()
+            }
+            setPadding(activity.dp(10), activity.dp(12), activity.dp(10), activity.dp(12))
+            setOnClickListener {
+                dlg.dismiss()
+                onFeedChosen()
+            }
+        }
+        val feedIcon = ImageView(activity).apply {
+            setImageDrawable(getSnsAppIcon(activity, SnsTarget.INSTAGRAM))
+            scaleType = ImageView.ScaleType.FIT_CENTER
+        }
+        feedRow.addView(feedIcon, LinearLayout.LayoutParams(activity.dp(38), activity.dp(38)))
+
+        val feedCol = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(activity.dp(12), 0, 0, 0)
+        }
+        val feedTitleTv = TextView(activity).apply {
+            val titleStr = if (itemsCount > 1) {
+                L10n.t("📸 피드 (Feed) - 여러 장 슬라이드", "📸 Feed (Multi-Card Carousel)")
+            } else {
+                L10n.t("📸 피드 (Feed) - 1:1 정사각형 카드", "📸 Feed (1:1 Square Card)")
+            }
+            text = titleStr
+            setPtSize(9.2f)
+            typeface = ReaderTheme.uiFontBold
+            setTextColor(inkCol)
+        }
+        val feedSubTv = TextView(activity).apply {
+            val countNotice = if (itemsCount > 1) {
+                L10n.t("선택한 문장 ${minOf(itemsCount, 10)}건을 개별 카드로 슬라이드 등록", "Upload up to ${minOf(itemsCount, 10)} cards as feed carousel")
+            } else {
+                L10n.t("1080x1080 고해상도 정사각형 카드로 피드에 게시", "Post 1080x1080 square card to feed")
+            }
+            text = countNotice
+            setPtSize(7.6f)
+            setTextColor(0xFF1F5E9C.toInt())
+        }
+        feedCol.addView(feedTitleTv)
+        feedCol.addView(feedSubTv)
+        feedRow.addView(feedCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+
+        val feedChevron = TextView(activity).apply {
+            text = "›"
+            setPtSize(13f)
+            setTextColor(mutedCol)
+        }
+        feedRow.addView(feedChevron)
+        listCard.addView(feedRow)
+
+        root.addView(listCard)
+
+        dlg = AlertDialog.Builder(activity)
+            .setTitle(L10n.t("Instagram 공유 방식 선택", "Select Instagram Share Mode"))
+            .setView(root)
+            .create()
+        dlg.showWithOptimalWidth(activity)
+    }
+
+    private fun dispatchInstagramStoryIntent(
+        activity: Activity,
+        storyUri: Uri
+    ) {
+        val igPackage = "com.instagram.android"
+        activity.grantUriPermission(igPackage, storyUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+        // 1. Try official Instagram Story Intent ("com.instagram.share.ADD_TO_STORY")
+        val storyIntent = Intent("com.instagram.share.ADD_TO_STORY").apply {
+            setDataAndType(storyUri, "image/png")
+            putExtra("interactive_asset_uri", storyUri)
+            putExtra("source_application", activity.packageName)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        val pm = activity.packageManager
+        if (pm.resolveActivity(storyIntent, 0) != null) {
+            activity.startActivity(storyIntent)
+            return
+        }
+
+        // 2. Fallback: Query ACTION_SEND activities in Instagram looking for Story handler
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            setPackage(igPackage)
+            type = "image/png"
+            putExtra(Intent.EXTRA_STREAM, storyUri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val resolveInfos = pm.queryIntentActivities(sendIntent, 0)
+        val storyRi = resolveInfos.find {
+            it.activityInfo.name.contains("Story", ignoreCase = true) ||
+            it.loadLabel(pm).toString().contains("Story", ignoreCase = true) ||
+            it.loadLabel(pm).toString().contains("스토리", ignoreCase = true)
+        }
+
+        if (storyRi != null) {
+            sendIntent.setClassName(storyRi.activityInfo.packageName, storyRi.activityInfo.name)
+            activity.startActivity(sendIntent)
+        } else if (resolveInfos.isNotEmpty()) {
+            showSnsHandlerChooserDialog(activity, SnsTarget.INSTAGRAM, resolveInfos, sendIntent)
+        } else {
+            activity.startActivity(sendIntent)
+        }
+    }
+
+    private fun dispatchSnsMultipleIntent(
+        activity: Activity,
+        target: SnsTarget,
+        shareText: String,
+        cardUris: ArrayList<Uri>
+    ) {
+        if (cardUris.isEmpty()) return
+        if (cardUris.size == 1) {
+            dispatchSnsIntent(activity, target, shareText, cardUris[0])
+            return
+        }
+
+        val targetPackage = if (target == SnsTarget.X) {
+            val pm = activity.packageManager
+            try {
+                pm.getPackageInfo("com.twitter.android", 0)
+                "com.twitter.android"
+            } catch (_: Throwable) {
+                "com.twitter.android.lite"
+            }
+        } else {
+            target.androidPackage
+        }
+
+        try {
+            for (uri in cardUris) {
+                activity.grantUriPermission(targetPackage, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                setPackage(targetPackage)
+                type = "image/png"
+                putParcelableArrayListExtra(Intent.EXTRA_STREAM, cardUris)
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            val resolveInfos = activity.packageManager.queryIntentActivities(intent, 0)
+            if (resolveInfos.size > 1) {
+                showSnsHandlerChooserDialog(activity, target, resolveInfos, intent)
+            } else if (resolveInfos.size == 1) {
+                intent.setClassName(resolveInfos[0].activityInfo.packageName, resolveInfos[0].activityInfo.name)
+                activity.startActivity(intent)
+            } else {
+                activity.startActivity(intent)
+            }
+        } catch (e: Exception) {
+            try {
+                dispatchSnsIntent(activity, target, shareText, cardUris[0])
+            } catch (_: Throwable) {
+                Toast.makeText(activity, "${target.title} 공유 중 오류가 발생했습니다: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun dispatchSmsIntent(activity: Activity, shareText: String, cardUri: Uri?) {
@@ -1898,17 +2497,51 @@ object AndroidShareHelper {
         onBack: (() -> Unit)? = null,
         coverBitmap: Bitmap? = null
     ) {
-        showSnsTargetPicker(
+        showSnsShareDialog(
             activity = activity,
-            dialogTitle = L10n.t("📱 독서 카드 저장 및 SNS 공유", "📱 Save Card & Share to SNS"),
-            subtitle = L10n.t(
+            bookTitle = bookTitle,
+            bookAuthor = bookAuthor,
+            items = listOf(SnsQuoteItem(quote = quote, memo = memo)),
+            isEink = isEink,
+            onBack = onBack,
+            coverBitmap = coverBitmap
+        )
+    }
+
+    fun showSnsShareDialog(
+        activity: Activity,
+        bookTitle: String,
+        bookAuthor: String,
+        items: List<SnsQuoteItem>,
+        isEink: Boolean = false,
+        onBack: (() -> Unit)? = null,
+        coverBitmap: Bitmap? = null
+    ) {
+        if (items.isEmpty()) return
+        val countMsg = if (items.size > 1) {
+            L10n.t(" (선택 ${items.size}건)", " (${items.size} items)")
+        } else ""
+
+        val subtitle = if (items.size > 1) {
+            L10n.t(
+                "선택한 문장 ${items.size}건을 공유합니다. 스토리는 최대 4건을 1장으로 묶고, 피드/갤러리는 여러 장 슬라이드로 공유합니다.",
+                "Sharing ${items.size} selected quotes. Stories bundles up to 4 items in 1 card; Feed & Gallery share multi-card slides."
+            )
+        } else {
+            L10n.t(
                 "원하는 저장 또는 공유 방식을 선택하세요. 본문 인용구와 도서 정보가 담긴 고해상도(1080x1080) 독서 카드가 생성됩니다.",
                 "Select a save or share method. A high-resolution (1080x1080) reading card with your quote and book info will be created."
-            ),
+            )
+        }
+
+        showSnsTargetPicker(
+            activity = activity,
+            dialogTitle = L10n.t("📱 독서 카드 저장 및 SNS 공유$countMsg", "📱 Save Card & Share to SNS$countMsg"),
+            subtitle = subtitle,
             isEink = isEink,
             onBack = onBack
         ) { target ->
-            shareQuoteToSns(activity, target, bookTitle, bookAuthor, quote, memo, coverBitmap)
+            shareQuotesToSns(activity, target, bookTitle, bookAuthor, items, coverBitmap, isEink)
         }
     }
 

@@ -629,15 +629,19 @@ fun Activity.showReadingNotesShareDialog(
             Toast.makeText(this, L10n.t("공유할 문장이나 하이라이트/북마크를 1개 이상 선택해주세요", "Please select at least one quote or note"), Toast.LENGTH_SHORT).show()
         } else {
             dlg.dismiss()
-            val targetItem = selected.first()
-            val targetQuote = targetItem.quote
-            val targetMemo = targetItem.note.ifBlank { null }
+            val quoteItems = selected.map { h ->
+                AndroidShareHelper.SnsQuoteItem(
+                    quote = h.quote,
+                    memo = h.note.ifBlank { null },
+                    chapterTitle = h.chapterTitle.ifBlank { null },
+                    isBookmark = (h.kind == 1)
+                )
+            }
             AndroidShareHelper.showSnsShareDialog(
-                this,
-                resolvedTitle,
-                resolvedAuthor,
-                targetQuote,
-                targetMemo,
+                activity = this,
+                bookTitle = resolvedTitle,
+                bookAuthor = resolvedAuthor,
+                items = quoteItems,
                 isEink = !isLcd,
                 onBack = { showReadingNotesShareDialog(app, book, highlights, totalChapters, rawCoverBytes, isLcd, initialQuote, onBack) },
                 coverBitmap = coverBmp

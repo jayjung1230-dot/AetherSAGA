@@ -27,6 +27,7 @@ Thumbs.db
 ehthumbs.db
 
 # Temporary scratch and test artifacts
+scratch/
 scratch_test*.py
 scratch_preview.png
 crash.log
