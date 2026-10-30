@@ -55,7 +55,7 @@ Transform your favorite reading moments into beautifully styled, high-resolution
 * **Smart Multi-Quote Social Dispatch (Story vs. Feed)**:
   * **Story Mode**: Automatically bundles up to 4 selected highlights into a single cohesive 9:16 vertical reading story card (1080×1920) for Instagram Stories.
   * **Feed / Social Carousel**: Automatically generates individual 1:1 quote cards and dispatches multi-image carousels tailored to each platform's limit (up to 10 for Instagram/Facebook/Threads, up to 4 for X/Twitter) or saves all cards to your local gallery.
-* **Reading Milestone Cards**: Share your reading streaks (🔥), total reading hours, weekly books completed, and habit trends directly to **Instagram Stories, Twitter/X, social messengers**, or save directly to your gallery.
+* **Rich Reading Milestone & Stats Sharing**: Share comprehensive infographics reflecting your real-time reading stats and live interactive trend charts/graphs. Choose between **Instagram Story (9:16 vertical infographic report)** or **Instagram Feed (1:1 square card)**, or export to Twitter/X, social messengers, or local gallery with direct feed-launch and clean single-asset story support.
 
 ### ⚡ 3. Bifurcation Display Architecture (Hardware-Aware)
 A dual-rendering pipeline that adapts precisely to your display hardware:

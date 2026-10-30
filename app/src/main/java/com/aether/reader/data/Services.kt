@@ -30,6 +30,7 @@ import android.graphics.Color
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.DashPathEffect
+import android.graphics.PointF
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
@@ -353,6 +354,27 @@ class ShareFileProvider : ContentProvider() {
 }
 
 object AndroidShareHelper {
+
+    data class StatsChartPoint(
+        val label: String,
+        val value: Int,
+        val displayValue: String = ""
+    )
+
+    data class StatsSharePayload(
+        val periodName: String,
+        val periodSubLabel: String,
+        val totalLabel: String,
+        val totalValue: String,
+        val streakText: String,
+        val dailyAvgText: String,
+        val metricUnit: String,
+        val points: List<StatsChartPoint>,
+        val yMax: Int,
+        val insightText: String,
+        val completedBooksSummary: List<String> = emptyList(),
+        val highlightQuote: String? = null
+    )
 
     data class SnsQuoteItem(
         val quote: String,
@@ -1288,6 +1310,629 @@ object AndroidShareHelper {
 
 
     /**
+     * Renders a 1:1 square (1080x1080) Reading Stats Card including the active chart/graph.
+     */
+    fun renderStatsCard(payload: StatsSharePayload): Bitmap {
+        val w = 1080
+        val h = 1080
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+
+        c.drawColor(0xFFF8FAFC.toInt())
+
+        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            color = 0xFFE2E8F0.toInt()
+            strokeWidth = 2f
+        }
+        c.drawRect(40f, 40f, w - 40f, h - 40f, borderPaint)
+
+        borderPaint.color = 0xFFCBD5E1.toInt()
+        borderPaint.strokeWidth = 1f
+        c.drawRect(50f, 50f, w - 50f, h - 50f, borderPaint)
+
+        // 1. Header
+        val brandPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF1F5E9C.toInt()
+            textSize = 30f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            letterSpacing = 0.06f
+        }
+        c.drawText("Aether SAGA", 80f, 95f, brandPaint)
+
+        val titlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF0F172A.toInt()
+            textSize = 34f
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        }
+        c.drawText(payload.periodName, 80f, 140f, titlePaint)
+
+        val subPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF64748B.toInt()
+            textSize = 21f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        c.drawText(payload.periodSubLabel.take(45), 80f, 175f, subPaint)
+
+        val rulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFE2E8F0.toInt()
+            strokeWidth = 2f
+        }
+        c.drawLine(80f, 200f, w - 80f, 200f, rulePaint)
+
+        // 2. Metrics Row (3 cards)
+        val cardW = (w - 160f - 40f) / 3f
+        val cardH = 105f
+        val cardBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
+        }
+        val cardBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFE2E8F0.toInt()
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f
+        }
+
+        val cardLblPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF64748B.toInt()
+            textSize = 20f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        val cardValPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = 28f
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        }
+
+        val c1x = 80f
+        val cy = 218f
+        c.drawRoundRect(RectF(c1x, cy, c1x + cardW, cy + cardH), 10f, 10f, cardBgPaint)
+        c.drawRoundRect(RectF(c1x, cy, c1x + cardW, cy + cardH), 10f, 10f, cardBorderPaint)
+        c.drawText(payload.totalLabel.take(10), c1x + 16f, cy + 34f, cardLblPaint)
+        cardValPaint.color = 0xFF1F5E9C.toInt()
+        c.drawText(payload.totalValue.take(12), c1x + 16f, cy + 80f, cardValPaint)
+
+        val c2x = 80f + cardW + 20f
+        c.drawRoundRect(RectF(c2x, cy, c2x + cardW, cy + cardH), 10f, 10f, cardBgPaint)
+        c.drawRoundRect(RectF(c2x, cy, c2x + cardW, cy + cardH), 10f, 10f, cardBorderPaint)
+        c.drawText(L10n.t("완독 도서", "Completed"), c2x + 16f, cy + 34f, cardLblPaint)
+        cardValPaint.color = 0xFF059669.toInt()
+        val compCountStr = if (payload.completedBooksSummary.isNotEmpty()) "${payload.completedBooksSummary.size}권" else "0권"
+        c.drawText(compCountStr, c2x + 16f, cy + 80f, cardValPaint)
+
+        val c3x = 80f + (cardW + 20f) * 2f
+        c.drawRoundRect(RectF(c3x, cy, c3x + cardW, cy + cardH), 10f, 10f, cardBgPaint)
+        c.drawRoundRect(RectF(c3x, cy, c3x + cardW, cy + cardH), 10f, 10f, cardBorderPaint)
+        c.drawText(L10n.t("연속 독서", "Streak"), c3x + 16f, cy + 34f, cardLblPaint)
+        cardValPaint.color = 0xFFD97706.toInt()
+        c.drawText(payload.streakText.take(10), c3x + 16f, cy + 80f, cardValPaint)
+
+        // 3. Chart Container Card (y: 345, h: 370)
+        val chartY = 345f
+        val chartH = 370f
+        c.drawRoundRect(RectF(80f, chartY, w - 80f, chartY + chartH), 12f, 12f, cardBgPaint)
+        c.drawRoundRect(RectF(80f, chartY, w - 80f, chartY + chartH), 12f, 12f, cardBorderPaint)
+
+        val chartHeaderPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF1E293B.toInt()
+            textSize = 22f
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        }
+        c.drawText(L10n.t("📈 독서 추이 (${payload.metricUnit})", "📈 Trend (${payload.metricUnit})"), 105f, chartY + 36f, chartHeaderPaint)
+
+        if (payload.dailyAvgText.isNotBlank()) {
+            val avgPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF64748B.toInt()
+                textSize = 20f
+                typeface = Typeface.create("sans-serif", Typeface.BOLD)
+                textAlign = Paint.Align.RIGHT
+            }
+            c.drawText(payload.dailyAvgText, w - 105f, chartY + 36f, avgPaint)
+        }
+
+        val sepLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFF1F5F9.toInt()
+            strokeWidth = 1f
+        }
+        c.drawLine(105f, chartY + 55f, w - 105f, chartY + 55f, sepLinePaint)
+
+        // Draw Chart (Bars + Trend line)
+        val pts = payload.points
+        if (pts.isNotEmpty()) {
+            val plotX = 120f
+            val plotY = chartY + 85f
+            val plotW = w - 240f
+            val plotH = 200f
+            val maxV = if (payload.yMax > 0) payload.yMax.toFloat() else 10f
+            val stepX = if (pts.size > 1) plotW / (pts.size - 1) else plotW
+            val barW = (plotW / (pts.size * 2f)).coerceIn(16f, 44f)
+
+            for (gy in floatArrayOf(0.25f, 0.5f, 0.75f, 1.0f)) {
+                val glY = plotY + plotH - (plotH * gy)
+                c.drawLine(plotX, glY, plotX + plotW, glY, sepLinePaint)
+            }
+
+            val barPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+            val valTextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF1E293B.toInt()
+                textSize = 15f
+                typeface = Typeface.DEFAULT_BOLD
+                textAlign = Paint.Align.CENTER
+            }
+            val lblTextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF475569.toInt()
+                textSize = 18f
+                typeface = Typeface.DEFAULT_BOLD
+                textAlign = Paint.Align.CENTER
+            }
+
+            val trendPoints = ArrayList<PointF>()
+            for ((i, p) in pts.withIndex()) {
+                val bx = plotX + (i * stepX)
+                val bh = (plotH * (p.value.toFloat() / maxV)).coerceAtLeast(0f)
+                val by = plotY + plotH - bh
+
+                barPaint.color = if (i >= pts.size - 2) 0xFFBFDBFE.toInt() else 0xFFE2E8F0.toInt()
+                c.drawRoundRect(RectF(bx - barW / 2f, by, bx + barW / 2f, plotY + plotH), 6f, 6f, barPaint)
+
+                if (p.value > 0) {
+                    val displayStr = if (p.displayValue.isNotBlank()) p.displayValue else "${p.value}"
+                    c.drawText(displayStr, bx, by - 8f, valTextPaint)
+                }
+
+                c.drawText(p.label, bx, plotY + plotH + 24f, lblTextPaint)
+                trendPoints.add(PointF(bx, by))
+            }
+
+            val trendPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF1F5E9C.toInt()
+                strokeWidth = 3f
+                style = Paint.Style.STROKE
+            }
+            val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                style = Paint.Style.FILL
+            }
+            val dotBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF1F5E9C.toInt()
+                strokeWidth = 2f
+                style = Paint.Style.STROKE
+            }
+            for (i in 0 until trendPoints.size - 1) {
+                c.drawLine(trendPoints[i].x, trendPoints[i].y, trendPoints[i+1].x, trendPoints[i+1].y, trendPaint)
+                c.drawCircle(trendPoints[i].x, trendPoints[i].y, 4f, dotPaint)
+                c.drawCircle(trendPoints[i].x, trendPoints[i].y, 4f, dotBorderPaint)
+            }
+            if (trendPoints.isNotEmpty()) {
+                val lastPt = trendPoints.last()
+                c.drawCircle(lastPt.x, lastPt.y, 4f, dotPaint)
+                c.drawCircle(lastPt.x, lastPt.y, 4f, dotBorderPaint)
+            }
+        }
+
+        // 4. Insight Box (y: 735, h: 140)
+        val insY = 735f
+        val insH = 140f
+        val insBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFEFF6FF.toInt()
+            style = Paint.Style.FILL
+        }
+        val insBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFBFDBFE.toInt()
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f
+        }
+        c.drawRoundRect(RectF(80f, insY, w - 80f, insY + insH), 10f, 10f, insBgPaint)
+        c.drawRoundRect(RectF(80f, insY, w - 80f, insY + insH), 10f, 10f, insBorderPaint)
+
+        val insHeaderPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF1F5E9C.toInt()
+            textSize = 21f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        c.drawText(L10n.t("💡 독서 습관 인사이트", "💡 Reading Habit Insights"), 105f, insY + 34f, insHeaderPaint)
+
+        val insTextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF1E293B.toInt()
+            textSize = 21f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        val insClean = payload.insightText.ifBlank { L10n.t("꾸준한 독서 습관이 이어지고 있습니다.", "Building a steady reading habit.") }.take(180)
+        val insLayout = StaticLayout.Builder.obtain(insClean, 0, insClean.length, insTextPaint, (w - 210))
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setLineSpacing(6f, 1.15f)
+            .setMaxLines(3)
+            .build()
+        c.save()
+        c.translate(105f, insY + 46f)
+        insLayout.draw(c)
+        c.restore()
+
+        // 5. Completed Books Badge (y: 895, h: 80)
+        c.drawRoundRect(RectF(80f, 895f, w - 80f, 975f), 10f, 10f, cardBgPaint)
+        c.drawRoundRect(RectF(80f, 895f, w - 80f, 975f), 10f, 10f, cardBorderPaint)
+
+        val bTagPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF475569.toInt()
+            textSize = 20f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        c.drawText(L10n.t("📚 완독 도서:", "📚 Completed:"), 105f, 942f, bTagPaint)
+
+        val bListPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF0F172A.toInt()
+            textSize = 20f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        val booksText = if (payload.completedBooksSummary.isNotEmpty()) {
+            payload.completedBooksSummary.joinToString("  •  ").take(45)
+        } else {
+            L10n.t("아직 완독한 도서가 없습니다", "No completed books yet")
+        }
+        c.drawText(booksText, 235f, 942f, bListPaint)
+
+        // 6. Footer (y: 1005)
+        c.drawLine(80f, 1005f, w - 80f, 1005f, sepLinePaint)
+
+        val footerPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF94A3B8.toInt()
+            textSize = 20f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        c.drawText("Aether SAGA · " + L10n.t("독서 습관 트래커", "Reading Tracker"), 80f, 1035f, footerPaint)
+
+        footerPaint.textAlign = Paint.Align.RIGHT
+        c.drawText("journeys through endless stories", w - 80f, 1035f, footerPaint)
+
+        return bmp
+    }
+
+    /**
+     * Renders a 9:16 vertical (1080x1920) Reading Stats Infographic Card for Stories.
+     */
+    fun renderStatsStoryCard(payload: StatsSharePayload): Bitmap {
+        val w = 1080
+        val h = 1920
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+
+        c.drawColor(0xFFF8FAFC.toInt())
+
+        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            color = 0xFFE2E8F0.toInt()
+            strokeWidth = 2f
+        }
+        c.drawRect(40f, 40f, w - 40f, h - 40f, borderPaint)
+
+        borderPaint.color = 0xFFCBD5E1.toInt()
+        borderPaint.strokeWidth = 1f
+        c.drawRect(50f, 50f, w - 50f, h - 50f, borderPaint)
+
+        // 1. Header
+        val brandPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF1F5E9C.toInt()
+            textSize = 34f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            letterSpacing = 0.08f
+        }
+        c.drawText("Aether SAGA", 90f, 95f, brandPaint)
+
+        val titlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF0F172A.toInt()
+            textSize = 40f
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        }
+        c.drawText(payload.periodName, 90f, 145f, titlePaint)
+
+        val subPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF64748B.toInt()
+            textSize = 24f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        c.drawText(payload.periodSubLabel.take(45), 90f, 195f, subPaint)
+
+        val rulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFE2E8F0.toInt()
+            strokeWidth = 2f
+        }
+        c.drawLine(90f, 230f, w - 90f, 230f, rulePaint)
+
+        // 2. Metrics Row (3 cards)
+        val cardW = (w - 180f - 40f) / 3f
+        val cardH = 130f
+        val cardBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
+        }
+        val cardBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFE2E8F0.toInt()
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f
+        }
+
+        val cardLblPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF64748B.toInt()
+            textSize = 22f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        val cardValPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = 34f
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        }
+
+        val c1x = 90f
+        val cy = 255f
+        c.drawRoundRect(RectF(c1x, cy, c1x + cardW, cy + cardH), 12f, 12f, cardBgPaint)
+        c.drawRoundRect(RectF(c1x, cy, c1x + cardW, cy + cardH), 12f, 12f, cardBorderPaint)
+        c.drawText(payload.totalLabel.take(10), c1x + 20f, cy + 40f, cardLblPaint)
+        cardValPaint.color = 0xFF1F5E9C.toInt()
+        c.drawText(payload.totalValue.take(12), c1x + 20f, cy + 95f, cardValPaint)
+
+        val c2x = 90f + cardW + 20f
+        c.drawRoundRect(RectF(c2x, cy, c2x + cardW, cy + cardH), 12f, 12f, cardBgPaint)
+        c.drawRoundRect(RectF(c2x, cy, c2x + cardW, cy + cardH), 12f, 12f, cardBorderPaint)
+        c.drawText(L10n.t("완독 도서", "Completed"), c2x + 20f, cy + 40f, cardLblPaint)
+        cardValPaint.color = 0xFF059669.toInt()
+        val compCountStr = if (payload.completedBooksSummary.isNotEmpty()) "${payload.completedBooksSummary.size}권" else "0권"
+        c.drawText(compCountStr, c2x + 20f, cy + 95f, cardValPaint)
+
+        val c3x = 90f + (cardW + 20f) * 2f
+        c.drawRoundRect(RectF(c3x, cy, c3x + cardW, cy + cardH), 12f, 12f, cardBgPaint)
+        c.drawRoundRect(RectF(c3x, cy, c3x + cardW, cy + cardH), 12f, 12f, cardBorderPaint)
+        c.drawText(L10n.t("연속 독서", "Streak"), c3x + 20f, cy + 40f, cardLblPaint)
+        cardValPaint.color = 0xFFD97706.toInt()
+        c.drawText(payload.streakText.take(10), c3x + 20f, cy + 95f, cardValPaint)
+
+        // 3. Chart Container Card (y: 415, h: 500)
+        val chartY = 415f
+        val chartH = 500f
+        c.drawRoundRect(RectF(90f, chartY, w - 90f, chartY + chartH), 14f, 14f, cardBgPaint)
+        c.drawRoundRect(RectF(90f, chartY, w - 90f, chartY + chartH), 14f, 14f, cardBorderPaint)
+
+        val chartHeaderPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF1E293B.toInt()
+            textSize = 24f
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        }
+        c.drawText(L10n.t("📈 독서 추이 (${payload.metricUnit})", "📈 Trend (${payload.metricUnit})"), 120f, chartY + 40f, chartHeaderPaint)
+
+        if (payload.dailyAvgText.isNotBlank()) {
+            val avgPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF64748B.toInt()
+                textSize = 22f
+                typeface = Typeface.create("sans-serif", Typeface.BOLD)
+                textAlign = Paint.Align.RIGHT
+            }
+            c.drawText(payload.dailyAvgText, w - 120f, chartY + 40f, avgPaint)
+        }
+
+        val sepLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFF1F5F9.toInt()
+            strokeWidth = 1f
+        }
+        c.drawLine(120f, chartY + 65f, w - 120f, chartY + 65f, sepLinePaint)
+
+        val pts = payload.points
+        if (pts.isNotEmpty()) {
+            val plotX = 140f
+            val plotY = chartY + 115f
+            val plotW = w - 280f
+            val plotH = 300f
+            val maxV = if (payload.yMax > 0) payload.yMax.toFloat() else 10f
+            val stepX = if (pts.size > 1) plotW / (pts.size - 1) else plotW
+            val barW = (plotW / (pts.size * 2f)).coerceIn(20f, 52f)
+
+            for (gy in floatArrayOf(0.25f, 0.5f, 0.75f, 1.0f)) {
+                val glY = plotY + plotH - (plotH * gy)
+                c.drawLine(plotX, glY, plotX + plotW, glY, sepLinePaint)
+            }
+
+            val barPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+            val valTextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF1E293B.toInt()
+                textSize = 18f
+                typeface = Typeface.DEFAULT_BOLD
+                textAlign = Paint.Align.CENTER
+            }
+            val lblTextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF475569.toInt()
+                textSize = 22f
+                typeface = Typeface.DEFAULT_BOLD
+                textAlign = Paint.Align.CENTER
+            }
+
+            val trendPoints = ArrayList<PointF>()
+            for ((i, p) in pts.withIndex()) {
+                val bx = plotX + (i * stepX)
+                val bh = (plotH * (p.value.toFloat() / maxV)).coerceAtLeast(0f)
+                val by = plotY + plotH - bh
+
+                barPaint.color = if (i >= pts.size - 2) 0xFFBFDBFE.toInt() else 0xFFE2E8F0.toInt()
+                c.drawRoundRect(RectF(bx - barW / 2f, by, bx + barW / 2f, plotY + plotH), 8f, 8f, barPaint)
+
+                if (p.value > 0) {
+                    val displayStr = if (p.displayValue.isNotBlank()) p.displayValue else "${p.value}"
+                    c.drawText(displayStr, bx, by - 10f, valTextPaint)
+                }
+
+                c.drawText(p.label, bx, plotY + plotH + 30f, lblTextPaint)
+                trendPoints.add(PointF(bx, by))
+            }
+
+            val trendPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF1F5E9C.toInt()
+                strokeWidth = 4f
+                style = Paint.Style.STROKE
+            }
+            val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.WHITE
+                style = Paint.Style.FILL
+            }
+            val dotBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF1F5E9C.toInt()
+                strokeWidth = 3f
+                style = Paint.Style.STROKE
+            }
+            for (i in 0 until trendPoints.size - 1) {
+                c.drawLine(trendPoints[i].x, trendPoints[i].y, trendPoints[i+1].x, trendPoints[i+1].y, trendPaint)
+                c.drawCircle(trendPoints[i].x, trendPoints[i].y, 5f, dotPaint)
+                c.drawCircle(trendPoints[i].x, trendPoints[i].y, 5f, dotBorderPaint)
+            }
+            if (trendPoints.isNotEmpty()) {
+                val lastPt = trendPoints.last()
+                c.drawCircle(lastPt.x, lastPt.y, 5f, dotPaint)
+                c.drawCircle(lastPt.x, lastPt.y, 5f, dotBorderPaint)
+            }
+        }
+
+        // 4. Habit & Insight Card (y: 945, h: 250)
+        val insY = 945f
+        val insH = 250f
+        val insBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFEFF6FF.toInt()
+            style = Paint.Style.FILL
+        }
+        val insBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFBFDBFE.toInt()
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f
+        }
+        c.drawRoundRect(RectF(90f, insY, w - 90f, insY + insH), 14f, 14f, insBgPaint)
+        c.drawRoundRect(RectF(90f, insY, w - 90f, insY + insH), 14f, 14f, insBorderPaint)
+
+        val insHeaderPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF1F5E9C.toInt()
+            textSize = 24f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        c.drawText(L10n.t("💡 이번 주 독서 분석 및 인사이트", "💡 Reading Habit Insights"), 120f, insY + 38f, insHeaderPaint)
+
+        val insTextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF1E293B.toInt()
+            textSize = 22f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        val insClean = payload.insightText.ifBlank { L10n.t("꾸준한 독서 습관이 이어지고 있습니다.", "Building a steady reading habit.") }
+        val insLayout = StaticLayout.Builder.obtain(insClean, 0, insClean.length, insTextPaint, (w - 240))
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setLineSpacing(8f, 1.2f)
+            .setMaxLines(5)
+            .build()
+        c.save()
+        c.translate(120f, insY + 54f)
+        insLayout.draw(c)
+        c.restore()
+
+        // 5. Completed Books Section (y: 1225, h: 380)
+        val booksY = 1225f
+        val booksH = 380f
+        c.drawRoundRect(RectF(90f, booksY, w - 90f, booksY + booksH), 14f, 14f, cardBgPaint)
+        c.drawRoundRect(RectF(90f, booksY, w - 90f, booksY + booksH), 14f, 14f, cardBorderPaint)
+
+        val bHeaderPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF0F172A.toInt()
+            textSize = 24f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        val compCount = payload.completedBooksSummary.size
+        c.drawText(L10n.t("📚 완독 도서 컬렉션 (${compCount}권)", "📚 Completed Books Collection ($compCount)"), 120f, booksY + 40f, bHeaderPaint)
+        c.drawLine(120f, booksY + 65f, w - 120f, booksY + 65f, sepLinePaint)
+
+        val bItemTitlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF0F172A.toInt()
+            textSize = 22f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        val bItemSubPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF64748B.toInt()
+            textSize = 18f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+
+        val bookDisplayList = payload.completedBooksSummary.take(3)
+        if (bookDisplayList.isEmpty()) {
+            val emptyPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = 0xFF94A3B8.toInt()
+                textSize = 22f
+                typeface = Typeface.create("sans-serif", Typeface.ITALIC)
+            }
+            c.drawText(L10n.t("현재 기간 내 완독 기록이 없습니다.", "No completed books in this period."), 120f, booksY + 120f, emptyPaint)
+        } else {
+            for ((bi, bTitle) in bookDisplayList.withIndex()) {
+                val rowY = booksY + 80f + (bi * 95f)
+                val itemBg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = 0xFFF8FAFC.toInt()
+                    style = Paint.Style.FILL
+                }
+                c.drawRoundRect(RectF(120f, rowY, w - 120f, rowY + 80f), 10f, 10f, itemBg)
+                c.drawRoundRect(RectF(120f, rowY, w - 120f, rowY + 80f), 10f, 10f, cardBorderPaint)
+
+                // Mini book badge
+                val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = if (bi == 0) 0xFF1E293B.toInt() else 0xFF0F766E.toInt()
+                    style = Paint.Style.FILL
+                }
+                c.drawRoundRect(RectF(135f, rowY + 10f, 185f, rowY + 70f), 6f, 6f, badgePaint)
+
+                c.drawText(bTitle.take(35), 205f, rowY + 38f, bItemTitlePaint)
+                c.drawText(L10n.t("독서 여정 완독 달성 ✓", "Reading Journey Finished ✓"), 205f, rowY + 65f, bItemSubPaint)
+            }
+        }
+
+        // 6. Highlight Quote Card (y: 1635, h: 160)
+        val qY = 1635f
+        val qH = 160f
+        val qBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFFAF5FF.toInt()
+            style = Paint.Style.FILL
+        }
+        val qBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFFE9D5FF.toInt()
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f
+        }
+        c.drawRoundRect(RectF(90f, qY, w - 90f, qY + qH), 14f, 14f, qBgPaint)
+        c.drawRoundRect(RectF(90f, qY, w - 90f, qY + qH), 14f, 14f, qBorderPaint)
+
+        val qHeaderPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF7E22CE.toInt()
+            textSize = 21f
+            typeface = Typeface.DEFAULT_BOLD
+        }
+        c.drawText(L10n.t("✨ 나의 독서 모토", "✨ Reading Motto"), 120f, qY + 36f, qHeaderPaint)
+
+        val qTextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF1E293B.toInt()
+            textSize = 22f
+            typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
+        }
+        val quoteStr = payload.highlightQuote ?: L10n.t("“책 속에는 우리가 아직 가보지 못한 무한한 세상이 있다.”", "“In books lies an infinite world yet to be explored.”")
+        val qLayout = StaticLayout.Builder.obtain(quoteStr, 0, quoteStr.length, qTextPaint, (w - 240))
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setMaxLines(2)
+            .build()
+        c.save()
+        c.translate(120f, qY + 54f)
+        qLayout.draw(c)
+        c.restore()
+
+        // 7. Footer (y: 1830)
+        c.drawLine(90f, 1830f, w - 90f, 1830f, sepLinePaint)
+
+        val footerPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF94A3B8.toInt()
+            textSize = 22f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        c.drawText("Aether SAGA · " + L10n.t("독서 활동 분석 리포트", "Reading Activity Report"), 90f, 1860f, footerPaint)
+
+        footerPaint.textAlign = Paint.Align.RIGHT
+        c.drawText("journeys through endless stories", w - 90f, 1860f, footerPaint)
+
+        return bmp
+    }
+
+    /**
      * Renders a stylish Reading Stats Card bitmap (1080x1080) for SNS feed sharing.
      */
     fun renderStatsCard(
@@ -1696,31 +2341,202 @@ object AndroidShareHelper {
         }
     }
 
+
+    private fun showInstagramStatsModeChooser(
+        activity: Activity,
+        isEink: Boolean,
+        onStoryChosen: () -> Unit,
+        onFeedChosen: () -> Unit
+    ) {
+        val inkCol = ReaderTheme.EINK_INK
+        val cardBgCol = ReaderTheme.EINK_CARD_BG
+        val borderCol = if (isEink) ReaderTheme.EINK_BORDER_CONTRAST else ReaderTheme.EINK_BORDER
+        val strokeW = if (isEink) activity.dp(2) else activity.dp(1)
+        val mutedCol = ReaderTheme.EINK_MUTED
+
+        val root = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(activity.dp(18), activity.dp(16), activity.dp(18), activity.dp(16))
+        }
+
+        val subTv = TextView(activity).apply {
+            text = L10n.t(
+                "인스타그램에서 공유할 독서 통계 방식을 선택하세요.",
+                "Choose how to share reading stats on Instagram."
+            )
+            setPtSize(8.4f)
+            setTextColor(mutedCol)
+            setPadding(0, 0, 0, activity.dp(12))
+        }
+        root.addView(subTv)
+
+        val listCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = cardDrawable(cardBgCol, 8, borderCol, strokeW)
+            setPadding(activity.dp(8), activity.dp(6), activity.dp(8), activity.dp(6))
+        }
+
+        lateinit var dlg: AlertDialog
+
+        // 1. Stories option (9:16 full infographic)
+        val storyRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isClickable = true
+            isFocusable = true
+            background = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+                cornerRadius = activity.dp(6).toFloat()
+            }
+            setPadding(activity.dp(10), activity.dp(12), activity.dp(10), activity.dp(12))
+            setOnClickListener {
+                dlg.dismiss()
+                onStoryChosen()
+            }
+        }
+        val storyIcon = ImageView(activity).apply {
+            setImageDrawable(getSnsAppIcon(activity, SnsTarget.INSTAGRAM))
+            scaleType = ImageView.ScaleType.FIT_CENTER
+        }
+        storyRow.addView(storyIcon, LinearLayout.LayoutParams(activity.dp(38), activity.dp(38)))
+
+        val storyCol = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(activity.dp(12), 0, 0, 0)
+        }
+        val storyTitleTv = TextView(activity).apply {
+            text = L10n.t("✨ 스토리 (Story) - 9:16 풀 인포그래픽", "✨ Stories (9:16 Full Infographic)")
+            setPtSize(9.2f)
+            typeface = ReaderTheme.uiFontBold
+            setTextColor(inkCol)
+        }
+        val storySubTv = TextView(activity).apply {
+            text = L10n.t("전체 화면을 꽉 채우는 세로형 독서 통계 리포트 업로드", "Upload 9:16 full-screen reading stats infographic to Stories")
+            setPtSize(7.6f)
+            setTextColor(0xFF1F5E9C.toInt())
+        }
+        storyCol.addView(storyTitleTv)
+        storyCol.addView(storySubTv)
+        storyRow.addView(storyCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+
+        val storyChevron = TextView(activity).apply {
+            text = "›"
+            setPtSize(13f)
+            setTextColor(mutedCol)
+        }
+        storyRow.addView(storyChevron)
+        listCard.addView(storyRow)
+
+        // Divider
+        listCard.addView(View(activity).apply {
+            setBackgroundColor(borderCol)
+            layoutParams = LinearLayout.LayoutParams(-1, activity.dp(1)).apply {
+                setMargins(activity.dp(8), 0, activity.dp(8), 0)
+            }
+        })
+
+        // 2. Feed option (1:1 square chart report)
+        val feedRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            isClickable = true
+            isFocusable = true
+            background = GradientDrawable().apply {
+                setColor(Color.TRANSPARENT)
+                cornerRadius = activity.dp(6).toFloat()
+            }
+            setPadding(activity.dp(10), activity.dp(12), activity.dp(10), activity.dp(12))
+            setOnClickListener {
+                dlg.dismiss()
+                onFeedChosen()
+            }
+        }
+        val feedIcon = ImageView(activity).apply {
+            setImageDrawable(getSnsAppIcon(activity, SnsTarget.INSTAGRAM))
+            scaleType = ImageView.ScaleType.FIT_CENTER
+        }
+        feedRow.addView(feedIcon, LinearLayout.LayoutParams(activity.dp(38), activity.dp(38)))
+
+        val feedCol = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(activity.dp(12), 0, 0, 0)
+        }
+        val feedTitleTv = TextView(activity).apply {
+            text = L10n.t("📸 피드 (Feed) - 1:1 정사각형 리포트", "📸 Feed (1:1 Square Report)")
+            setPtSize(9.2f)
+            typeface = ReaderTheme.uiFontBold
+            setTextColor(inkCol)
+        }
+        val feedSubTv = TextView(activity).apply {
+            text = L10n.t("1080x1080 고해상도 차트 리포트로 피드에 즉시 게시", "Post 1080x1080 square chart report directly to Feed")
+            setPtSize(7.6f)
+            setTextColor(0xFF1F5E9C.toInt())
+        }
+        feedCol.addView(feedTitleTv)
+        feedCol.addView(feedSubTv)
+        feedRow.addView(feedCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+
+        val feedChevron = TextView(activity).apply {
+            text = "›"
+            setPtSize(13f)
+            setTextColor(mutedCol)
+        }
+        feedRow.addView(feedChevron)
+        listCard.addView(feedRow)
+
+        root.addView(listCard)
+
+        dlg = AlertDialog.Builder(activity)
+            .setTitle(L10n.t("Instagram 통계 공유 방식 선택", "Select Instagram Stats Share Mode"))
+            .setView(root)
+            .create()
+        dlg.showWithOptimalWidth(activity)
+    }
+
+    fun showStatsSnsShareDialog(
+        activity: Activity,
+        payload: StatsSharePayload,
+        isEink: Boolean = false,
+        onBack: (() -> Unit)? = null
+    ) {
+        showSnsTargetPicker(
+            activity = activity,
+            dialogTitle = L10n.t("📊 독서 통계 저장 및 SNS 공유", "📊 Save Stats & Share to SNS"),
+            subtitle = L10n.t(
+                "원하는 저장 또는 공유 방식을 선택하세요. ${payload.periodName} 인포그래픽 리포트 카드가 생성됩니다.",
+                "Select a save or share method. An infographic card for ${payload.periodName} will be created."
+            ),
+            isEink = isEink,
+            onBack = onBack
+        ) { target ->
+            shareStatsToSns(activity, target, payload, isEink)
+        }
+    }
+
     fun shareStatsToSns(
         activity: Activity,
         target: SnsTarget,
-        periodName: String,
-        summary: String,
-        insight: String,
-        completedBooksCount: Int
+        payload: StatsSharePayload,
+        isEink: Boolean = false
     ) {
         if (target == SnsTarget.SAVE_IMAGE) {
-            val cardBmp = renderStatsCard(periodName, summary, insight, completedBooksCount)
+            val cardBmp = renderStatsCard(payload)
             val ok = saveCardToGallery(activity, cardBmp, "AetherSAGA_Stats")
             if (ok) {
-                Toast.makeText(activity, L10n.t("독서 통계 카드가 갤러리(Pictures/AetherSAGA)에 저장되었습니다. 💾", "Stats card saved to Gallery (Pictures/AetherSAGA). 💾"), Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, L10n.t("독서 통계 리포트가 갤러리(Pictures/AetherSAGA)에 저장되었습니다. 💾", "Reading stats report saved to Gallery (Pictures/AetherSAGA). 💾"), Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(activity, L10n.t("이미지 저장에 실패했습니다.", "Failed to save image."), Toast.LENGTH_SHORT).show()
             }
+            cardBmp.recycle()
             return
         }
 
         if (target == SnsTarget.SMS) {
-            val cardBmp = renderStatsCard(periodName, summary, insight, completedBooksCount)
+            val cardBmp = renderStatsCard(payload)
             val cardUri = prepareSnsCardUri(activity, cardBmp, "AetherSAGA_Stats_Card.png")
-            val statsHeader = L10n.t("나의 독서 기록", "My Reading Stats")
-            val shareText = "📊 [AetherSAGA] $statsHeader ($periodName)\n$summary\n\n- Aether SAGA"
+            val shareText = "📊 [AetherSAGA] ${payload.periodName}\n${payload.totalLabel}: ${payload.totalValue} · ${payload.streakText}\n\n- Aether SAGA"
             dispatchSmsIntent(activity, shareText, cardUri)
+            cardBmp.recycle()
             return
         }
 
@@ -1729,12 +2545,58 @@ object AndroidShareHelper {
             return
         }
 
-        val cardBmp = renderStatsCard(periodName, summary, insight, completedBooksCount)
+        if (target == SnsTarget.INSTAGRAM) {
+            showInstagramStatsModeChooser(
+                activity = activity,
+                isEink = isEink,
+                onStoryChosen = {
+                    val storyBmp = renderStatsStoryCard(payload)
+                    val storyUri = prepareSnsCardUri(activity, storyBmp, "AetherSAGA_Stats_Story.png")
+                    if (storyUri != null) {
+                        dispatchInstagramStoryIntent(activity, storyUri)
+                    }
+                    storyBmp.recycle()
+                },
+                onFeedChosen = {
+                    val feedBmp = renderStatsCard(payload)
+                    val feedUri = prepareSnsCardUri(activity, feedBmp, "AetherSAGA_Stats_Feed.png")
+                    val shareText = "📊 [AetherSAGA] ${payload.periodName}\n${payload.totalLabel}: ${payload.totalValue} · ${payload.streakText}\n\n#AetherSAGA #독서기록 #독서통계"
+                    dispatchSnsIntent(activity, SnsTarget.INSTAGRAM, shareText, feedUri)
+                    feedBmp.recycle()
+                }
+            )
+            return
+        }
+
+        val cardBmp = renderStatsCard(payload)
         val cardUri = prepareSnsCardUri(activity, cardBmp, "AetherSAGA_Stats_Card.png")
-        val statsHeader = L10n.t("나의 독서 기록", "My Reading Stats")
-        val hashPart = L10n.t("#독서기록 #독서통계", "#ReadingLog #BookStats")
-        val shareText = "📊 [AetherSAGA] $statsHeader ($periodName)\n$summary\n\n#AetherSAGA $hashPart"
+        val shareText = "📊 [AetherSAGA] ${payload.periodName}\n${payload.totalLabel}: ${payload.totalValue} · ${payload.streakText}\n\n#AetherSAGA #독서기록 #독서통계"
         dispatchSnsIntent(activity, target, shareText, cardUri)
+        cardBmp.recycle()
+    }
+
+    fun shareStatsToSns(
+        activity: Activity,
+        target: SnsTarget,
+        periodName: String,
+        summary: String,
+        insight: String,
+        completedBooksCount: Int
+    ) {
+        val payload = StatsSharePayload(
+            periodName = periodName,
+            periodSubLabel = L10n.t("독서 활동 분석", "Reading Analysis"),
+            totalLabel = L10n.t("총 독서량", "Total Reading"),
+            totalValue = summary,
+            streakText = L10n.t("연속 독서 중 🔥", "Active Streak 🔥"),
+            dailyAvgText = "",
+            metricUnit = "분",
+            points = emptyList(),
+            yMax = 10,
+            insightText = insight,
+            completedBooksSummary = emptyList()
+        )
+        shareStatsToSns(activity, target, payload)
     }
 
 
@@ -2590,18 +3452,20 @@ object AndroidShareHelper {
         isEink: Boolean = false,
         onBack: (() -> Unit)? = null
     ) {
-        showSnsTargetPicker(
-            activity = activity,
-            dialogTitle = L10n.t("📊 독서 통계 저장 및 SNS 공유", "📊 Save Stats & Share to SNS"),
-            subtitle = L10n.t(
-                "원하는 저장 또는 공유 방식을 선택하세요. $periodName 독서 활동 통계 인포그래픽 카드가 생성됩니다.",
-                "Select a save or share method. An infographic card for $periodName reading activity will be created."
-            ),
-            isEink = isEink,
-            onBack = onBack
-        ) { target ->
-            shareStatsToSns(activity, target, periodName, summary, insight, completedBooksCount)
-        }
+        val payload = StatsSharePayload(
+            periodName = periodName,
+            periodSubLabel = L10n.t("독서 활동 종합 분석", "Reading Activity Analysis"),
+            totalLabel = L10n.t("총 독서량", "Total Reading"),
+            totalValue = summary,
+            streakText = L10n.t("연속 독서 유지 중 🔥", "Active Streak 🔥"),
+            dailyAvgText = "",
+            metricUnit = "분",
+            points = emptyList(),
+            yMax = 10,
+            insightText = insight,
+            completedBooksSummary = emptyList()
+        )
+        showStatsSnsShareDialog(activity, payload, isEink, onBack)
     }
 
     /**

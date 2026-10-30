@@ -729,23 +729,50 @@ object StatsDashboardDialog {
             if (isEink) ReaderTheme.EINK_INK else ReaderTheme.ACCENT_RIDI_BLUE
         ) {
             val periodLabel = when (currentPeriod) {
-                StatsPeriod.WEEKLY -> L10n.t("주간 독서 리포트", "Weekly Reading Report")
-                StatsPeriod.MONTHLY -> L10n.t("월간 독서 리포트", "Monthly Reading Report")
-                StatsPeriod.YEARLY -> L10n.t("연간 독서 리포트", "Yearly Reading Report")
+                StatsPeriod.WEEKLY -> L10n.t("주간 독서 통계 리포트", "Weekly Reading Report")
+                StatsPeriod.MONTHLY -> L10n.t("월간 독서 통계 리포트", "Monthly Reading Report")
+                StatsPeriod.YEARLY -> L10n.t("연간 독서 통계 리포트", "Yearly Reading Report")
             }
-            val summaryText = if (L10n.isKorean) {
-                "총 독서: ${totalValTv.text} · ${streakTv.text} 달성"
-            } else {
-                "Total Reading: ${totalValTv.text} · ${streakTv.text}"
+            val res = StatsAggregator.aggregate(cachedRecords, currentPeriod, currentMetric, Date(), cachedCompletedBooks)
+            val subLabel = when (currentPeriod) {
+                StatsPeriod.WEEKLY -> L10n.t("최근 7일간 독서 트렌드", "Past 7 Days Reading Trend")
+                StatsPeriod.MONTHLY -> L10n.t("최근 4주간 주차별 독서 트렌드", "Past 4 Weeks Reading Trend")
+                StatsPeriod.YEARLY -> L10n.t("월별 연간 독서 트렌드", "Monthly Annual Reading Trend")
+            } + " · " + if (currentMetric == StatsMetric.TIME) L10n.t("독서 시간 기준", "Time-based") else L10n.t("읽은 페이지 기준", "Pages-based")
+
+            val unitStr = if (currentMetric == StatsMetric.TIME) (if (L10n.isKorean) "분" else "m") else "p"
+            val totalLbl = if (currentMetric == StatsMetric.TIME) L10n.t("총 독서 시간", "Total Reading Time") else L10n.t("총 읽은 페이지", "Total Pages Read")
+            val totalVal = if (currentMetric == StatsMetric.TIME) res.totalTimeStr else res.totalPagesStr
+            val streakVal = if (L10n.isKorean) "${res.streakDays}일 연속 🔥" else "${res.streakDays}-day streak 🔥"
+            val avgVal = if (L10n.isKorean) "일평균: ${res.dailyAvgStr}" else "Daily Avg: ${res.dailyAvgStr}"
+
+            val chartPoints = res.points.map { pt ->
+                AndroidShareHelper.StatsChartPoint(label = pt.label, value = pt.value, displayValue = pt.displayValue)
             }
-            val insightText = insightTv.text.toString()
-            AndroidShareHelper.showStatsSnsShareDialog(
-                activity,
+
+            val completedList = cachedCompletedBooks.take(5).map { b ->
+                "${b.title} (${b.completedDate})"
+            }
+
+            val payload = AndroidShareHelper.StatsSharePayload(
                 periodName = periodLabel,
-                summary = summaryText,
-                insight = insightText,
-                completedBooksCount = cachedCompletedBooks.size,
-                isEink = isEink
+                periodSubLabel = subLabel,
+                totalLabel = totalLbl,
+                totalValue = totalVal,
+                streakText = streakVal,
+                dailyAvgText = avgVal,
+                metricUnit = unitStr,
+                points = chartPoints,
+                yMax = res.yMax,
+                insightText = res.insightText,
+                completedBooksSummary = completedList
+            )
+
+            AndroidShareHelper.showStatsSnsShareDialog(
+                activity = activity,
+                payload = payload,
+                isEink = isEink,
+                onBack = { renderDashboard() }
             )
         }.apply {
             setPtSize(8.5f)
