@@ -12,8 +12,10 @@
 
 ### 🚀 Ver. 1.1 주요 기능 및 변경 사항 (Key Features & Updates)
 
-#### 1. E-Ink 팝업 창 윤곽선 및 미설치 앱 안내 일관성 완벽 보강 (Popup Outline & Consistency)
-- **미설치 앱 선택 시 2px 고대비 카드형 다이얼로그 전면 개편**: SNS 공유 시 기기에 미설치된 앱(인스타그램, X, 페이스북, 스레드 등)을 선택했을 때 나타나는 스토어 이동 안내 팝업을 고유 앱 아이콘과 2px 차콜 외곽선(`cardBox`)을 갖춘 전용 뷰(`showSnsAppNotInstalledDialog`)로 개편하여, 설치되지 않은 어떤 앱이 실행되더라도 완벽한 시각적 일관성과 또렷한 윤곽선을 제공합니다.
+#### 1. E-Ink 팝업 창 윤곽선 및 설치/미설치 앱 전체 공유 흐름 일관성 완벽 보강 (Popup Outline & Full Flow Consistency)
+- **설치된 앱(인스타그램 등) 공유 방식 선택 다이얼로그 전면 커스텀 (`showSnsHandlerChooserDialog`)**: 인스타그램 등 복수의 공유 경로(스토리, 피드, Direct 등)를 가진 설치된 앱을 선택할 때, 안드로이드 OS의 윤곽선 없는 기본 시스템 팝업을 전면 우회하고 앱 자체의 **2px 고대비 차콜 외곽선(`ReaderTheme.EINK_BORDER_CONTRAST`)**이 적용된 맞춤형 선택 다이얼로그를 호출하여 설치 여부와 무관하게 100% 동일한 윤곽선 일관성을 보장합니다.
+- **미설치 앱 선택 시 2px 고대비 카드형 다이얼로그 (`showSnsAppNotInstalledDialog`)**: 기기에 미설치된 앱(스레드 등)을 선택했을 때 나타나는 스토어 이동 안내 팝업을 고유 앱 아이콘과 2px 차콜 외곽선(`cardBox`)을 갖춘 전용 뷰로 개편하여 또렷한 시인성을 확보하였습니다.
+- **SNS 타겟 선택창 및 독서노트 공유창 E-Ink 2px 차콜 테두리 표준화**: `showSnsTargetPicker` 및 `showReadingNotesShareDialog` 내부의 카드 박스 테두리를 연한 회색에서 E-Ink 고대비 차콜 테두리(`ReaderTheme.EINK_BORDER_CONTRAST`, 2px)로 상향 적용하였습니다.
 - **모든 팝업 창 최상위 포그라운드 2px 아웃라인 오버레이**: `showWithOptimalWidth()` 내 `DecorView.foreground` 및 `contentRoot.foreground`에 2px 고대비 테두리(`EINK_BORDER_CONTRAST`)를 강제 적용하여, 시스템 기본 다이얼로그나 서드파티 뷰가 호출되더라도 테두리가 절대 뭉개지지 않습니다.
 - **다이얼로그 액션 버튼 가독성**: 취소/확인 등 중립·부정 액션 버튼에도 2px 고대비 아웃라인을 부여하여 E-Ink 화면에서 버튼 영역이 또렷하게 드러납니다.
 

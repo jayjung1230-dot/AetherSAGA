@@ -420,17 +420,20 @@ fun Activity.showReadingNotesShareDialog(
     }
     outerScroll.addView(root)
 
+    val noteBorderCol = if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.EINK_BORDER_CONTRAST
+    val noteStrokePx = if (isLcd) dp(1) else dp(2)
+
     // 1. Book Metadata + Cover Image Preview Card
     val bookCard = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        background = cardDrawable(ReaderTheme.EINK_CARD_BG, 8, ReaderTheme.EINK_BORDER)
+        background = cardDrawable(ReaderTheme.EINK_CARD_BG, 8, noteBorderCol, noteStrokePx)
         setPadding(dp(12), dp(10), dp(12), dp(10))
     }
     val coverIv = ImageView(this).apply {
         setImageBitmap(coverBmp)
         scaleType = ImageView.ScaleType.CENTER_CROP
-        background = cardDrawable(Color.WHITE, 4, ReaderTheme.EINK_BORDER)
+        background = cardDrawable(Color.WHITE, 4, noteBorderCol, noteStrokePx)
         setPadding(dp(2), dp(2), dp(2), dp(2))
     }
     bookCard.addView(coverIv, LinearLayout.LayoutParams(dp(58), dp(82)).apply {
@@ -493,7 +496,7 @@ fun Activity.showReadingNotesShareDialog(
         setPtSize(9f)
         setTextColor(ReaderTheme.EINK_INK)
         setHintTextColor(ReaderTheme.EINK_MUTED)
-        background = cardDrawable(ReaderTheme.EINK_CARD_BG, 6, ReaderTheme.EINK_BORDER)
+        background = cardDrawable(ReaderTheme.EINK_CARD_BG, 6, noteBorderCol, noteStrokePx)
         setPadding(dp(12), dp(8), dp(12), dp(8))
         setSingleLine(true)
     }
@@ -540,7 +543,7 @@ fun Activity.showReadingNotesShareDialog(
 
     // 4. Scrollable Checklist
     val listScroll = ScrollView(this).apply {
-        background = cardDrawable(ReaderTheme.EINK_CARD_BG, 6, ReaderTheme.EINK_BORDER)
+        background = cardDrawable(ReaderTheme.EINK_CARD_BG, 6, noteBorderCol, noteStrokePx)
         setPadding(dp(8), dp(6), dp(8), dp(6))
         enableVisibleScrollbar()
     }

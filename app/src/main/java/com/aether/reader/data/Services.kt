@@ -1407,6 +1407,106 @@ object AndroidShareHelper {
         }
     }
 
+    private fun showSnsHandlerChooserDialog(
+        activity: Activity,
+        target: SnsTarget,
+        resolveInfos: List<android.content.pm.ResolveInfo>,
+        intent: Intent
+    ) {
+        val inkCol = ReaderTheme.EINK_INK
+        val cardBgCol = ReaderTheme.EINK_CARD_BG
+        val borderCol = ReaderTheme.EINK_BORDER_CONTRAST
+        val strokeW = activity.dp(2)
+        val mutedCol = ReaderTheme.EINK_MUTED
+
+        val root = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(activity.dp(18), activity.dp(16), activity.dp(18), activity.dp(16))
+        }
+
+        val subTv = TextView(activity).apply {
+            text = L10n.t(
+                "${target.localizedTitle}에서 공유할 위치(스토리, 피드 등)를 선택하세요.",
+                "Choose where to share in ${target.title} (Stories, Feed, etc.)."
+            )
+            setPtSize(8.2f)
+            setTextColor(mutedCol)
+            setPadding(0, 0, 0, activity.dp(12))
+        }
+        root.addView(subTv)
+
+        val listCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = cardDrawable(cardBgCol, 8, borderCol, strokeW)
+            setPadding(activity.dp(8), activity.dp(4), activity.dp(8), activity.dp(4))
+        }
+
+        lateinit var dlg: AlertDialog
+        for ((idx, ri) in resolveInfos.withIndex()) {
+            val label = ri.loadLabel(activity.packageManager)?.toString() ?: target.localizedTitle
+            val row = LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                isClickable = true
+                isFocusable = true
+                background = GradientDrawable().apply {
+                    setColor(Color.TRANSPARENT)
+                    cornerRadius = activity.dp(6).toFloat()
+                }
+                setPadding(activity.dp(10), activity.dp(12), activity.dp(10), activity.dp(12))
+                setOnClickListener {
+                    dlg.dismiss()
+                    intent.setClassName(ri.activityInfo.packageName, ri.activityInfo.name)
+                    activity.startActivity(intent)
+                }
+            }
+
+            val iv = ImageView(activity).apply {
+                val appIcon = try {
+                    ri.loadIcon(activity.packageManager)
+                } catch (_: Throwable) {
+                    getSnsAppIcon(activity, target)
+                }
+                setImageDrawable(appIcon)
+                scaleType = ImageView.ScaleType.FIT_CENTER
+            }
+            row.addView(iv, LinearLayout.LayoutParams(activity.dp(38), activity.dp(38)))
+
+            val titleTv = TextView(activity).apply {
+                text = label
+                setPtSize(9.2f)
+                typeface = ReaderTheme.uiFontBold
+                setTextColor(inkCol)
+                setPadding(activity.dp(12), 0, 0, 0)
+            }
+            row.addView(titleTv, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+
+            val chevronTv = TextView(activity).apply {
+                text = "›"
+                setPtSize(13f)
+                setTextColor(mutedCol)
+            }
+            row.addView(chevronTv)
+
+            listCard.addView(row)
+            if (idx < resolveInfos.size - 1) {
+                listCard.addView(View(activity).apply {
+                    setBackgroundColor(borderCol)
+                    layoutParams = LinearLayout.LayoutParams(-1, activity.dp(1)).apply {
+                        setMargins(activity.dp(8), 0, activity.dp(8), 0)
+                    }
+                })
+            }
+        }
+        root.addView(listCard)
+
+        dlg = AlertDialog.Builder(activity)
+            .setTitle(L10n.t("${target.localizedTitle} 공유 방식 선택", "Select ${target.title} Share Mode"))
+            .setView(root)
+            .create()
+        dlg.showWithOptimalWidth(activity)
+    }
+
     private fun dispatchSnsIntent(
         activity: Activity,
         target: SnsTarget,
@@ -1430,30 +1530,23 @@ object AndroidShareHelper {
                 activity.grantUriPermission(targetPackage, cardUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 
-            when (target) {
-                SnsTarget.INSTAGRAM, SnsTarget.THREADS, SnsTarget.FACEBOOK, SnsTarget.KAKAO -> {
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        setPackage(targetPackage)
-                        type = if (cardUri != null) "image/png" else "text/plain"
-                        if (cardUri != null) putExtra(Intent.EXTRA_STREAM, cardUri)
-                        putExtra(Intent.EXTRA_TEXT, shareText)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    activity.startActivity(intent)
-                }
-                SnsTarget.X -> {
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        setPackage(targetPackage)
-                        type = if (cardUri != null) "image/png" else "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, shareText)
-                        if (cardUri != null) putExtra(Intent.EXTRA_STREAM, cardUri)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    activity.startActivity(intent)
-                }
-                else -> {}
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                setPackage(targetPackage)
+                type = if (cardUri != null) "image/png" else "text/plain"
+                if (cardUri != null) putExtra(Intent.EXTRA_STREAM, cardUri)
+                putExtra(Intent.EXTRA_TEXT, shareText)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            val resolveInfos = activity.packageManager.queryIntentActivities(intent, 0)
+            if (resolveInfos.size > 1) {
+                showSnsHandlerChooserDialog(activity, target, resolveInfos, intent)
+            } else if (resolveInfos.size == 1) {
+                intent.setClassName(resolveInfos[0].activityInfo.packageName, resolveInfos[0].activityInfo.name)
+                activity.startActivity(intent)
+            } else {
+                activity.startActivity(intent)
             }
         } catch (e: Exception) {
             Toast.makeText(activity, "${target.title} 공유 중 오류가 발생했습니다: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -1627,7 +1720,8 @@ object AndroidShareHelper {
     ) {
         val inkCol = ReaderTheme.EINK_INK
         val cardBgCol = ReaderTheme.EINK_CARD_BG
-        val borderCol = ReaderTheme.EINK_BORDER
+        val borderCol = if (isEink) ReaderTheme.EINK_BORDER_CONTRAST else ReaderTheme.EINK_BORDER
+        val strokeW = if (isEink) activity.dp(2) else activity.dp(1)
         val mutedCol = ReaderTheme.EINK_MUTED
 
         val root = LinearLayout(activity).apply {
@@ -1646,7 +1740,7 @@ object AndroidShareHelper {
 
         val listCard = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
-            background = cardDrawable(cardBgCol, 8, borderCol)
+            background = cardDrawable(cardBgCol, 8, borderCol, strokeW)
             setPadding(activity.dp(8), activity.dp(4), activity.dp(8), activity.dp(4))
         }
 
