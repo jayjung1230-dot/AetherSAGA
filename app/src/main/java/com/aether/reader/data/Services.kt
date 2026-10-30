@@ -932,12 +932,12 @@ object AndroidShareHelper {
         borderPaint.color = 0xFFB8B09E.toInt()
         c.drawRect(60f, 60f, w - 60f, h - 60f, borderPaint)
 
-        // Book Cover placement in Top Right (Option B: Compact Header Badge 95x135 px)
+        // Book Cover placement in Top Right ([시안 A-2]: 대형 강조형 175x248 px)
         val isLocalCover = (coverBitmap == null)
         val coverToDraw: Bitmap = coverBitmap ?: renderTypographicCover(bookTitle, bookAuthor, "")
         try {
-            val coverW = 95f
-            val coverH = 135f
+            val coverW = 175f
+            val coverH = 248f
             val coverX = w - 100f - coverW
             val coverY = 75f
 
@@ -945,12 +945,12 @@ object AndroidShareHelper {
             val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = 0x33000000.toInt()
             }
-            c.drawRoundRect(RectF(coverX + 3f, coverY + 4f, coverX + coverW + 3f, coverY + coverH + 4f), 6f, 6f, shadowPaint)
+            c.drawRoundRect(RectF(coverX + 4f, coverY + 6f, coverX + coverW + 4f, coverY + coverH + 6f), 8f, 8f, shadowPaint)
 
             // 2. Rounded cover clipping & draw
             val coverRect = RectF(coverX, coverY, coverX + coverW, coverY + coverH)
             val clipPath = Path().apply {
-                addRoundRect(coverRect, 6f, 6f, Path.Direction.CW)
+                addRoundRect(coverRect, 8f, 8f, Path.Direction.CW)
             }
             c.save()
             c.clipPath(clipPath)
@@ -963,7 +963,7 @@ object AndroidShareHelper {
                 color = 0x55888888.toInt()
                 strokeWidth = 1.5f
             }
-            c.drawRoundRect(coverRect, 6f, 6f, coverBorderPaint)
+            c.drawRoundRect(coverRect, 8f, 8f, coverBorderPaint)
         } finally {
             if (isLocalCover && !coverToDraw.isRecycled) {
                 coverToDraw.recycle()
@@ -984,14 +984,15 @@ object AndroidShareHelper {
             typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
         }
         val unknownAuthor = L10n.t("저자 미상", "Unknown Author")
-        val metaText = "${bookTitle.take(30)} · ${bookAuthor.ifBlank { unknownAuthor }.take(18)}"
+        val metaText = "${bookTitle.take(24)} · ${bookAuthor.ifBlank { unknownAuthor }.take(16)}"
         c.drawText(metaText, 100f, 175f, bookInfoPaint)
 
         val rulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFE0DDD5.toInt()
             strokeWidth = 2f
         }
-        c.drawLine(100f, 230f, w - 100f, 230f, rulePaint)
+        val coverStartX = w - 100f - 175f
+        c.drawLine(100f, 210f, coverStartX - 35f, 210f, rulePaint)
 
         val quoteMarkPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFD4CCBC.toInt()
@@ -1014,11 +1015,11 @@ object AndroidShareHelper {
             .build()
 
         c.save()
-        c.translate(100f, 350f)
+        c.translate(100f, 370f)
         quoteLayout.draw(c)
         c.restore()
 
-        val nextY = 350f + quoteLayout.height + 40f
+        val nextY = 370f + quoteLayout.height + 40f
         if (!memo.isNullOrBlank()) {
             val memoRulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = 0xFF1F5E9C.toInt()
