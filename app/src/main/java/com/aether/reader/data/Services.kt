@@ -1993,7 +1993,24 @@ object AndroidShareHelper {
             }
 
             val resolveInfos = activity.packageManager.queryIntentActivities(intent, 0)
-            if (resolveInfos.size > 1) {
+            if (target == SnsTarget.INSTAGRAM && resolveInfos.isNotEmpty()) {
+                val feedRi = resolveInfos.find { ri ->
+                    val label = ri.loadLabel(activity.packageManager)?.toString() ?: ""
+                    val name = ri.activityInfo.name
+                    (label.contains("Feed", ignoreCase = true) || label.contains("피드", ignoreCase = true) ||
+                     name.contains("Feed", ignoreCase = true) || name.contains("ShareHandlerActivity", ignoreCase = true) ||
+                     name.contains("PostShare", ignoreCase = true)) &&
+                    !label.contains("Story", ignoreCase = true) && !label.contains("스토리", ignoreCase = true) && !name.contains("Story", ignoreCase = true) &&
+                    !label.contains("Reel", ignoreCase = true) && !label.contains("릴스", ignoreCase = true) && !name.contains("Reel", ignoreCase = true) &&
+                    !label.contains("Direct", ignoreCase = true) && !name.contains("Direct", ignoreCase = true)
+                } ?: resolveInfos.find { ri ->
+                    val name = ri.activityInfo.name
+                    !name.contains("Story", ignoreCase = true) && !name.contains("Reel", ignoreCase = true) && !name.contains("Direct", ignoreCase = true)
+                } ?: resolveInfos[0]
+
+                intent.setClassName(feedRi.activityInfo.packageName, feedRi.activityInfo.name)
+                activity.startActivity(intent)
+            } else if (resolveInfos.size > 1) {
                 showSnsHandlerChooserDialog(activity, target, resolveInfos, intent)
             } else if (resolveInfos.size == 1) {
                 intent.setClassName(resolveInfos[0].activityInfo.packageName, resolveInfos[0].activityInfo.name)
@@ -2181,7 +2198,24 @@ object AndroidShareHelper {
             }
 
             val resolveInfos = activity.packageManager.queryIntentActivities(intent, 0)
-            if (resolveInfos.size > 1) {
+            if (target == SnsTarget.INSTAGRAM && resolveInfos.isNotEmpty()) {
+                val feedRi = resolveInfos.find { ri ->
+                    val label = ri.loadLabel(activity.packageManager)?.toString() ?: ""
+                    val name = ri.activityInfo.name
+                    (label.contains("Feed", ignoreCase = true) || label.contains("피드", ignoreCase = true) ||
+                     name.contains("Feed", ignoreCase = true) || name.contains("ShareHandlerActivity", ignoreCase = true) ||
+                     name.contains("PostShare", ignoreCase = true)) &&
+                    !label.contains("Story", ignoreCase = true) && !label.contains("스토리", ignoreCase = true) && !name.contains("Story", ignoreCase = true) &&
+                    !label.contains("Reel", ignoreCase = true) && !label.contains("릴스", ignoreCase = true) && !name.contains("Reel", ignoreCase = true) &&
+                    !label.contains("Direct", ignoreCase = true) && !name.contains("Direct", ignoreCase = true)
+                } ?: resolveInfos.find { ri ->
+                    val name = ri.activityInfo.name
+                    !name.contains("Story", ignoreCase = true) && !name.contains("Reel", ignoreCase = true) && !name.contains("Direct", ignoreCase = true)
+                } ?: resolveInfos[0]
+
+                intent.setClassName(feedRi.activityInfo.packageName, feedRi.activityInfo.name)
+                activity.startActivity(intent)
+            } else if (resolveInfos.size > 1) {
                 showSnsHandlerChooserDialog(activity, target, resolveInfos, intent)
             } else if (resolveInfos.size == 1) {
                 intent.setClassName(resolveInfos[0].activityInfo.packageName, resolveInfos[0].activityInfo.name)
