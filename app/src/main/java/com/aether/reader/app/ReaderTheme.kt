@@ -118,7 +118,14 @@ fun android.app.AlertDialog.showWithOptimalWidth(
 
     w.setLayout(targetW, targetH)
     w.setGravity(Gravity.CENTER)
-    w.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+    val strokeW = context.dp(2)
+    val corner = context.dp(12).toFloat()
+    val windowOutlineDrawable = GradientDrawable().apply {
+        setColor(ReaderTheme.EINK_PAPER)
+        cornerRadius = corner
+        setStroke(strokeW, ReaderTheme.ACCENT_KINDLE)
+    }
+    w.setBackgroundDrawable(windowOutlineDrawable)
 
     // Restore gentle window backdrop dim & drop shadow for all popup menus
     w.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND)
@@ -239,14 +246,12 @@ fun android.app.AlertDialog.showWithOptimalWidth(
             b.isAllCaps = false
             b.minHeight = context.dp(36)
             b.minimumHeight = context.dp(36)
-            if (b === b1) {
-                b.background = GradientDrawable().apply {
-                    setColor(ReaderTheme.EINK_CARD_BG)
-                    cornerRadius = context.dp(6).toFloat()
-                    setStroke(context.dp(1), ReaderTheme.EINK_INK)
-                }
-                b.setPadding(context.dp(14), context.dp(6), context.dp(14), context.dp(6))
+            b.background = GradientDrawable().apply {
+                setColor(if (b === b1) ReaderTheme.EINK_CARD_BG else Color.WHITE)
+                cornerRadius = context.dp(6).toFloat()
+                setStroke(context.dp(1), ReaderTheme.EINK_INK)
             }
+            b.setPadding(context.dp(14), context.dp(6), context.dp(14), context.dp(6))
         }
     }
 

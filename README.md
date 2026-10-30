@@ -11,13 +11,13 @@
 
 <p align="center">
   <a href="./README_ko.md">🇰🇷 한국어 설명서 (Korean)</a> •
-  <a href="./RELEASE_NOTES.md">Release Notes (v1.0)</a> •
+  <a href="./RELEASE_NOTES.md">Release Notes (v1.1)</a> •
   <a href="./ARCHITECTURE.md">Architecture Spec</a> •
   <a href="./FUNCTION.md">Functional Spec</a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version 1.0.0" />
+  <img src="https://img.shields.io/badge/version-1.1.0-blue.svg" alt="Version 1.1.0" />
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B%20(API%2026%2B)-green.svg" alt="Platform" />
   <img src="https://img.shields.io/badge/APK%20Size-~640%20KB-success.svg" alt="APK Size" />
   <img src="https://img.shields.io/badge/Dependencies-Zero%20Heavy%20Libs-orange.svg" alt="Dependencies" />
@@ -41,13 +41,20 @@ Adhering to a strict **Zero Heavy Library Policy** (no Jetpack Compose, no Glide
 
 ## 🌟 Highlighted Special Features
 
-### 🎨 1. Aesthetic SNS Quote Card & Stats Sharing
+### 📚 1. Direct Main-Screen Bookshelf Workflows (New in v1.1)
+Access core reading assets directly from your library shelf without having to open the reader:
+* **One-Click Reading Card & SNS Sharing**: Produce stylized 1080×1080 quote cards and reading streak graphics directly from the main screen `[📷 독서카드/SNS]` chip.
+* **Targeted Reading Notes Export**: Select any book in your library via `[📢 독서노트 공유]` to compile, package, and share its highlights as TXT, Markdown, or zipped archives via email or messenger.
+* **Smart Expandable Highlight Viewer**: Browse all notes and bookmarks across all books via `[🖍 독서 기록]`. Features **[더보기 ▾] / [접기 ▴]** toggles for long quotes, a high-contrast permanent scrollbar, and instant deep-linking back to the exact chapter and character offset in the book.
+* **Universal E-Ink Popup Outlines**: Guaranteed 2px high-contrast charcoal outlines and tactile button borders across all sharing and app-selection dialogs on e-paper.
+
+### 🎨 2. Aesthetic SNS Quote Card & Stats Sharing
 Transform your favorite reading moments into beautifully styled, high-resolution shareable image cards with a single tap:
 * **Custom Visual Themes**: Export quotes in Paper Minimalist, Warm Amber, Dark Obsidian, or AMOLED Pitch Black styling.
 * **Typographic Elegance**: Formatted with book title, author metadata, quotation marks, and optional user notes.
 * **Reading Milestone Cards**: Share your reading streaks (🔥), total reading hours, weekly books completed, and habit trends directly to **Instagram Stories, Twitter/X, social messengers**, or save directly to your gallery.
 
-### ⚡ 2. Bifurcation Display Architecture (Hardware-Aware)
+### ⚡ 3. Bifurcation Display Architecture (Hardware-Aware)
 A dual-rendering pipeline that adapts precisely to your display hardware:
 * **E-Ink Mode (Carta 1300/1200 & Kaleido 3)**:
   * Eliminates software color filters and battery-draining animations to protect raw e-paper contrast.
@@ -57,16 +64,16 @@ A dual-rendering pipeline that adapts precisely to your display hardware:
 * **LCD / OLED Mode**:
   * 7 immersive eye-care themes (Pure White, Warm Amber, Paper Cream, Mint Breeze, Lavender Fog, Deep Charcoal, AMOLED Pitch Black) with adjustable night filters.
 
-### 📊 3. Native Reading Analytics & Habit Heatmap
+### 📊 4. Native Reading Analytics & Habit Heatmap
 * Built-in, zero-dependency **pure Canvas line chart engine** (weekly, monthly, annual reading trends).
 * Real-time **Words Per Minute (WPM)** reading speed calculator, estimated remaining reading time, and reading progress scrubbers.
 * Lifetime reading statistics permanently retained even when book files are removed.
 
-### 🎧 4. Dual-Engine TTS & Hands-Free Audio Controls
+### 🎧 5. Dual-Engine TTS & Hands-Free Audio Controls
 * Background text-to-speech engine with synchronized sentence auto-scrolling.
 * Full **Bluetooth earphone & headset media key integration** (play, pause, next/previous sentence) for comfortable hands-free listening.
 
-### 🎴 5. Highlight Flashcards & Custom Bionic Reading
+### 🎴 6. Highlight Flashcards & Custom Bionic Reading
 * **Flashcard Spaced Repetition**: Turn highlights and notes into study flashcards with interactive flip animations.
 * **Proprietary Bionic Reading**: In-house fixation enhancer that bolds initial syllables without external third-party intellectual property constraints.
 

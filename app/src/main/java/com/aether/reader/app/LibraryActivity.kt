@@ -148,7 +148,7 @@ class LibraryActivity : Activity() {
         }
         val appTitle = TextView(this).apply {
             val brand = "Aether SAGA"
-            val verText = "  Ver. 1.0"
+            val verText = "  Ver. 1.1"
             val subText = "\njourneys through endless stories"
             val ssb = android.text.SpannableStringBuilder(brand).apply {
                 setSpan(android.text.style.StyleSpan(Typeface.BOLD), 0, brand.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -299,6 +299,16 @@ class LibraryActivity : Activity() {
             }
         }
 
+        val highlightsBtn = pillButton(L10n.t("🖍 독서 기록", "🖍 Notes & Bookmarks"), inkCol, cardBgCol, borderCol) {
+            showMainHighlightsDialog()
+        }
+        val snsShareBtn = pillButton(L10n.t("📷 독서카드/SNS", "📷 Card/SNS"), inkCol, cardBgCol, borderCol) {
+            showMainSnsShareDialog()
+        }
+        val notesShareBtn = pillButton(L10n.t("📢 독서노트 공유", "📢 Share Notes"), inkCol, cardBgCol, borderCol) {
+            showMainNotesShareDialog()
+        }
+
         filterBar.addView(shelfBtn)
         filterBar.addView(View(this), LinearLayout.LayoutParams(dp(6), 1))
         filterBar.addView(filterBtn)
@@ -306,6 +316,12 @@ class LibraryActivity : Activity() {
         filterBar.addView(sortBtn)
         filterBar.addView(View(this), LinearLayout.LayoutParams(dp(6), 1))
         filterBar.addView(searchBtn)
+        filterBar.addView(View(this), LinearLayout.LayoutParams(dp(6), 1))
+        filterBar.addView(highlightsBtn)
+        filterBar.addView(View(this), LinearLayout.LayoutParams(dp(6), 1))
+        filterBar.addView(snsShareBtn)
+        filterBar.addView(View(this), LinearLayout.LayoutParams(dp(6), 1))
+        filterBar.addView(notesShareBtn)
         filterScroll.addView(filterBar)
         root.addView(filterScroll)
 
@@ -1827,6 +1843,18 @@ class LibraryActivity : Activity() {
         dataCard.addView(backupRow)
         dataCard.addView(makeDivider())
 
+        val viewAllHlBtn = pillButton(L10n.t("🖍 하이라이트 및 북마크 열람/관리", "🖍 Browse Highlights & Bookmarks"), inkCol, btnBg, btnBorder) {
+            dlg.dismiss()
+            showMainHighlightsDialog()
+        }
+        val mainShareNotesBtn = pillButton(L10n.t("📢 도서별 독서 노트 공유 (이메일 · SNS)", "📢 Share Book Reading Notes"), inkCol, btnBg, btnBorder) {
+            dlg.dismiss()
+            showMainNotesShareDialog()
+        }
+        val mainSnsCardBtn = pillButton(L10n.t("📷 도서별 독서 카드 저장 · SNS 공유", "📷 Save Book Reading Card & Share"), inkCol, btnBg, btnBorder) {
+            dlg.dismiss()
+            showMainSnsShareDialog()
+        }
         val exportAllHlBtn = pillButton(L10n.t("📦 보관된 전체 하이라이트 압축파일(ZIP) 이메일 전송", "📦 Email All Saved Highlights (ZIP)"), inkCol, btnBg, btnBorder) {
             dlg.dismiss()
             scope.launch {
@@ -1838,6 +1866,12 @@ class LibraryActivity : Activity() {
                 showEmailHighlightsZipDialog(app, L10n.t("AetherSAGA 전체 도서", "AetherSAGA All Books"), L10n.t("통합 독서 보관함", "Unified Highlights Archive"), allHl, onBack = { settingsMenu() })
             }
         }
+        dataCard.addView(viewAllHlBtn, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
+        dataCard.addView(makeDivider())
+        dataCard.addView(mainShareNotesBtn, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
+        dataCard.addView(makeDivider())
+        dataCard.addView(mainSnsCardBtn, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
+        dataCard.addView(makeDivider())
         dataCard.addView(exportAllHlBtn, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
         dataCard.addView(makeDivider())
 
@@ -1872,7 +1906,7 @@ class LibraryActivity : Activity() {
         // 5. 앱 정보 및 릴리즈 노트 (설정 창 가장 아래 위치)
         box.addView(secHeader(L10n.t("버전 및 릴리즈 노트", "Version & Release Notes")))
         val releaseCard = makeCard()
-        val releaseBtn = pillButton(L10n.t("📋 릴리즈 노트 (Release Notes) • Ver. 1.0", "📋 Release Notes • Ver. 1.0"), inkCol, btnBg, btnBorder) {
+        val releaseBtn = pillButton(L10n.t("📋 릴리즈 노트 (Release Notes) • Ver. 1.1", "📋 Release Notes • Ver. 1.0"), inkCol, btnBg, btnBorder) {
             dlg.dismiss()
             showReleaseNotesDialog(onBack = { settingsMenu() })
         }
@@ -1898,7 +1932,7 @@ class LibraryActivity : Activity() {
         scroll.addView(box)
 
         val verBadge = TextView(this).apply {
-            text = "Aether SAGA  Ver. 1.0"
+            text = "Aether SAGA  Ver. 1.1"
             setPtSize(10.5f)
             setTextColor(inkCol)
             typeface = Typeface.create("serif", Typeface.BOLD)
@@ -2236,4 +2270,429 @@ class LibraryActivity : Activity() {
         scope.cancel()
         super.onDestroy()
     }
+
+    private fun openBookAtHighlight(h: HighlightEntity) {
+        val b = allBooks.find { it.path == h.bookPath || "file://${it.path}" == h.bookPath }
+            ?: BookEntity(
+                path = h.bookPath,
+                title = h.bookTitle.ifBlank { File(h.bookPath).nameWithoutExtension },
+                author = h.bookAuthor,
+                format = Containers.formatOf(h.bookPath)?.name ?: "TXT",
+                sizeBytes = 0L,
+                addedAt = System.currentTimeMillis()
+            )
+        val cleanPath = Containers.normalizePath(b.path)
+        try {
+            val intent = Intent(this, ReaderActivity::class.java).apply {
+                putExtra("path", cleanPath)
+                putExtra("jumpChapter", h.chapter)
+                putExtra("jumpOffset", h.startChar)
+                if (cleanPath.startsWith("content://")) {
+                    data = Uri.parse(cleanPath)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            }
+            startActivity(intent)
+        } catch (t: Throwable) {
+            toast(L10n.t("도서를 열 수 없습니다: ${t.message}", "Cannot open book: ${t.message}"))
+        }
+    }
+
+    private fun showMainSnsShareDialog() {
+        if (allBooks.isEmpty()) {
+            toast(L10n.t("책장에 등록된 도서가 없습니다.", "No books found in library."))
+            return
+        }
+        val isLcd = strategy.kind == DisplayKind.LCD_OLED
+        if (allBooks.size == 1) {
+            val b = allBooks[0]
+            scope.launch {
+                val hl = withContext(Dispatchers.IO) {
+                    val list = app.db.highlights().forBook(b.path)
+                    if (list.isNotEmpty()) list else app.db.highlights().forBook("file://${b.path}")
+                }
+                val pct = (b.progress * 100).toInt()
+                val sampleQuote = hl.firstOrNull { it.kind == 0 }?.quote ?: L10n.t("'${b.title}' 독서 진행률 $pct% 달성!", "'${b.title}' reading progress: $pct%!")
+                val sampleMemo = hl.firstOrNull { it.kind == 0 && it.note.isNotBlank() }?.note
+                withContext(Dispatchers.Main) {
+                    AndroidShareHelper.showSnsShareDialog(this@LibraryActivity, b.title, b.author, sampleQuote, sampleMemo, isEink = !isLcd)
+                }
+            }
+            return
+        }
+
+        val bookOptions = allBooks.map { b ->
+            val pct = (b.progress * 100).toInt()
+            "${b.title} (${b.author.ifBlank { L10n.t("저자 미상", "Unknown") }})  •  $pct%"
+        }
+        listDialog(L10n.t("📷 독서 카드 공유할 도서 선택", "Select Book for SNS Card"), bookOptions) { idx ->
+            val b = allBooks[idx]
+            scope.launch {
+                val hl = withContext(Dispatchers.IO) {
+                    val list = app.db.highlights().forBook(b.path)
+                    if (list.isNotEmpty()) list else app.db.highlights().forBook("file://${b.path}")
+                }
+                val pct = (b.progress * 100).toInt()
+                val sampleQuote = hl.firstOrNull { it.kind == 0 }?.quote ?: L10n.t("'${b.title}' 독서 진행률 $pct% 달성!", "'${b.title}' reading progress: $pct%!")
+                val sampleMemo = hl.firstOrNull { it.kind == 0 && it.note.isNotBlank() }?.note
+                withContext(Dispatchers.Main) {
+                    AndroidShareHelper.showSnsShareDialog(this@LibraryActivity, b.title, b.author, sampleQuote, sampleMemo, isEink = !isLcd)
+                }
+            }
+        }
+    }
+
+    private fun showMainNotesShareDialog() {
+        if (allBooks.isEmpty()) {
+            toast(L10n.t("책장에 등록된 도서가 없습니다.", "No books found in library."))
+            return
+        }
+        scope.launch {
+            val allHl = withContext(Dispatchers.IO) { app.db.highlights().all() }
+            val hlCountByBook = allHl.groupingBy { it.bookPath }.eachCount()
+            val isLcd = strategy.kind == DisplayKind.LCD_OLED
+
+            val bookOptions = allBooks.map { b ->
+                val count = hlCountByBook[b.path] ?: hlCountByBook["file://${b.path}"] ?: 0
+                val countDesc = if (count > 0) L10n.t("메모/북마크 ${count}건", "$count notes") else L10n.t("기록 없음", "No notes")
+                "${b.title} (${b.author.ifBlank { L10n.t("저자 미상", "Unknown") }})  •  $countDesc"
+            }
+            withContext(Dispatchers.Main) {
+                listDialog(L10n.t("📢 독서 노트 공유할 도서 선택", "Select Book to Share Reading Notes"), bookOptions) { idx ->
+                    val b = allBooks[idx]
+                    val bHl = allHl.filter { it.bookPath == b.path || it.bookPath == "file://${b.path}" }
+                    if (bHl.isEmpty()) {
+                        toast(L10n.t("'${b.title}'에 저장된 하이라이트/메모가 없습니다.", "No saved highlights or notes for '${b.title}'."))
+                        return@listDialog
+                    }
+                    showReadingNotesShareDialog(
+                        app = app,
+                        book = b,
+                        highlights = bHl,
+                        totalChapters = 0,
+                        rawCoverBytes = null,
+                        isLcd = isLcd,
+                        onBack = { showMainNotesShareDialog() }
+                    )
+                }
+            }
+        }
+    }
+
+    private fun showMainHighlightsDialog() {
+        scope.launch {
+            val allHl = withContext(Dispatchers.IO) { app.db.highlights().all() }
+            if (allHl.isEmpty()) {
+                withContext(Dispatchers.Main) {
+                    toast(L10n.t("보관된 하이라이트나 북마크가 없습니다.", "No saved highlights or bookmarks found."))
+                }
+                return@launch
+            }
+
+            withContext(Dispatchers.Main) {
+                val isLcd = strategy.kind == DisplayKind.LCD_OLED
+                val cardBg = if (isDark) ReaderTheme.DARK_CARD else (if (isLcd) cardBgCol else ReaderTheme.EINK_CARD_BG)
+                val cardBorder = if (isDark) ReaderTheme.DARK_BORDER else (if (isLcd) borderCol else ReaderTheme.EINK_BORDER_CONTRAST)
+                val strokePx = ReaderTheme.einkStrokePx(this@LibraryActivity, isLcd)
+                val btnBg = ReaderTheme.einkBtnBg(isLcd, isDark)
+                val btnBorder = ReaderTheme.einkBtnBorder(isLcd, isDark)
+
+                lateinit var dlg: AlertDialog
+                var selectedFilterPath: String? = null
+
+                fun filterHighlights(): List<HighlightEntity> {
+                    return if (selectedFilterPath == null) allHl
+                    else allHl.filter { it.bookPath == selectedFilterPath || it.bookPath == "file://$selectedFilterPath" }
+                }
+
+                val dm = resources.displayMetrics
+                val isLandscape = dm.widthPixels > dm.heightPixels
+                val customH = if (isLandscape) (dm.heightPixels * 0.90f).toInt().coerceAtMost(dp(560))
+                              else (dm.heightPixels * 0.86f).toInt().coerceAtMost(dp(720))
+
+                val outer = LinearLayout(this@LibraryActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(14), dp(10), dp(14), dp(10))
+                }
+
+                // Top Toolbar: Filter by Book + Export ZIP
+                val toolBar = LinearLayout(this@LibraryActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(0, 0, 0, dp(8))
+                }
+
+                lateinit var filterBtn: Button
+                filterBtn = pillButton(L10n.t("📚 도서: 전체 ▾", "📚 Book: All ▾"), inkCol, cardBg, cardBorder, strokePx) {
+                    val distinctPaths = allHl.map { it.bookPath }.distinct()
+                    val filterOptions = listOf(L10n.t("전체 도서 보기", "All Books")) + distinctPaths.map { path ->
+                        val b = allBooks.find { it.path == path || "file://${it.path}" == path }
+                        val title = b?.title ?: File(path).nameWithoutExtension
+                        val count = allHl.count { it.bookPath == path }
+                        "$title ($count)"
+                    }
+                    listDialog(L10n.t("도서 필터 선택", "Select Book Filter"), filterOptions) { optIdx ->
+                        selectedFilterPath = if (optIdx == 0) null else distinctPaths[optIdx - 1]
+                        val curTitle = if (selectedFilterPath == null) L10n.t("전체", "All")
+                        else (allBooks.find { it.path == selectedFilterPath || "file://${it.path}" == selectedFilterPath }?.title ?: File(selectedFilterPath!!).nameWithoutExtension).take(10)
+                        filterBtn.text = L10n.t("📚 도서: $curTitle ▾", "📚 Book: $curTitle ▾")
+                        dlg.dismiss()
+                        showMainHighlightsDialog()
+                    }
+                }
+
+                val zipBtn = pillButton(L10n.t("📦 ZIP 이메일", "📦 ZIP Email"), Color.WHITE, ReaderTheme.ACCENT_RIDI_BLUE, ReaderTheme.ACCENT_RIDI_BLUE, strokePx) {
+                    val currentItems = filterHighlights()
+                    val bTitle = if (selectedFilterPath != null) {
+                        allBooks.find { it.path == selectedFilterPath || "file://${it.path}" == selectedFilterPath }?.title ?: File(selectedFilterPath!!).nameWithoutExtension
+                    } else L10n.t("AetherSAGA 전체 도서", "AetherSAGA All Books")
+                    val bAuthor = if (selectedFilterPath != null) {
+                        allBooks.find { it.path == selectedFilterPath || "file://${it.path}" == selectedFilterPath }?.author ?: ""
+                    } else L10n.t("통합 독서 보관함", "Unified Highlights Archive")
+                    showEmailHighlightsZipDialog(app, bTitle, bAuthor, currentItems, onBack = { showMainHighlightsDialog() })
+                }
+
+                toolBar.addView(filterBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.2f).apply { rightMargin = dp(6) })
+                toolBar.addView(zipBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                outer.addView(toolBar)
+
+                val scroll = ScrollView(this@LibraryActivity).apply {
+                    isFillViewport = true
+                    enableVisibleScrollbar(isDark)
+                }
+                val itemsBox = LinearLayout(this@LibraryActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                }
+
+                val currentList = filterHighlights()
+                for ((idx, h) in currentList.withIndex()) {
+                    val b = allBooks.find { it.path == h.bookPath || "file://${it.path}" == h.bookPath }
+                    val bTitle = b?.title ?: h.bookTitle.ifBlank { File(h.bookPath).nameWithoutExtension }
+                    val bAuthor = b?.author ?: h.bookAuthor
+
+                    val card = LinearLayout(this@LibraryActivity).apply {
+                        orientation = LinearLayout.VERTICAL
+                        background = cardDrawable(cardBg, 8, cardBorder, strokePx)
+                        setPadding(dp(12), dp(10), dp(12), dp(10))
+                    }
+
+                    // 1. Meta Header: Kind Badge + Book Title + Chapter + Position %
+                    val metaRow = LinearLayout(this@LibraryActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                    }
+                    val isBookmark = (h.kind == 1)
+                    val tagTv = TextView(this@LibraryActivity).apply {
+                        text = if (isBookmark) "🔖 " + L10n.t("북마크", "Bookmark") else "🖍 " + L10n.t("형광펜", "Highlight")
+                        setPtSize(7.6f)
+                        setTextColor(if (isBookmark) ReaderTheme.ACCENT_RIDI_BLUE else 0xFFD97706.toInt())
+                        typeface = Typeface.DEFAULT_BOLD
+                    }
+                    val infoTv = TextView(this@LibraryActivity).apply {
+                        val ch = h.chapterTitle.ifBlank { "" }
+                        text = " • $bTitle" + (if (ch.isNotBlank()) " ($ch)" else "")
+                        setPtSize(7.8f)
+                        setTextColor(inkCol)
+                        typeface = Typeface.DEFAULT_BOLD
+                        maxLines = 1
+                        ellipsize = android.text.TextUtils.TruncateAt.END
+                    }
+                    val pctTv = TextView(this@LibraryActivity).apply {
+                        text = "${(h.progress * 100).toInt()}%"
+                        setPtSize(7.5f)
+                        setTextColor(mutedCol)
+                        gravity = Gravity.END
+                    }
+                    metaRow.addView(tagTv)
+                    metaRow.addView(infoTv, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        leftMargin = dp(4)
+                        rightMargin = dp(6)
+                    })
+                    metaRow.addView(pctTv)
+                    card.addView(metaRow)
+
+                    // 2. Quote Text (with Fold/Unfold: 접기 / 펼치기)
+                    val quoteTv = TextView(this@LibraryActivity).apply {
+                        text = "“" + h.quote.trim() + "”"
+                        setPtSize(8.8f)
+                        setTextColor(inkCol)
+                        typeface = Typeface.create("serif", Typeface.NORMAL)
+                        setLineSpacing(dp(2).toFloat(), 1.15f)
+                        setPadding(0, dp(6), 0, dp(4))
+                    }
+                    val isLong = h.quote.length > 70 || h.quote.contains("\n")
+                    if (isLong) {
+                        quoteTv.maxLines = 3
+                        quoteTv.ellipsize = android.text.TextUtils.TruncateAt.END
+                    }
+                    card.addView(quoteTv)
+
+                    if (isLong) {
+                        var expanded = false
+                        val toggleBtn = TextView(this@LibraryActivity).apply {
+                            text = L10n.t("더보기 ▾", "Show More ▾")
+                            setPtSize(7.8f)
+                            setTextColor(if (isLcd) ReaderTheme.ACCENT_RIDI_BLUE else ReaderTheme.EINK_INK)
+                            typeface = Typeface.DEFAULT_BOLD
+                            setPadding(0, 0, 0, dp(4))
+                            setOnClickListener {
+                                expanded = !expanded
+                                if (expanded) {
+                                    quoteTv.maxLines = Int.MAX_VALUE
+                                    quoteTv.ellipsize = null
+                                    text = L10n.t("접기 ▴", "Show Less ▴")
+                                } else {
+                                    quoteTv.maxLines = 3
+                                    quoteTv.ellipsize = android.text.TextUtils.TruncateAt.END
+                                    text = L10n.t("더보기 ▾", "Show More ▾")
+                                }
+                            }
+                        }
+                        card.addView(toggleBtn)
+                    }
+
+                    // 3. Note/Memo if present
+                    if (h.note.isNotBlank()) {
+                        val noteBox = LinearLayout(this@LibraryActivity).apply {
+                            orientation = LinearLayout.VERTICAL
+                            background = cardDrawable(if (isLcd) 0xFFF0F4F8.toInt() else Color.WHITE, 4, cardBorder, dp(1))
+                            setPadding(dp(8), dp(6), dp(8), dp(6))
+                            layoutParams = LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                                topMargin = dp(4)
+                                bottomMargin = dp(4)
+                            }
+                        }
+                        val noteTitleTv = TextView(this@LibraryActivity).apply {
+                            text = L10n.t("📝 메모:", "📝 Note:")
+                            setPtSize(7.6f)
+                            setTextColor(if (isLcd) ReaderTheme.ACCENT_RIDI_BLUE else ReaderTheme.EINK_INK)
+                            typeface = Typeface.DEFAULT_BOLD
+                        }
+                        val noteBodyTv = TextView(this@LibraryActivity).apply {
+                            text = h.note.trim()
+                            setPtSize(8.2f)
+                            setTextColor(inkCol)
+                            setLineSpacing(dp(2).toFloat(), 1.15f)
+                        }
+                        val isNoteLong = h.note.length > 70 || h.note.contains("\n")
+                        if (isNoteLong) {
+                            noteBodyTv.maxLines = 3
+                            noteBodyTv.ellipsize = android.text.TextUtils.TruncateAt.END
+                        }
+                        noteBox.addView(noteTitleTv)
+                        noteBox.addView(noteBodyTv)
+
+                        if (isNoteLong) {
+                            var noteExpanded = false
+                            val noteToggleBtn = TextView(this@LibraryActivity).apply {
+                                text = L10n.t("더보기 ▾", "Show More ▾")
+                                setPtSize(7.6f)
+                                setTextColor(if (isLcd) ReaderTheme.ACCENT_RIDI_BLUE else ReaderTheme.EINK_INK)
+                                typeface = Typeface.DEFAULT_BOLD
+                                setPadding(0, dp(2), 0, 0)
+                                setOnClickListener {
+                                    noteExpanded = !noteExpanded
+                                    if (noteExpanded) {
+                                        noteBodyTv.maxLines = Int.MAX_VALUE
+                                        noteBodyTv.ellipsize = null
+                                        text = L10n.t("접기 ▴", "Show Less ▴")
+                                    } else {
+                                        noteBodyTv.maxLines = 3
+                                        noteBodyTv.ellipsize = android.text.TextUtils.TruncateAt.END
+                                        text = L10n.t("더보기 ▾", "Show More ▾")
+                                    }
+                                }
+                            }
+                            noteBox.addView(noteToggleBtn)
+                        }
+                        card.addView(noteBox)
+                    }
+
+                    // 4. Action Buttons: [📖 도서 열기] [📷 SNS 공유] [🗑 삭제]
+                    val btnRow = LinearLayout(this@LibraryActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        setPadding(0, dp(6), 0, 0)
+                    }
+                    val openBtn = pillButton(L10n.t("📖 열기", "📖 Open"), inkCol, btnBg, btnBorder, strokePx) {
+                        dlg.dismiss()
+                        openBookAtHighlight(h)
+                    }.apply {
+                        setPtSize(7.8f)
+                        setPadding(dp(8), dp(4), dp(8), dp(4))
+                        minHeight = dp(28)
+                        minimumHeight = dp(28)
+                    }
+                    val cardBtn = pillButton(L10n.t("📷 SNS", "📷 SNS"), inkCol, btnBg, btnBorder, strokePx) {
+                        AndroidShareHelper.showSnsShareDialog(
+                            this@LibraryActivity,
+                            bTitle,
+                            bAuthor,
+                            h.quote,
+                            h.note.ifBlank { null },
+                            isEink = !isLcd,
+                            onBack = { showMainHighlightsDialog() }
+                        )
+                    }.apply {
+                        setPtSize(7.8f)
+                        setPadding(dp(8), dp(4), dp(8), dp(4))
+                        minHeight = dp(28)
+                        minimumHeight = dp(28)
+                    }
+                    val deleteBtn = pillButton(L10n.t("🗑 삭제", "🗑 Delete"), 0xFFB71C1C.toInt(), btnBg, btnBorder, strokePx) {
+                        AlertDialog.Builder(this@LibraryActivity)
+                            .setTitle(L10n.t("기록 삭제", "Delete Note"))
+                            .setMessage(L10n.t("선택한 하이라이트/북마크를 영구 삭제하시겠습니까?", "Delete this highlight/bookmark permanently?"))
+                            .setPositiveButton(L10n.t("삭제", "Delete")) { _, _ ->
+                                scope.launch {
+                                    withContext(Dispatchers.IO) { app.db.highlights().delete(h.id) }
+                                    withContext(Dispatchers.Main) {
+                                        toast(L10n.t("삭제되었습니다.", "Deleted."))
+                                        dlg.dismiss()
+                                        showMainHighlightsDialog()
+                                    }
+                                }
+                            }
+                            .setNegativeButton(L10n.t("취소", "Cancel"), null)
+                            .create()
+                            .showWithOptimalWidth(this@LibraryActivity)
+                    }.apply {
+                        setPtSize(7.8f)
+                        setPadding(dp(8), dp(4), dp(8), dp(4))
+                        minHeight = dp(28)
+                        minimumHeight = dp(28)
+                    }
+
+                    btnRow.addView(openBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(4) })
+                    btnRow.addView(cardBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(4) })
+                    btnRow.addView(deleteBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                    card.addView(btnRow)
+
+                    itemsBox.addView(card, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                        bottomMargin = dp(8)
+                    })
+                    if (idx < currentList.size - 1) {
+                        if (!isLcd) {
+                            itemsBox.addView(DottedDividerView(this@LibraryActivity, dotColor = 0xFF888888.toInt(), strokePx = dp(1)).apply {
+                                layoutParams = LinearLayout.LayoutParams(-1, dp(3)).apply {
+                                    topMargin = dp(2)
+                                    bottomMargin = dp(6)
+                                }
+                            })
+                        }
+                    }
+                }
+
+                scroll.addView(itemsBox)
+                outer.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+
+                dlg = AlertDialog.Builder(this@LibraryActivity)
+                    .setTitle(L10n.t("🖍 하이라이트 및 북마크 (${currentList.size}건)", "Highlights & Bookmarks (${currentList.size})"))
+                    .setView(outer)
+                    .create()
+                dlg.showWithOptimalWidth(this@LibraryActivity, customHeight = customH)
+            }
+        }
+    }
+
 }

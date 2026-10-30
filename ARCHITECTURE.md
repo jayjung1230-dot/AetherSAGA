@@ -1,6 +1,6 @@
 # Aether SAGA – Architecture Overview
 
-> **Version:** `Ver. 1.0` (Official Release • 2026-10-28)  
+> **Version:** `Ver. 1.1` (Official Release • 2026-10-28)  
 > *"Aether SAGA, journeys through endless stories"*  
 > **Release Notes:** [RELEASE_NOTES.md](./RELEASE_NOTES.md)
 

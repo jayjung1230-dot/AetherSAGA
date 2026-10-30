@@ -1,6 +1,6 @@
 # Aether SAGA (에테르 사가) - 기능 명세 및 법적·마켓 컴플라이언스 분석서 (FUNCTION.md)
 
-> **앱 버전:** `Ver. 1.0` (공식 릴리즈) | **문서 버전:** v1.4.0  
+> **앱 버전:** `Ver. 1.1` (공식 릴리즈) | **문서 버전:** v1.4.0  
 > **기준 일자:** 2026년 10월 28일  
 > **대상 애플리케이션:** Aether SAGA (*journeys through endless stories*)  
 > **관련 문서:** [RELEASE_NOTES.md](./RELEASE_NOTES.md), [README.md](./README.md), [ARCHITECTURE.md](./ARCHITECTURE.md)  

@@ -1220,7 +1220,7 @@ object AndroidShareHelper {
                 }
                 .setNegativeButton(L10n.t("취소", "Cancel"), null)
                 .create()
-                .show()
+                .showWithOptimalWidth(activity)
             return
         }
 
@@ -1269,7 +1269,7 @@ object AndroidShareHelper {
                 }
                 .setNegativeButton(L10n.t("취소", "Cancel"), null)
                 .create()
-                .show()
+                .showWithOptimalWidth(activity)
             return
         }
 
