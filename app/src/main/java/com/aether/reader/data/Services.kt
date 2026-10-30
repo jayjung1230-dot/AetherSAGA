@@ -1183,6 +1183,110 @@ object AndroidShareHelper {
         }
     }
 
+    fun showSnsAppNotInstalledDialog(activity: Activity, target: SnsTarget) {
+        val inkCol = ReaderTheme.EINK_INK
+        val cardBgCol = ReaderTheme.EINK_CARD_BG
+        val borderCol = ReaderTheme.EINK_BORDER_CONTRAST
+        val strokeW = activity.dp(2)
+
+        val root = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(activity.dp(16), activity.dp(14), activity.dp(16), activity.dp(14))
+        }
+
+        // Inner Card Box with 2px High Contrast Border
+        val cardBox = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = cardDrawable(cardBgCol, 8, borderCol, strokeW)
+            setPadding(activity.dp(16), activity.dp(16), activity.dp(16), activity.dp(16))
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+
+        // Official App Icon
+        val iconIv = ImageView(activity).apply {
+            setImageDrawable(getSnsAppIcon(activity, target))
+            scaleType = ImageView.ScaleType.FIT_CENTER
+        }
+        cardBox.addView(iconIv, LinearLayout.LayoutParams(activity.dp(48), activity.dp(48)).apply {
+            bottomMargin = activity.dp(10)
+        })
+
+        // Title with App Name
+        val titleTv = TextView(activity).apply {
+            text = L10n.t("${target.localizedTitle} 앱 미설치", "${target.title} Not Installed")
+            setPtSize(10f)
+            typeface = ReaderTheme.uiFontBold
+            setTextColor(inkCol)
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, activity.dp(6))
+        }
+        cardBox.addView(titleTv)
+
+        // Description
+        val descTv = TextView(activity).apply {
+            text = L10n.t(
+                "${target.localizedTitle} 앱이 기기에 설치되어 있지 않습니다.\n\n구글 플레이스토어로 이동하여 앱을 다운로드하시겠습니까?",
+                "${target.title} is not installed on this device.\n\nWould you like to open Google Play Store to download it?"
+            )
+            setPtSize(8.5f)
+            setTextColor(inkCol)
+            gravity = Gravity.CENTER
+            setLineSpacing(activity.dp(3).toFloat(), 1.15f)
+            setPadding(0, 0, 0, activity.dp(4))
+        }
+        cardBox.addView(descTv)
+        root.addView(cardBox)
+
+        // Action Buttons Row
+        val btnRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(0, activity.dp(12), 0, 0)
+        }
+
+        lateinit var dlg: AlertDialog
+        val cancelBtn = TextView(activity).apply {
+            text = L10n.t("취소", "Cancel")
+            setPtSize(8.8f)
+            typeface = ReaderTheme.uiFontBold
+            setTextColor(inkCol)
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                setColor(Color.WHITE)
+                cornerRadius = activity.dp(ReaderTheme.CORNER_PILL_DP).toFloat()
+                setStroke(strokeW, borderCol)
+            }
+            setPadding(activity.dp(14), activity.dp(9), activity.dp(14), activity.dp(9))
+            setOnClickListener { dlg.dismiss() }
+        }
+
+        val storeBtn = TextView(activity).apply {
+            text = L10n.t("스토어로 이동 ↗", "Open Store ↗")
+            setPtSize(8.8f)
+            typeface = ReaderTheme.uiFontBold
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                setColor(ReaderTheme.ACCENT_RIDI_BLUE)
+                cornerRadius = activity.dp(ReaderTheme.CORNER_PILL_DP).toFloat()
+            }
+            setPadding(activity.dp(14), activity.dp(9), activity.dp(14), activity.dp(9))
+            setOnClickListener {
+                dlg.dismiss()
+                target.openStore(activity)
+            }
+        }
+
+        btnRow.addView(cancelBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = activity.dp(6) })
+        btnRow.addView(storeBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.3f))
+        root.addView(btnRow)
+
+        dlg = AlertDialog.Builder(activity)
+            .setView(root)
+            .create()
+        dlg.showWithOptimalWidth(activity)
+    }
+
     fun shareQuoteToSns(
         activity: Activity,
         target: SnsTarget,
@@ -1212,15 +1316,7 @@ object AndroidShareHelper {
         }
 
         if (!target.isInstalled(activity)) {
-            AlertDialog.Builder(activity)
-                .setTitle(L10n.t("${target.localizedTitle} 앱 미설치", "${target.title} Not Installed"))
-                .setMessage(L10n.t("${target.localizedTitle} 앱이 기기에 설치되어 있지 않습니다.\n\n구글 플레이스토어로 이동하여 앱을 다운로드하시겠습니까?", "${target.title} is not installed.\n\nWould you like to open Google Play Store to download it?"))
-                .setPositiveButton(L10n.t("스토어로 이동", "Open Store")) { _, _ ->
-                    target.openStore(activity)
-                }
-                .setNegativeButton(L10n.t("취소", "Cancel"), null)
-                .create()
-                .showWithOptimalWidth(activity)
+            showSnsAppNotInstalledDialog(activity, target)
             return
         }
 
@@ -1261,15 +1357,7 @@ object AndroidShareHelper {
         }
 
         if (!target.isInstalled(activity)) {
-            AlertDialog.Builder(activity)
-                .setTitle(L10n.t("${target.localizedTitle} 앱 미설치", "${target.title} Not Installed"))
-                .setMessage(L10n.t("${target.localizedTitle} 앱이 기기에 설치되어 있지 않습니다.\n\n구글 플레이스토어로 이동하여 앱을 다운로드하시겠습니까?", "${target.title} is not installed.\n\nWould you like to open Google Play Store to download it?"))
-                .setPositiveButton(L10n.t("스토어로 이동", "Open Store")) { _, _ ->
-                    target.openStore(activity)
-                }
-                .setNegativeButton(L10n.t("취소", "Cancel"), null)
-                .create()
-                .showWithOptimalWidth(activity)
+            showSnsAppNotInstalledDialog(activity, target)
             return
         }
 

@@ -133,6 +133,16 @@ fun android.app.AlertDialog.showWithOptimalWidth(
     w.decorView.elevation = context.dp(8).toFloat()
     w.decorView.translationZ = 0f
 
+    // Ensure DecorView draws a continuous 2px high-contrast outline on top of all window contents
+    (w.decorView as? ViewGroup)?.let { dv ->
+        dv.clipToOutline = true
+        dv.foreground = GradientDrawable().apply {
+            setColor(Color.TRANSPARENT)
+            cornerRadius = corner
+            setStroke(strokeW, ReaderTheme.EINK_BORDER_CONTRAST)
+        }
+    }
+
     // LCD/OLED uniform brightness synchronization
     val app = context.applicationContext as? com.aether.reader.App
     val isLcd = app?.prefs?.let { prefs ->

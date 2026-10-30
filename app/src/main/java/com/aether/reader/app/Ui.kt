@@ -238,42 +238,54 @@ fun Context.showEmailHighlightsZipDialog(
     infoCard.addView(zipBadgeTv)
     root.addView(infoCard)
 
-    // Highlights Preview Box
+    // 3. Checklist Header + Select All / Deselect All
+    val listHeaderRow = LinearLayout(this).apply {
+        orientation = LinearLayout.HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(0, dp(10), 0, dp(4))
+    }
     val previewHeaderTv = TextView(this).apply {
-        text = L10n.t("📝 전송 대상 하이라이트 목록 (${highlights.size}건)", "📝 Highlights to send (${highlights.size})")
+        text = L10n.t("📝 전송 항목 선택 (${highlights.size}건)", "📝 Select Items to Send (${highlights.size})")
         setPtSize(8.3f)
         typeface = ReaderTheme.uiFontBold
         setTextColor(inkCol)
-        setPadding(0, dp(12), 0, dp(4))
     }
-    root.addView(previewHeaderTv)
+    val checkBoxes = ArrayList<CheckBox>()
+    val toggleAllBtn = pillButton(L10n.t("전체 선택/해제", "Select All / None"), ReaderTheme.EINK_INK, ReaderTheme.EINK_PAPER, ReaderTheme.EINK_BORDER) {
+        val allChecked = checkBoxes.all { it.isChecked }
+        checkBoxes.forEach { it.isChecked = !allChecked }
+    }.apply {
+        setPtSize(7.4f)
+        setPadding(dp(8), dp(3), dp(8), dp(3))
+        minHeight = dp(26)
+        minimumHeight = dp(26)
+    }
+    listHeaderRow.addView(previewHeaderTv, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+    listHeaderRow.addView(toggleAllBtn)
+    root.addView(listHeaderRow)
 
     val previewScroll = ScrollView(this).apply {
         background = cardDrawable(cardBgCol, 6, borderCol)
-        setPadding(dp(10), dp(8), dp(10), dp(8))
+        setPadding(dp(6), dp(4), dp(6), dp(4))
         enableVisibleScrollbar()
     }
     val previewCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     for ((idx, h) in highlights.withIndex()) {
-        val itemTv = TextView(this).apply {
-            val prefix = if (h.kind == 1) "🔖 " else "🖍 "
-            val notePart = if (h.note.isNotBlank()) L10n.t("\n   ✍ 메모: ${h.note.take(50)}", "\n   ✍ Note: ${h.note.take(50)}") else ""
-            val chPart = h.chapterTitle.ifBlank { L10n.t("본문", "Body") }
-            text = "${idx + 1}. $prefix[$chPart] ${h.quote.replace("\n", " ").take(65)}$notePart"
-            setPtSize(7.8f)
+        val prefix = if (h.kind == 1) "🔖 " else "🖍 "
+        val notePart = if (h.note.isNotBlank()) L10n.t(" (메모: ${h.note.take(35)})", " (Note: ${h.note.take(35)})") else ""
+        val chPart = h.chapterTitle.ifBlank { L10n.t("본문", "Body") }
+        val cb = CheckBox(this).apply {
+            text = "$prefix[$chPart] ${h.quote.replace("\n", " ").take(55)}$notePart"
+            isChecked = true // 기본값: 모두 선택
+            setPtSize(8f)
             setTextColor(inkCol)
             setPadding(dp(4), dp(4), dp(4), dp(4))
         }
-        previewCol.addView(itemTv)
-        if (idx < highlights.size - 1) {
-            previewCol.addView(View(this).apply {
-                setBackgroundColor(borderCol)
-                layoutParams = LinearLayout.LayoutParams(-1, dp(1)).apply { setMargins(dp(4), dp(2), dp(4), dp(2)) }
-            })
-        }
+        checkBoxes.add(cb)
+        previewCol.addView(cb)
     }
     previewScroll.addView(previewCol)
-    val maxScrollH = (resources.displayMetrics.heightPixels * 0.22f).toInt().coerceIn(dp(80), dp(140))
+    val maxScrollH = (resources.displayMetrics.heightPixels * 0.24f).toInt().coerceIn(dp(85), dp(150))
     root.addView(previewScroll, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
         if (highlights.size > 2) height = maxScrollH
     })
@@ -317,19 +329,24 @@ fun Context.showEmailHighlightsZipDialog(
         if (email.isBlank() || !email.contains("@")) {
             Toast.makeText(this, L10n.t("올바른 이메일 주소를 입력해주세요", "Please enter a valid email address"), Toast.LENGTH_SHORT).show()
         } else {
-            app.prefs.shareEmail = email
-            dlg.dismiss()
-            val ok = AndroidShareHelper.sendHighlightsZipEmail(
-                this,
-                email,
-                bookTitle,
-                bookAuthor,
-                highlights
-            )
-            if (ok) {
-                Toast.makeText(this, L10n.t("📨 이메일 앱이 열렸습니다. 확인 후 '보내기'를 눌러주세요.", "📨 Email app opened. Please review and tap 'Send'."), Toast.LENGTH_LONG).show()
+            val selected = highlights.filterIndexed { i, _ -> checkBoxes[i].isChecked }
+            if (selected.isEmpty()) {
+                Toast.makeText(this, L10n.t("전송할 항목을 1개 이상 선택해주세요", "Please select at least one item to send"), Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(this, L10n.t("이메일 앱을 열지 못했습니다. 설치된 이메일 앱을 확인해주세요.", "Failed to open email app. Please check installed email apps."), Toast.LENGTH_SHORT).show()
+                app.prefs.shareEmail = email
+                dlg.dismiss()
+                val ok = AndroidShareHelper.sendHighlightsZipEmail(
+                    this,
+                    email,
+                    bookTitle,
+                    bookAuthor,
+                    selected
+                )
+                if (ok) {
+                    Toast.makeText(this, L10n.t("📨 이메일 앱이 열렸습니다. 확인 후 '보내기'를 눌러주세요.", "📨 Email app opened. Please review and tap 'Send'."), Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this, L10n.t("이메일 앱을 열지 못했습니다. 설치된 이메일 앱을 확인해주세요.", "Failed to open email app. Please check installed email apps."), Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

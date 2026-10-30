@@ -531,7 +531,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 - **구현 파일 및 주요 심볼:**
   - [Database.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/data/Database.kt) (`HighlightEntity` 내 `bookTitle`, `bookAuthor` 컬럼 추가, `Migration 3->4`)
   - [Services.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/data/Services.kt) (`AndroidShareHelper.createHighlightsZip`, `AndroidShareHelper.sendHighlightsZipEmail`)
-  - [Ui.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/Ui.kt) (`Context.showEmailHighlightsZipDialog`)
+  - [Ui.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/Ui.kt) (`Context.showEmailHighlightsZipDialog (Checkboxes + Default All Selected)`)
   - [LibraryActivity.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/LibraryActivity.kt) (`confirmDeleteBookWithHighlightOption`, 단일/다중 도서 삭제 시 Yes/No 선택 모달, 서재 설정 내 보관된 전체 하이라이트 ZIP 전송)
   - [ReaderActivity.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/ReaderActivity.kt) (목차/노트 다이얼로그, 하이라이트 열람 메뉴, 내보내기 메뉴 연동)
 - **기술적 세부사항:**
