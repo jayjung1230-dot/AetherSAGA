@@ -30,6 +30,7 @@ ehthumbs.db
 scratch/
 scratch_test*.py
 scratch_preview.png
+sample_*.png
 crash.log
 
 # Third-party local test fonts (Zero-Bundling Compliance)

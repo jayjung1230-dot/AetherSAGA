@@ -14,9 +14,12 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
+import android.view.WindowManager
+import java.util.regex.Pattern
 import android.view.ViewGroup
 import android.widget.*
 import com.aether.reader.App
@@ -60,6 +63,26 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     private lateinit var frontlight: FrontlightController
     private lateinit var keys: KeyEventDispatcher
     private lateinit var tts: TtsController
+    data class TtsSentence(
+        val index: Int,
+        val startChar: Int,
+        val endChar: Int,
+        val text: String,
+        val isDialogue: Boolean = false
+    )
+
+    private var ttsControlPanel: LinearLayout? = null
+    private var ttsSentences = listOf<TtsSentence>()
+    private var ttsSentenceIdx = 0
+    private var ttsCurrentChapter = -1
+    private var ttsStatusTv: TextView? = null
+    private var ttsProgressTv: TextView? = null
+    private var ttsPlayPauseBtn: TextView? = null
+    private var ttsVoiceBadgeTv: TextView? = null
+    private var ttsChapterLimitBtn: TextView? = null
+    private var ttsVoiceSettingsBtn: TextView? = null
+    private var ttsWakeLock: PowerManager.WakeLock? = null
+    private val ttsSpeedButtons = mutableListOf<Pair<Float, TextView>>()
     private lateinit var orientationMgr: OrientationManager
     private lateinit var strategy: DisplayStrategy
     private lateinit var path: String
@@ -71,6 +94,31 @@ class ReaderActivity : Activity(), ReaderView.Listener {
 
     private var book: BookEntity? = null
     @Volatile private var highlights: List<HighlightEntity> = emptyList()
+        set(value) {
+            field = value
+            updateSplitMarksCache()
+        }
+    @Volatile private var cachedSplitMarks: Map<Int, Pair<List<Mark>, List<Mark>>> = emptyMap()
+    private var cachedPalette: IntArray = intArrayOf()
+
+    private fun updateSplitMarksCache() {
+        val list = highlights
+        val pal = cachedPalette
+        if (pal.isEmpty()) return
+        val map = HashMap<Int, Pair<ArrayList<Mark>, ArrayList<Mark>>>()
+        for (h in list) {
+            if (h.kind != 0) continue
+            val pair = map.getOrPut(h.chapter) { Pair(ArrayList(), ArrayList()) }
+            val col = pal[h.colorTag.coerceIn(0, 3)]
+            val mark = Mark(h.startChar.toInt(), h.endChar.toInt(), h.style, col)
+            if (h.style == 2) {
+                pair.first.add(mark)
+            } else {
+                pair.second.add(mark)
+            }
+        }
+        cachedSplitMarks = map
+    }
     private var opened = false
     private var relayoutJob: Job? = null
     private var pendingRelayoutLoc: BookLocation? = null
@@ -149,7 +197,15 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             canvas.drawLine(w * 0.28f, h * 0.40f, w * 0.72f, h * 0.40f, innerMarkPaint)
         }
     }
-    private val idleDim = Runnable { if (::frontlight.isInitialized && ::strategy.isInitialized && strategy.kind != DisplayKind.LCD_OLED) frontlight.dim() }
+    private val idleDim = Runnable {
+        if (tts.speaking) {
+            resetIdle()
+            return@Runnable
+        }
+        if (::frontlight.isInitialized && ::strategy.isInitialized && strategy.kind != DisplayKind.LCD_OLED) {
+            frontlight.dim()
+        }
+    }
 
     private val refreshController = object : PanelRefreshController {
         override fun requestRefresh(mode: RefreshMode) {
@@ -234,6 +290,18 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 }
             }
         ) { handler.post { if (tts.speaking) turn(true, speakAfter = true) } }
+        tts.onSentenceDone = {
+            handler.post {
+                if (tts.speaking) {
+                    onTtsSentenceFinished()
+                }
+            }
+        }
+        tts.setSpeed(app.prefs.ttsSpeed)
+        tts.setPitch(app.prefs.ttsPitch)
+        if (app.prefs.ttsVoiceName.isNotBlank()) {
+            tts.setVoiceByName(app.prefs.ttsVoiceName)
+        }
 
         engine.setListener(object : PagingListener {
             override fun onChapterLayoutFinished(chapter: Int, pageCount: Int) {
@@ -612,9 +680,19 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         val palette = if (colorful) intArrayOf(0xFFD32F2F.toInt(), 0xFF388E3C.toInt(), 0xFF1976D2.toInt(), 0xFFF9A825.toInt())
         else intArrayOf(Color.BLACK, 0xFF444444.toInt(), 0xFF777777.toInt(), 0xFFAAAAAA.toInt())
         val fixed = if (dark) palette.map { if (it == Color.BLACK) Color.WHITE else it }.toIntArray() else palette
+        cachedPalette = fixed
+        updateSplitMarksCache()
+        engine.splitHighlightProvider = { ch ->
+            cachedSplitMarks[ch] ?: Pair(emptyList(), emptyList())
+        }
         engine.highlightProvider = { ch ->
-            highlights.filter { it.chapter == ch && it.kind == 0 }
-                .map { Mark(it.startChar.toInt(), it.endChar.toInt(), it.style, fixed[it.colorTag.coerceIn(0, 3)]) }
+            val pair = cachedSplitMarks[ch]
+            if (pair != null) {
+                pair.first + pair.second
+            } else {
+                highlights.filter { it.chapter == ch && it.kind == 0 }
+                    .map { Mark(it.startChar.toInt(), it.endChar.toInt(), it.style, fixed[it.colorTag.coerceIn(0, 3)]) }
+            }
         }
     }
 
@@ -836,6 +914,19 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         if (overlayContainer.visibility == View.VISIBLE) {
             hideOverlay()
             return true
+        }
+        if (ttsControlPanel?.visibility == View.VISIBLE) {
+            val hit = engine.hitTest(x.toInt(), y.toInt())
+            if (hit != null && ttsSentences.isNotEmpty()) {
+                val tappedIdx = ttsSentences.indexOfFirst {
+                    hit.startChar >= it.startChar && hit.startChar <= it.endChar
+                }
+                if (tappedIdx >= 0) {
+                    ttsSentenceIdx = tappedIdx
+                    startOrResumeTts()
+                    return true
+                }
+            }
         }
         val loc = engine.currentLocation()
         val pageHighlights = highlights.filter { it.chapter == loc.chapterIndex && it.kind == 0 }
@@ -2091,7 +2182,6 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         addCategoryGrid(L10n.t("기기 입력 및 클라우드", "Input & Cloud"), listOf(
             L10n.t("⌨ 물리 버튼 매핑", "⌨ Key Mapping") to { remapKeys(onBack = { showFullMenu() }) },
             L10n.t("🖐 3x3 터치 영역 설정", "🖐 3x3 Touch Zones") to { remapZones(onBack = { showFullMenu() }) },
-            L10n.t("🔊 TTS 음성 낭독", "🔊 TTS Read Aloud") to { speakToggle() },
             L10n.t("☁ WebDAV 동기화", "☁ WebDAV Sync") to { webdavSettings(onBack = { showFullMenu() }) },
             L10n.t("🎨 하이라이트 태그", "🎨 Highlight Tags") to { listDialog(L10n.t("하이라이트 태그 선택", "Select Highlight Tag"), listOf(L10n.t("태그 1 (기본)", "Tag 1 (Default)"), L10n.t("태그 2", "Tag 2"), L10n.t("태그 3", "Tag 3"), L10n.t("태그 4", "Tag 4")), onBack = { showFullMenu() }) { app.prefs.colorTag = it } },
             L10n.t("← 서재로 나가기", "← Exit to Library") to { finish() }
@@ -2799,30 +2889,921 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     }
 
     private fun speakToggle() {
-        if (tts.speaking) {
-            tts.stop()
-            toast("낭독 중지됨")
-            return
+        if (ttsControlPanel?.visibility == View.VISIBLE) {
+            if (tts.speaking) {
+                pauseTts()
+            } else {
+                startOrResumeTts()
+            }
+        } else {
+            openTtsControlPanel()
         }
+    }
+
+    private fun speakPage(): Boolean = tts.speak(engine.currentPageText().ifBlank { " " })
+
+    private fun extractSentences(text: CharSequence): List<TtsSentence> {
+        if (text.isEmpty()) return emptyList()
+        val pattern = Pattern.compile("""[^.!?\u2026\n]+(?:[.!?\u2026]+["'”’\)\]]*|\n+|$)""", Pattern.MULTILINE)
+        val matcher = pattern.matcher(text)
+        val list = ArrayList<TtsSentence>()
+        var idx = 0
+        while (matcher.find()) {
+            val raw = matcher.group()?.trim() ?: continue
+            if (raw.isNotEmpty()) {
+                var s = matcher.start()
+                while (s < text.length && text[s].isWhitespace()) s++
+                val e = s + raw.length
+                val isDiag = raw.startsWith("\"") || raw.startsWith("“") || raw.startsWith("「") ||
+                             raw.startsWith("『") || raw.startsWith("'") || raw.startsWith("‘")
+                list.add(TtsSentence(index = idx++, startChar = s, endChar = e, text = raw, isDialogue = isDiag))
+            }
+        }
+        return list
+    }
+
+    private fun openTtsControlPanel() {
         val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
-        if (!speakPage()) {
+        if (!tts.isAudioOutputAvailable()) {
             if (isLcd) {
                 toast("TTS 음성 엔진을 시작할 수 없습니다")
             } else {
                 toast("블루투스 오디오 또는 이어폰을 연결하면 TTS 낭독이 시작됩니다")
             }
+            return
+        }
+
+        if (ttsControlPanel == null) {
+            buildTtsControlPanel()
+        }
+        ttsControlPanel?.visibility = View.VISIBLE
+        updateTtsVoiceDisplay()
+
+        val loc = engine.currentLocation()
+        ttsCurrentChapter = loc.chapterIndex
+        val chText = engine.currentChapterText() ?: ""
+        ttsSentences = extractSentences(chText)
+
+        if (ttsSentences.isEmpty()) {
+            toast("낭독할 텍스트가 없습니다")
+            return
+        }
+
+        val (pageStart, _) = engine.currentPageCharRange() ?: Pair(0L, 0L)
+        ttsSentenceIdx = ttsSentences.indexOfFirst { it.endChar > pageStart }.coerceAtLeast(0)
+
+        if (tts.isBtAudioConnected() || tts.isHeadsetConnected()) {
+            toast("🎧 이어폰/블루투스로 TTS 낭독을 시작합니다")
+        } else if (isLcd) {
+            toast("🔊 스피커로 TTS 낭독을 시작합니다")
         } else {
-            if (tts.isBtAudioConnected() || tts.isHeadsetConnected()) {
-                toast("🎧 이어폰/블루투스로 TTS 낭독을 시작합니다")
-            } else if (isLcd) {
-                toast("🔊 스피커로 TTS 낭독을 시작합니다")
+            toast("TTS 낭독을 시작합니다")
+        }
+
+        startOrResumeTts()
+    }
+
+    private fun applyTtsKeepScreenOn(enable: Boolean) {
+        if (enable) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            view.keepScreenOn = true
+            rootFrame.keepScreenOn = true
+            ttsControlPanel?.keepScreenOn = true
+            handler.removeCallbacks(idleDim)
+            if (::frontlight.isInitialized) frontlight.restore()
+            try {
+                if (ttsWakeLock == null) {
+                    val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager
+                    @Suppress("DEPRECATION")
+                    ttsWakeLock = pm?.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ON_AFTER_RELEASE, "AetherSAGA:TtsKeepScreenOn")
+                }
+                if (ttsWakeLock?.isHeld == false) {
+                    ttsWakeLock?.acquire(2 * 60 * 60 * 1000L) // Safety timeout: 2 hours
+                }
+            } catch (_: Throwable) {}
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            view.keepScreenOn = false
+            rootFrame.keepScreenOn = false
+            ttsControlPanel?.keepScreenOn = false
+            try {
+                if (ttsWakeLock?.isHeld == true) {
+                    ttsWakeLock?.release()
+                }
+            } catch (_: Throwable) {}
+            resetIdle()
+        }
+    }
+
+    private fun startOrResumeTts() {
+        applyTtsKeepScreenOn(true)
+        updateTtsStatusUi(isPlaying = true)
+        speakSentenceAtCurrentIndex()
+    }
+
+    private fun speakSentenceAtCurrentIndex() {
+        if (ttsSentenceIdx !in ttsSentences.indices) {
+            if (!app.prefs.ttsCurrentChapterOnly && ttsCurrentChapter + 1 < engine.chapters.size) {
+                ttsCurrentChapter++
+                scope.launch {
+                    val loc = BookLocation(ttsCurrentChapter, 0L, 0f)
+                    val res = engine.goTo(loc)
+                    withContext(Dispatchers.Main) {
+                        showResult(res, 1)
+                        val newText = engine.currentChapterText() ?: ""
+                        ttsSentences = extractSentences(newText)
+                        ttsSentenceIdx = 0
+                        if (ttsSentences.isNotEmpty()) {
+                            speakSentenceAtCurrentIndex()
+                        } else {
+                            stopTtsSession()
+                        }
+                    }
+                }
             } else {
-                toast("TTS 낭독을 시작합니다")
+                if (app.prefs.ttsCurrentChapterOnly) {
+                    toast(L10n.t("현재 챕터 낭독이 완료되어 정지했습니다.", "Finished reading current chapter."))
+                } else {
+                    toast(L10n.t("책의 마지막까지 낭독을 완료했습니다", "Finished reading aloud to the end of the book"))
+                }
+                stopTtsSession()
+            }
+            return
+        }
+
+        val sentence = ttsSentences[ttsSentenceIdx]
+        updateTtsStatusUi(isPlaying = true)
+
+        val targetPage = engine.pageForCharOffset(sentence.startChar.toLong())
+        val curPage = engine.currentPageIndex
+        if (targetPage != null && targetPage != curPage) {
+            scope.launch {
+                val loc = BookLocation(ttsCurrentChapter, sentence.startChar.toLong(), 0f)
+                val res = engine.goTo(loc)
+                withContext(Dispatchers.Main) {
+                    showResult(res, if (targetPage > curPage) 1 else -1)
+                    applySentenceHighlightAndSpeak(sentence)
+                }
+            }
+        } else {
+            applySentenceHighlightAndSpeak(sentence)
+        }
+    }
+
+    private fun applySentenceHighlightAndSpeak(sentence: TtsSentence) {
+        resetIdle()
+        view.keepScreenOn = true
+        val rects = engine.selectionBounds(
+            TextRange(ttsCurrentChapter, sentence.startChar.toLong(), sentence.endChar.toLong(), sentence.text)
+        )
+        view.ttsHighlightRects = rects
+        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        if (isLcd && app.prefs.ttsMultiVoiceEnabled && sentence.isDialogue) {
+            tts.setDialogueMode(true, app.prefs.ttsDialoguePitch)
+        } else {
+            tts.setDialogueMode(false, app.prefs.ttsPitch)
+        }
+        tts.speakSentence(sentence.text, "sentence_${sentence.index}")
+    }
+
+    private fun onTtsSentenceFinished() {
+        if (!tts.speaking) return
+        ttsSentenceIdx++
+        speakSentenceAtCurrentIndex()
+    }
+
+    private fun pauseTts() {
+        tts.pause()
+        applyTtsKeepScreenOn(false)
+        updateTtsStatusUi(isPlaying = false)
+    }
+
+    private fun stopTtsSession() {
+        tts.stop()
+        view.ttsHighlightRects = null
+        applyTtsKeepScreenOn(false)
+        updateTtsStatusUi(isPlaying = false)
+    }
+
+    private fun closeTtsControlPanel() {
+        stopTtsSession()
+        ttsControlPanel?.visibility = View.GONE
+    }
+
+    private fun prevTtsSentence() {
+        if (ttsSentenceIdx > 0) {
+            ttsSentenceIdx--
+            speakSentenceAtCurrentIndex()
+        } else if (ttsCurrentChapter > 0) {
+            ttsCurrentChapter--
+            scope.launch {
+                val loc = BookLocation(ttsCurrentChapter, 0L, 0f)
+                val res = engine.goTo(loc)
+                withContext(Dispatchers.Main) {
+                    showResult(res, -1)
+                    val newText = engine.currentChapterText() ?: ""
+                    ttsSentences = extractSentences(newText)
+                    ttsSentenceIdx = (ttsSentences.size - 1).coerceAtLeast(0)
+                    if (ttsSentences.isNotEmpty()) {
+                        speakSentenceAtCurrentIndex()
+                    }
+                }
             }
         }
     }
 
-    private fun speakPage(): Boolean = tts.speak(engine.currentPageText().ifBlank { " " })
+    private fun nextTtsSentence() {
+        if (ttsSentenceIdx + 1 < ttsSentences.size) {
+            ttsSentenceIdx++
+            speakSentenceAtCurrentIndex()
+        } else if (ttsCurrentChapter + 1 < engine.chapters.size) {
+            ttsCurrentChapter++
+            scope.launch {
+                val loc = BookLocation(ttsCurrentChapter, 0L, 0f)
+                val res = engine.goTo(loc)
+                withContext(Dispatchers.Main) {
+                    showResult(res, 1)
+                    val newText = engine.currentChapterText() ?: ""
+                    ttsSentences = extractSentences(newText)
+                    ttsSentenceIdx = 0
+                    if (ttsSentences.isNotEmpty()) {
+                        speakSentenceAtCurrentIndex()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun setTtsSpeed(rate: Float) {
+        tts.setSpeed(rate)
+        app.prefs.ttsSpeed = rate
+        updateTtsSpeedButtons()
+        if (tts.speaking) {
+            speakSentenceAtCurrentIndex()
+        }
+    }
+
+    private fun updateTtsSpeedButtons() {
+        val isEink = if (::strategy.isInitialized) strategy.kind != DisplayKind.LCD_OLED else true
+        val current = tts.currentSpeed
+        for ((spd, btn) in ttsSpeedButtons) {
+            val isSelected = Math.abs(spd - current) < 0.05f
+            btn.typeface = if (isSelected) Typeface.create("sans-serif", Typeface.BOLD) else Typeface.create("sans-serif", Typeface.NORMAL)
+            if (isSelected) {
+                btn.setTextColor(Color.WHITE)
+                btn.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(6).toFloat()
+                    setColor(if (isEink) ReaderTheme.EINK_INK else 0xFF1F5E9C.toInt())
+                }
+            } else {
+                btn.setTextColor(if (isEink) Color.BLACK else 0xFF334155.toInt())
+                btn.background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(6).toFloat()
+                    setColor(if (isEink) Color.WHITE else 0xFFF8FAFC.toInt())
+                    setStroke(dp(1), if (isEink) ReaderTheme.EINK_BORDER_CONTRAST else 0xFFE2E8F0.toInt())
+                }
+            }
+        }
+    }
+
+    private fun updateTtsStatusUi(isPlaying: Boolean) {
+        val isEink = if (::strategy.isInitialized) strategy.kind != DisplayKind.LCD_OLED else true
+        if (isPlaying) {
+            ttsStatusTv?.text = L10n.t("🔊 TTS 낭독 중", "🔊 Reading Aloud")
+            ttsStatusTv?.setTextColor(if (isEink) Color.BLACK else 0xFF1F5E9C.toInt())
+            ttsPlayPauseBtn?.text = L10n.t("❚❚ 일시정지", "❚❚ Pause")
+        } else {
+            ttsStatusTv?.text = L10n.t("❚❚ 낭독 일시정지", "❚❚ Paused")
+            ttsStatusTv?.setTextColor(if (isEink) 0xFF555555.toInt() else 0xFF64748B.toInt())
+            ttsPlayPauseBtn?.text = L10n.t("▶ 재생", "▶ Play")
+        }
+        val total = ttsSentences.size
+        val cur = if (total > 0) (ttsSentenceIdx + 1).coerceIn(1, total) else 0
+        val pct = if (total > 0) (cur * 100 / total) else 0
+        ttsProgressTv?.text = "문장 $cur / $total ($pct%)"
+        updateTtsVoiceDisplay()
+    }
+
+    private fun buildTtsControlPanel() {
+        val isEink = if (::strategy.isInitialized) strategy.kind != DisplayKind.LCD_OLED else true
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(14).toFloat()
+                setColor(if (isEink) Color.WHITE else 0xFFFFFFFF.toInt())
+                if (isEink) {
+                    setStroke(dp(2), ReaderTheme.EINK_BORDER_CONTRAST)
+                } else {
+                    setStroke(dp(1), 0xFFCBD5E1.toInt())
+                }
+            }
+            if (!isEink) {
+                elevation = dp(10).toFloat()
+            }
+        }
+
+        // Row 1: Header (Status + Progress + ScreenOn + Close)
+        val row1 = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, dp(6))
+        }
+
+        val statusBadge = TextView(this).apply {
+            text = L10n.t("🔊 TTS 낭독 중", "🔊 Reading Aloud")
+            setPtSize(7.5f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            setPadding(dp(8), dp(3), dp(8), dp(3))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(10).toFloat()
+                setColor(if (isEink) 0xFFEEEEEE.toInt() else 0xFFEEF2FF.toInt())
+                setStroke(dp(1), if (isEink) ReaderTheme.EINK_BORDER_CONTRAST else 0xFFC7D2FE.toInt())
+            }
+            setTextColor(if (isEink) Color.BLACK else 0xFF1F5E9C.toInt())
+        }
+        ttsStatusTv = statusBadge
+
+        val progressTv = TextView(this).apply {
+            text = "문장 0 / 0"
+            setPtSize(7.5f)
+            setTextColor(if (isEink) 0xFF555555.toInt() else 0xFF64748B.toInt())
+            setPadding(dp(8), 0, dp(8), 0)
+        }
+        ttsProgressTv = progressTv
+
+        val screenOnBadge = TextView(this).apply {
+            text = L10n.t("⚡ 화면 켜짐 유지", "⚡ Keep Screen On")
+            setPtSize(7f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            setTextColor(if (isEink) 0xFF444444.toInt() else 0xFF15803D.toInt())
+        }
+
+        val spacer = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, 1, 1f)
+        }
+
+        val closeBtn = TextView(this).apply {
+            text = "✕"
+            setPtSize(9.5f)
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+            setTextColor(if (isEink) Color.BLACK else 0xFF475569.toInt())
+            setPadding(dp(10), dp(2), dp(10), dp(2))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(6).toFloat()
+                setColor(if (isEink) 0xFFF5F5F5.toInt() else 0xFFF1F5F9.toInt())
+                setStroke(dp(1), if (isEink) ReaderTheme.EINK_BORDER_CONTRAST else 0xFFE2E8F0.toInt())
+            }
+            setOnClickListener {
+                closeTtsControlPanel()
+            }
+        }
+
+        row1.addView(statusBadge)
+        row1.addView(progressTv)
+        row1.addView(screenOnBadge)
+        row1.addView(spacer)
+        row1.addView(closeBtn)
+        panel.addView(row1)
+
+        // Divider
+        panel.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)).apply {
+                bottomMargin = dp(6)
+            }
+            setBackgroundColor(if (isEink) 0xFFDDDDDD.toInt() else 0xFFF1F5F9.toInt())
+        })
+
+        // Row 2: Quick Settings (Current Chapter Only & Voice/Pitch Settings)
+        val row2 = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, dp(6))
+        }
+
+        val chapterLimitBtn = TextView(this).apply {
+            setPtSize(7.5f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(dp(8), dp(7), dp(8), dp(7))
+            setOnClickListener {
+                val p = app.prefs
+                p.ttsCurrentChapterOnly = !p.ttsCurrentChapterOnly
+                updateTtsVoiceDisplay()
+                toast(if (p.ttsCurrentChapterOnly) {
+                    L10n.t("📑 현재 챕터까지만 낭독합니다 (ON • 취침 모드)", "Reading current chapter only (ON)")
+                } else {
+                    L10n.t("📖 책 끝까지 계속 낭독합니다 (OFF • 전체 독서)", "Reading whole book continuously (OFF)")
+                })
+            }
+        }
+        ttsChapterLimitBtn = chapterLimitBtn
+
+        val voiceSettingsBtn = TextView(this).apply {
+            setPtSize(7.5f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(dp(8), dp(7), dp(8), dp(7))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(8).toFloat()
+                setColor(if (isEink) Color.WHITE else 0xFFF8FAFC.toInt())
+                setStroke(dp(1), if (isEink) ReaderTheme.EINK_BORDER_CONTRAST else 0xFFCBD5E1.toInt())
+            }
+            setTextColor(if (isEink) Color.BLACK else 0xFF1E293B.toInt())
+            setOnClickListener {
+                showTtsVoiceSettingsDialog()
+            }
+        }
+        ttsVoiceSettingsBtn = voiceSettingsBtn
+
+        row2.addView(chapterLimitBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f).apply { rightMargin = dp(6) })
+        row2.addView(voiceSettingsBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f))
+        panel.addView(row2)
+
+        // Divider
+        panel.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)).apply {
+                bottomMargin = dp(6)
+            }
+            setBackgroundColor(if (isEink) 0xFFDDDDDD.toInt() else 0xFFF1F5F9.toInt())
+        })
+
+        // Row 3: Playback & Navigation Controls
+        val row3 = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, dp(6))
+        }
+
+        val prevBtn = TextView(this).apply {
+            text = L10n.t("◀◀ 이전 문장", "◀◀ Prev")
+            setPtSize(8f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setTextColor(if (isEink) Color.BLACK else 0xFF1E293B.toInt())
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(8).toFloat()
+                setColor(if (isEink) Color.WHITE else 0xFFF8FAFC.toInt())
+                setStroke(dp(1), if (isEink) ReaderTheme.EINK_BORDER_CONTRAST else 0xFFCBD5E1.toInt())
+            }
+            setOnClickListener { prevTtsSentence() }
+        }
+
+        val playPauseBtn = TextView(this).apply {
+            text = L10n.t("❚❚ 일시정지", "❚❚ Pause")
+            setPtSize(9.5f)
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(10).toFloat()
+                setColor(if (isEink) ReaderTheme.EINK_INK else 0xFF1F5E9C.toInt())
+            }
+            setOnClickListener {
+                if (tts.speaking) {
+                    pauseTts()
+                } else {
+                    startOrResumeTts()
+                }
+            }
+        }
+        ttsPlayPauseBtn = playPauseBtn
+
+        val nextBtn = TextView(this).apply {
+            text = L10n.t("다음 문장 ▶▶", "Next ▶▶")
+            setPtSize(8f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setTextColor(if (isEink) Color.BLACK else 0xFF1E293B.toInt())
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(8).toFloat()
+                setColor(if (isEink) Color.WHITE else 0xFFF8FAFC.toInt())
+                setStroke(dp(1), if (isEink) ReaderTheme.EINK_BORDER_CONTRAST else 0xFFCBD5E1.toInt())
+            }
+            setOnClickListener { nextTtsSentence() }
+        }
+
+        val stopBtn = TextView(this).apply {
+            text = L10n.t("⏹ 정지", "⏹ Stop")
+            setPtSize(8f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setTextColor(if (isEink) Color.BLACK else 0xFFB91C1C.toInt())
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(8).toFloat()
+                setColor(if (isEink) Color.WHITE else 0xFFFEF2F2.toInt())
+                setStroke(dp(1), if (isEink) ReaderTheme.EINK_BORDER_CONTRAST else 0xFFFCA5A5.toInt())
+            }
+            setOnClickListener { stopTtsSession() }
+        }
+
+        row3.addView(prevBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f).apply { rightMargin = dp(6) })
+        row3.addView(playPauseBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.4f).apply { rightMargin = dp(6) })
+        row3.addView(nextBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f).apply { rightMargin = dp(6) })
+        row3.addView(stopBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.9f))
+        panel.addView(row3)
+
+        // Divider
+        panel.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)).apply {
+                bottomMargin = dp(8)
+            }
+            setBackgroundColor(if (isEink) 0xFFDDDDDD.toInt() else 0xFFF1F5F9.toInt())
+        })
+
+        // Row 4: Speed Controls
+        val row4 = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val speedLabel = TextView(this).apply {
+            text = L10n.t("낭독 속도", "Speed")
+            setPtSize(7.5f)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            setTextColor(if (isEink) 0xFF444444.toInt() else 0xFF64748B.toInt())
+            setPadding(0, 0, dp(10), 0)
+        }
+        row4.addView(speedLabel)
+
+        ttsSpeedButtons.clear()
+        val speedValues = listOf(0.5f, 0.8f, 1.0f, 1.2f, 1.5f, 2.0f)
+        for (spd in speedValues) {
+            val spdBtn = TextView(this).apply {
+                text = "${spd}x"
+                setPtSize(7.5f)
+                gravity = Gravity.CENTER
+                setPadding(dp(4), dp(4), dp(4), dp(4))
+                setOnClickListener { setTtsSpeed(spd) }
+            }
+            ttsSpeedButtons.add(Pair(spd, spdBtn))
+            row4.addView(spdBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                leftMargin = dp(3)
+                rightMargin = dp(3)
+            })
+        }
+        panel.addView(row4)
+        updateTtsSpeedButtons()
+        updateTtsVoiceDisplay()
+
+        ttsControlPanel = panel
+        val params = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+        ).apply {
+            leftMargin = dp(14)
+            rightMargin = dp(14)
+            bottomMargin = dp(14)
+        }
+        rootFrame.addView(panel, params)
+    }
+
+
+    private fun updateTtsVoiceDisplay() {
+        val p = app.prefs
+        val isEink = if (::strategy.isInitialized) strategy.kind != DisplayKind.LCD_OLED else true
+        val badge = formatTtsVoiceBadgeText()
+        ttsVoiceBadgeTv?.text = badge
+
+        ttsVoiceSettingsBtn?.apply {
+            text = L10n.t("🎙️ 음성/음높이 ($badge)", "🎙️ Voice ($badge)")
+        }
+
+        ttsChapterLimitBtn?.apply {
+            val on = p.ttsCurrentChapterOnly
+            text = if (on) {
+                L10n.t("📑 현재 챕터만: ON", "📑 Chapter Only: ON")
+            } else {
+                L10n.t("📑 현재 챕터만: OFF", "📑 Chapter Only: OFF")
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(8).toFloat()
+                if (isEink) {
+                    setColor(if (on) 0xFFEEEEEE.toInt() else Color.WHITE)
+                    setStroke(dp(if (on) 2 else 1), ReaderTheme.EINK_BORDER_CONTRAST)
+                } else {
+                    setColor(if (on) 0xFFEFF6FF.toInt() else 0xFFF8FAFC.toInt())
+                    setStroke(dp(1), if (on) 0xFF3B82F6.toInt() else 0xFFCBD5E1.toInt())
+                }
+            }
+            setTextColor(if (isEink) Color.BLACK else if (on) 0xFF1D4ED8.toInt() else 0xFF475569.toInt())
+        }
+    }
+
+    private fun formatTtsVoiceBadgeText(): String {
+        val p = app.prefs
+        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        return if (isLcd && p.ttsMultiVoiceEnabled) {
+            L10n.t("다중 화자 ${p.ttsNarratorPitch}x/${p.ttsDialoguePitch}x", "Multi ${p.ttsNarratorPitch}x/${p.ttsDialoguePitch}x")
+        } else {
+            val vName = if (p.ttsVoiceName.isNotBlank()) {
+                val shortName = p.ttsVoiceName.split("-").lastOrNull() ?: p.ttsVoiceName
+                if (shortName.length > 6) shortName.take(6) else shortName
+            } else {
+                L10n.t("기본", "Default")
+            }
+            "$vName • ${String.format(java.util.Locale.US, "%.1f", p.ttsPitch)}x"
+        }
+    }
+
+    private fun showTtsVoiceSettingsDialog() {
+        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        if (isLcd) {
+            showLcdTtsVoiceStudioDialog()
+        } else {
+            showEinkTtsVoiceDialog()
+        }
+    }
+
+    private fun showEinkTtsVoiceDialog() {
+        val p = app.prefs
+        val voices = tts.getAvailableVoices()
+        val items = mutableListOf<String>()
+        val actions = mutableListOf<() -> Unit>()
+
+        // 0. Sample playback preview at top
+        items.add(L10n.t("🔊 [샘플 듣기] 현재 설정 목소리 미리듣기", "🔊 [Play Sample] Preview Current Voice"))
+        actions.add {
+            tts.speakSample(
+                L10n.t("안녕하세요. 에테르 사가 독서 낭독 음성입니다.", "Hello, this is Aether SAGA reading voice."),
+                p.ttsVoiceName.takeIf { it.isNotBlank() },
+                p.ttsPitch
+            )
+            toast(L10n.t("🔊 현재 설정 목소리로 샘플을 재생합니다.", "🔊 Playing sample voice."))
+        }
+
+        // 1. Chapter Limit option
+        val chOnlyLabel = if (p.ttsCurrentChapterOnly) {
+            L10n.t("✓ [챕터 제한] 현재 챕터까지만 낭독: ON", "✓ [Chapter Limit] Current Chapter Only: ON")
+        } else {
+            L10n.t("  [챕터 제한] 현재 챕터까지만 낭독: OFF (책 전체)", "  [Chapter Limit] Current Chapter Only: OFF (Whole Book)")
+        }
+        items.add(chOnlyLabel)
+        actions.add {
+            p.ttsCurrentChapterOnly = !p.ttsCurrentChapterOnly
+            updateTtsVoiceDisplay()
+            toast(if (p.ttsCurrentChapterOnly) {
+                L10n.t("현재 챕터까지만 낭독합니다 (ON)", "Read current chapter only (ON)")
+            } else {
+                L10n.t("책 끝까지 계속 낭독합니다 (OFF)", "Read whole book continuously (OFF)")
+            })
+        }
+
+        // 2. Pitch Presets with speaker preview
+        val pitches = listOf(
+            0.8f to L10n.t("차분한 저음 (0.8x)", "Calm Low Pitch (0.8x)"),
+            1.0f to L10n.t("기본 표준 (1.0x)", "Standard Pitch (1.0x)"),
+            1.2f to L10n.t("밝은 고음 (1.2x)", "Bright High Pitch (1.2x)")
+        )
+        for ((pitchVal, label) in pitches) {
+            val isCur = Math.abs(p.ttsPitch - pitchVal) < 0.05f
+            items.add((if (isCur) "✓ " else "  ") + "🔊 $label")
+            actions.add {
+                p.ttsPitch = pitchVal
+                tts.setPitch(pitchVal)
+                updateTtsVoiceDisplay()
+                tts.speakSample(
+                    L10n.t("에테르 사가 음높이 테스트입니다.", "Aether SAGA pitch test."),
+                    p.ttsVoiceName.takeIf { it.isNotBlank() },
+                    pitchVal
+                )
+                toast(L10n.t("음높이 설정: $label", "Pitch set: $label"))
+            }
+        }
+
+        // 3. Offline Voices with speaker preview
+        if (voices.isNotEmpty()) {
+            for (v in voices) {
+                val isCur = (v.name == p.ttsVoiceName)
+                val typeStr = if (v.isNetworkConnectionRequired) "(Online)" else "(오프라인)"
+                val label = "🔊 [음성] ${v.name} $typeStr"
+                items.add((if (isCur) "✓ " else "  ") + label)
+                actions.add {
+                    p.ttsVoiceName = v.name
+                    tts.setVoiceByName(v.name)
+                    updateTtsVoiceDisplay()
+                    val shortName = v.name.split("-").lastOrNull() ?: v.name
+                    tts.speakSample(
+                        L10n.t("안녕하세요. $shortName 음성입니다.", "Hello, this is $shortName voice."),
+                        v.name,
+                        p.ttsPitch
+                    )
+                    toast(L10n.t("음성 변경: ${v.name}", "Voice set: ${v.name}"))
+                }
+            }
+        } else {
+            val isCur = p.ttsVoiceName.isBlank()
+            items.add((if (isCur) "✓ " else "  ") + L10n.t("🔊 [음성] 시스템 기본 음성", "🔊 [Voice] System Default"))
+            actions.add {
+                p.ttsVoiceName = ""
+                tts.setVoiceByName("")
+                updateTtsVoiceDisplay()
+                tts.speakSample(
+                    L10n.t("안녕하세요. 시스템 기본 음성입니다.", "Hello, this is system default voice."),
+                    null,
+                    p.ttsPitch
+                )
+                toast(L10n.t("시스템 기본 음성으로 설정되었습니다.", "Set to system default voice."))
+            }
+        }
+
+        listDialog(L10n.t("🎙️ E-Ink TTS 음성/음높이 설정", "🎙️ E-Ink TTS Voice & Pitch"), items) { idx ->
+            if (idx in actions.indices) {
+                actions[idx].invoke()
+            }
+        }
+    }
+
+    private fun showLcdTtsVoiceStudioDialog() {
+        val p = app.prefs
+        val items = mutableListOf<String>()
+        val actions = mutableListOf<() -> Unit>()
+
+        // 0. Sample playback preview at top
+        items.add(L10n.t("🔊 [샘플 듣기] 현재 설정 음성/음높이 전체 테스트", "🔊 [Play Sample] Test Current Voice & Pitch"))
+        actions.add {
+            tts.speakSample(
+                L10n.t("안녕하세요. 에테르 사가 보이스 스튜디오 음성입니다.", "Hello, this is Aether SAGA Voice Studio."),
+                p.ttsVoiceName.takeIf { it.isNotBlank() },
+                p.ttsPitch
+            )
+            toast(L10n.t("🔊 현재 설정으로 샘플 음성을 재생합니다.", "🔊 Playing sample voice."))
+        }
+
+        // 1. Chapter Limit option
+        val chOnlyLabel = if (p.ttsCurrentChapterOnly) {
+            L10n.t("✓ [챕터 제한] 현재 챕터까지만 낭독: ON", "✓ [Chapter Limit] Current Chapter Only: ON")
+        } else {
+            L10n.t("  [챕터 제한] 현재 챕터까지만 낭독: OFF (책 전체)", "  [Chapter Limit] Current Chapter Only: OFF (Whole Book)")
+        }
+        items.add(chOnlyLabel)
+        actions.add {
+            p.ttsCurrentChapterOnly = !p.ttsCurrentChapterOnly
+            updateTtsVoiceDisplay()
+            toast(if (p.ttsCurrentChapterOnly) {
+                L10n.t("현재 챕터까지만 낭독합니다 (ON)", "Read current chapter only (ON)")
+            } else {
+                L10n.t("책 끝까지 계속 낭독합니다 (OFF)", "Read whole book continuously (OFF)")
+            })
+        }
+
+        // 2. Dialogue / Narrator Separation toggle
+        val multiLabel = if (p.ttsMultiVoiceEnabled) {
+            L10n.t("✓ [다중 화자] 대화문-서술문 분리 낭독: ON", "✓ [Multi-Voice] Dialogue Separation: ON")
+        } else {
+            L10n.t("  [다중 화자] 대화문-서술문 분리 낭독: OFF", "  [Multi-Voice] Dialogue Separation: OFF")
+        }
+        items.add(multiLabel)
+        actions.add {
+            p.ttsMultiVoiceEnabled = !p.ttsMultiVoiceEnabled
+            updateTtsVoiceDisplay()
+            toast(if (p.ttsMultiVoiceEnabled) {
+                L10n.t("대화문-서술문 다중 화자 분리 낭독 활성화됨", "Multi-voice dialogue separation enabled")
+            } else {
+                L10n.t("다중 화자 분리 낭독 해제됨", "Multi-voice dialogue separation disabled")
+            })
+        }
+
+        // 3. Reading Persona Presets with sample previews
+        items.add(L10n.t("🔊 [페르소나] 소설/문학 (서술 1.0x / 대화 1.25x)", "🔊 [Preset] Novel (Narrator 1.0x / Dialogue 1.25x)"))
+        actions.add {
+            p.ttsMultiVoiceEnabled = true
+            p.ttsPitch = 1.0f
+            p.ttsNarratorPitch = 1.0f
+            p.ttsDialoguePitch = 1.25f
+            tts.setPitch(1.0f)
+            updateTtsVoiceDisplay()
+            tts.speakSample(
+                L10n.t("그가 말했다. '에테르 사가와 함께하는 즐거운 독서 시간입니다.'", "Enjoy your reading time with Aether SAGA."),
+                p.ttsVoiceName.takeIf { it.isNotBlank() },
+                1.0f
+            )
+            toast(L10n.t("소설/문학 페르소나 적용됨", "Novel persona applied"))
+        }
+
+        items.add(L10n.t("🔊 [페르소나] 뉴스/학습 (단일 1.05x / 속도 1.2x)", "🔊 [Preset] News/Study (1.05x Pitch / 1.2x Speed)"))
+        actions.add {
+            p.ttsMultiVoiceEnabled = false
+            p.ttsPitch = 1.05f
+            p.ttsSpeed = 1.2f
+            tts.setPitch(1.05f)
+            tts.setSpeed(1.2f)
+            updateTtsSpeedButtons()
+            updateTtsVoiceDisplay()
+            tts.speakSample(
+                L10n.t("오늘의 주요 독서 브리핑을 전달해 드립니다.", "Delivering today's reading briefing."),
+                p.ttsVoiceName.takeIf { it.isNotBlank() },
+                1.05f
+            )
+            toast(L10n.t("뉴스/학습 페르소나 적용됨", "News/study persona applied"))
+        }
+
+        items.add(L10n.t("🔊 [페르소나] 취침/수면 (저음 0.85x / 속도 0.8x)", "🔊 [Preset] Bedtime (0.85x Pitch / 0.8x Speed)"))
+        actions.add {
+            p.ttsMultiVoiceEnabled = false
+            p.ttsPitch = 0.85f
+            p.ttsSpeed = 0.8f
+            tts.setPitch(0.85f)
+            tts.setSpeed(0.8f)
+            updateTtsSpeedButtons()
+            updateTtsVoiceDisplay()
+            tts.speakSample(
+                L10n.t("오늘 하루도 수고 많으셨습니다. 편안한 밤 되세요.", "Good work today. Have a peaceful night."),
+                p.ttsVoiceName.takeIf { it.isNotBlank() },
+                0.85f
+            )
+            toast(L10n.t("취침/수면 페르소나 적용됨", "Bedtime persona applied"))
+        }
+
+        // 4. Base / Narrator Pitch with speaker preview
+        val basePitches = listOf(
+            0.8f to L10n.t("[서술/기본] 차분한 저음 (0.8x)", "[Narrator] Calm Low (0.8x)"),
+            1.0f to L10n.t("[서술/기본] 표준 (1.0x)", "[Narrator] Standard (1.0x)"),
+            1.2f to L10n.t("[서술/기본] 밝은 고음 (1.2x)", "[Narrator] Bright High (1.2x)")
+        )
+        for ((pitchVal, label) in basePitches) {
+            val isCur = Math.abs(p.ttsPitch - pitchVal) < 0.05f
+            items.add((if (isCur) "✓ " else "  ") + "🔊 $label")
+            actions.add {
+                p.ttsPitch = pitchVal
+                p.ttsNarratorPitch = pitchVal
+                tts.setPitch(pitchVal)
+                updateTtsVoiceDisplay()
+                tts.speakSample(
+                    L10n.t("서술문 기본 음높이 테스트입니다.", "Narrator pitch test."),
+                    p.ttsVoiceName.takeIf { it.isNotBlank() },
+                    pitchVal
+                )
+                toast(L10n.t("기본 음높이 설정: $label", "Pitch set: $label"))
+            }
+        }
+
+        // 5. Dialogue Pitch with speaker preview
+        val diagPitches = listOf(
+            0.95f to L10n.t("[대화문] 중후한 톤 (0.95x)", "[Dialogue] Deep (0.95x)"),
+            1.15f to L10n.t("[대화문] 자연스러운 톤 (1.15x)", "[Dialogue] Natural (1.15x)"),
+            1.3f to L10n.t("[대화문] 생동감 있는 고음 (1.3x)", "[Dialogue] Vivid High (1.3x)")
+        )
+        for ((pitchVal, label) in diagPitches) {
+            val isCur = Math.abs(p.ttsDialoguePitch - pitchVal) < 0.05f
+            items.add((if (isCur) "✓ " else "  ") + "🔊 $label")
+            actions.add {
+                p.ttsDialoguePitch = pitchVal
+                updateTtsVoiceDisplay()
+                tts.speakSample(
+                    L10n.t("대화문 음높이 테스트입니다.", "Dialogue pitch test."),
+                    p.ttsVoiceName.takeIf { it.isNotBlank() },
+                    pitchVal
+                )
+                toast(L10n.t("대화문 음높이 설정: $label", "Dialogue pitch set: $label"))
+            }
+        }
+
+        // 6. System Voices with speaker preview
+        val voices = tts.getAvailableVoices()
+        if (voices.isNotEmpty()) {
+            for (v in voices) {
+                val isCur = (v.name == p.ttsVoiceName)
+                val typeStr = if (v.isNetworkConnectionRequired) "(Online)" else "(Local)"
+                val label = "🔊 [음성] ${v.name} $typeStr"
+                items.add((if (isCur) "✓ " else "  ") + label)
+                actions.add {
+                    p.ttsVoiceName = v.name
+                    tts.setVoiceByName(v.name)
+                    updateTtsVoiceDisplay()
+                    val shortName = v.name.split("-").lastOrNull() ?: v.name
+                    tts.speakSample(
+                        L10n.t("안녕하세요. $shortName 음성입니다.", "Hello, this is $shortName voice."),
+                        v.name,
+                        p.ttsPitch
+                    )
+                    toast(L10n.t("음성 변경: ${v.name}", "Voice set: ${v.name}"))
+                }
+            }
+        }
+
+        listDialog(L10n.t("🎙️ LCD/OLED 보이스 스튜디오", "🎙️ LCD/OLED Voice Studio"), items) { idx ->
+            if (idx in actions.indices) {
+                actions[idx].invoke()
+            }
+        }
+    }
 
     private fun remapKeys(onBack: (() -> Unit)? = null) {
         val tv = TextView(this).apply {
@@ -3199,7 +4180,9 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     private fun resetIdle() {
         if (::frontlight.isInitialized) frontlight.restore()
         handler.removeCallbacks(idleDim)
-        handler.postDelayed(idleDim, app.prefs.idleDimMinutes * 60_000L)
+        if (!tts.speaking) {
+            handler.postDelayed(idleDim, app.prefs.idleDimMinutes * 60_000L)
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -3213,10 +4196,21 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean = keys.onKeyLongPress(keyCode) || super.onKeyLongPress(keyCode, event)
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean = keys.onKeyUp(keyCode, event) || super.onKeyUp(keyCode, event)
 
-    override fun onResume() { super.onResume(); orientationMgr.start(); view.hideSystemBars(); resetIdle() }
-    override fun onPause() { super.onPause(); orientationMgr.stop(); saveProgress(); tts.stop() }
+    override fun onResume() {
+        super.onResume()
+        orientationMgr.start()
+        view.hideSystemBars()
+        resetIdle()
+    }
+    override fun onPause() {
+        super.onPause()
+        orientationMgr.stop()
+        saveProgress()
+        pauseTts()
+        applyTtsKeepScreenOn(false)
+    }
 
-    override fun finish() { super.finish(); overridePendingTransition(0, 0) }
+        override fun finish() { super.finish(); overridePendingTransition(0, 0) }
 
     private fun showAdvancedFeaturesMenu(onBack: (() -> Unit)? = null) {
         val hw = app.hardware
@@ -3426,6 +4420,57 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         }
         box.addView(focusCard)
 
+
+        // 2. TTS 음성 낭독 보조
+        box.addView(sectionHeader(L10n.t("🔊 TTS 음성 낭독", "🔊 TTS Read Aloud")))
+        val ttsAssistCard = settingsCardContainer()
+
+        val ttsPlayRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(4), 0, dp(4))
+        }
+        val ttsStartBtn = pillButton(
+            if (tts.speaking) L10n.t("❚❚ TTS 낭독 일시정지", "❚❚ Pause TTS") else L10n.t("▶ TTS 낭독 시작 (플로팅 바)", "▶ Start TTS Read Aloud"),
+            ReaderTheme.EINK_INK,
+            if (isLcd) ReaderTheme.EINK_CARD_BG else Color.WHITE,
+            if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.EINK_DIVIDER_CONTRAST,
+            btnStrokePx
+        ) {
+            dlg.dismiss()
+            speakToggle()
+        }
+        val ttsVoiceBtn = pillButton(
+            L10n.t("🎙️ 음성/음높이 설정", "🎙️ Voice Studio"),
+            ReaderTheme.EINK_INK,
+            if (isLcd) ReaderTheme.EINK_CARD_BG else Color.WHITE,
+            if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.EINK_DIVIDER_CONTRAST,
+            btnStrokePx
+        ) {
+            dlg.dismiss()
+            showTtsVoiceSettingsDialog()
+        }
+        ttsPlayRow.addView(ttsStartBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.2f).apply { rightMargin = dp(6) })
+        ttsPlayRow.addView(ttsVoiceBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        ttsAssistCard.addView(ttsPlayRow)
+        ttsAssistCard.addView(thinDivider())
+
+        addToggleRow(
+            ttsAssistCard,
+            L10n.t("현재 챕터까지만 낭독", "Stop at End of Current Chapter"),
+            L10n.t("현재 챕터 마지막 문장 낭독 후 자동으로 정지합니다 (기본: 책 전체 낭독)", "Stop automatically at the end of the chapter (Default: whole book)"),
+            true,
+            { p.ttsCurrentChapterOnly }
+        ) {
+            p.ttsCurrentChapterOnly = !p.ttsCurrentChapterOnly
+            toast(if (p.ttsCurrentChapterOnly) {
+                L10n.t("현재 챕터까지만 낭독하도록 설정되었습니다.", "Set to read current chapter only.")
+            } else {
+                L10n.t("책 끝까지 계속 낭독하도록 설정되었습니다.", "Set to continue reading chapters.")
+            })
+        }
+        box.addView(ttsAssistCard)
+
         box.addView(sectionHeader(L10n.t("학습 및 독서 통계 도구", "Learning & Reading Stats Tools")))
         val extraCard = settingsCardContainer()
 
@@ -3574,6 +4619,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     }
 
     override fun onDestroy() {
+        applyTtsKeepScreenOn(false)
         stopAutoPageTurn()
         handler.removeCallbacksAndMessages(null)
         tts.shutdown()

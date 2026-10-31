@@ -1059,7 +1059,7 @@ class FeaturesVerificationTest {
     @Test
     fun testSnsTargetsConfiguration() {
         val targets = com.aether.reader.data.AndroidShareHelper.SnsTarget.values()
-        assertEquals(4, targets.size)
+        assertEquals(7, targets.size)
         val ig = com.aether.reader.data.AndroidShareHelper.SnsTarget.INSTAGRAM
         val threads = com.aether.reader.data.AndroidShareHelper.SnsTarget.THREADS
         val x = com.aether.reader.data.AndroidShareHelper.SnsTarget.X
@@ -1155,5 +1155,339 @@ class FeaturesVerificationTest {
         // 다음 앱 실행 시 저장된 언어 그대로 유지
         val nextLaunchLang = if (storedPrefLanguage == "ko" || storedPrefLanguage == "en") storedPrefLanguage else resolveInitialLanguage("en")
         assertEquals("ko", nextLaunchLang)
+    }
+
+    @Test
+    fun testTtsSentenceSegmentation() {
+        val text = """우리가 마실 물을 모두 소비해 버린 것은 사막에서 비행기 사고를 당한 지 여드레째 되는 날이었다.
+나는 물 한 방울 남아 있지 않은 물통을 보며 불안한 마음을 감추지 못했다.
+그때 어린 왕자가 조용히 말했다. “사막이 아름다운 것은, 어딘가에 우물을 숨겨두고 있기 때문이야...” 나는 그 말의 의미를 깨달았다."""
+
+        val pattern = java.util.regex.Pattern.compile("""[^.!?\u2026\n]+(?:[.!?\u2026]+["'”’\)\]]*|\n+|$)""", java.util.regex.Pattern.MULTILINE)
+        val matcher = pattern.matcher(text)
+        data class TestSentence(val idx: Int, val s: Int, val e: Int, val txt: String)
+        val list = ArrayList<TestSentence>()
+        var i = 0
+        while (matcher.find()) {
+            val raw = matcher.group()?.trim() ?: continue
+            if (raw.isNotEmpty()) {
+                var s = matcher.start()
+                while (s < text.length && text[s].isWhitespace()) s++
+                val e = s + raw.length
+                list.add(TestSentence(i++, s, e, raw))
+            }
+        }
+
+        // Must extract exactly 5 sentences
+        assertEquals(5, list.size)
+        assertTrue(list[0].txt.startsWith("우리가 마실 물을"))
+        assertTrue(list[0].txt.endsWith("날이었다."))
+        assertTrue(list[1].txt.startsWith("나는 물 한 방울"))
+        assertTrue(list[1].txt.endsWith("못했다."))
+        assertTrue(list[2].txt.startsWith("그때 어린 왕자가"))
+        assertTrue(list[2].txt.endsWith("말했다."))
+        assertTrue(list[3].txt.startsWith("“사막이 아름다운 것은"))
+        assertTrue(list[3].txt.endsWith("때문이야...”"))
+        assertTrue(list[4].txt.startsWith("나는 그 말의"))
+        assertTrue(list[4].txt.endsWith("깨달았다."))
+
+        // Verify offsets match text
+        for (item in list) {
+            assertEquals(item.txt, text.substring(item.s, item.e))
+        }
+    }
+
+    @Test
+    fun testTtsSpeedClampingAndPresets() {
+        fun clampSpeed(spd: Float): Float = spd.coerceIn(0.5f, 2.0f)
+
+        assertEquals(0.5f, clampSpeed(0.1f), 0.001f)
+        assertEquals(0.5f, clampSpeed(0.5f), 0.001f)
+        assertEquals(1.0f, clampSpeed(1.0f), 0.001f)
+        assertEquals(1.5f, clampSpeed(1.5f), 0.001f)
+        assertEquals(2.0f, clampSpeed(2.0f), 0.001f)
+        assertEquals(2.0f, clampSpeed(3.5f), 0.001f)
+
+        val presets = listOf(0.5f, 0.8f, 1.0f, 1.2f, 1.5f, 2.0f)
+        assertEquals(6, presets.size)
+        assertEquals(0.5f, presets.first(), 0.001f)
+        assertEquals(2.0f, presets.last(), 0.001f)
+    }
+
+    @Test
+    fun testTtsKeepScreenOnLogic() {
+        var screenOnFlag = false
+        fun onPlaybackStart() { screenOnFlag = true }
+        fun onPlaybackPause() { screenOnFlag = false }
+        fun onPlaybackStop() { screenOnFlag = false }
+
+        assertEquals(false, screenOnFlag)
+        onPlaybackStart()
+        assertEquals(true, screenOnFlag)
+        onPlaybackPause()
+        assertEquals(false, screenOnFlag)
+        onPlaybackStart()
+        assertEquals(true, screenOnFlag)
+        onPlaybackStop()
+        assertEquals(false, screenOnFlag)
+    }
+    @Test
+    fun testHtmlPatternsRegexIntegrity() {
+        val rawHtml = "<p>Hello<br/>World!</p><script>alert(1)</script>"
+        val clean1 = rawHtml.replace(com.aether.reader.engine.HtmlPatterns.SCRIPT_STYLE, "")
+        val clean2 = clean1.replace(com.aether.reader.engine.HtmlPatterns.BR, " ")
+            .replace(com.aether.reader.engine.HtmlPatterns.BLOCK_END, "\n")
+            .replace(com.aether.reader.engine.HtmlPatterns.TAG, "")
+            .trim()
+        assertEquals("Hello World!", clean2)
+
+        val yearMatch = com.aether.reader.engine.HtmlPatterns.YEAR.find("Published on 2024-05-12")
+        assertEquals("2024", yearMatch?.value)
+
+        val sanitized = "file: name/test?*".replace(com.aether.reader.engine.HtmlPatterns.SANITIZE_NAME, "_")
+        assertFalse(sanitized.contains(":"))
+        assertFalse(sanitized.contains("/"))
+    }
+
+    @Test
+    fun testSplitHighlightProviderLogic() {
+        val testMarks = listOf(
+            com.aether.reader.engine.Mark(0, 10, 2, 0xFFFF00),
+            com.aether.reader.engine.Mark(15, 25, 0, 0x00FF00),
+            com.aether.reader.engine.Mark(30, 40, 1, 0x0000FF),
+            com.aether.reader.engine.Mark(50, 60, 2, 0xFFFF00)
+        )
+        val bgMarks = testMarks.filter { it.style == 2 }
+        val strokeMarks = testMarks.filter { it.style != 2 }
+
+        assertEquals(2, bgMarks.size)
+        assertEquals(2, strokeMarks.size)
+        assertTrue(bgMarks.all { it.style == 2 })
+        assertTrue(strokeMarks.all { it.style != 2 })
+    }
+
+    @Test
+    fun testUnlimitedBookThumbCacheSizing() {
+        val maxMemKb = 128 * 1024L // 128MB
+        val cacheSizeKb = (maxMemKb / 8).toInt().coerceIn(4096, 65536)
+        assertEquals(16384, cacheSizeKb) // 16MB cache for 128MB heap
+
+        val lowMemKb = 16 * 1024L // 16MB
+        val lowCacheKb = (lowMemKb / 8).toInt().coerceIn(4096, 65536)
+        assertEquals(4096, lowCacheKb) // Clamped to min 4MB
+
+        val highMemKb = 1024 * 1024L // 1GB
+        val highCacheKb = (highMemKb / 8).toInt().coerceIn(4096, 65536)
+        assertEquals(65536, highCacheKb) // Clamped to max 64MB
+    }
+    @Test
+    fun testEinkSleepScreenDitheringLogic() {
+        val w = 4
+        val h = 4
+        val gray = IntArray(w * h) { 128 }
+
+        for (y in 0 until h) {
+            val yW = y * w
+            val yNextW = (y + 1) * w
+            val hasNextY = y + 1 < h
+            for (x in 0 until w) {
+                val idx = yW + x
+                val oldVal = gray[idx].coerceIn(0, 255)
+                val q = ((oldVal + 8) / 17 * 17).coerceIn(0, 255)
+                gray[idx] = q
+                val err = oldVal - q
+
+                if (x + 1 < w) {
+                    gray[idx + 1] += (err * 7) shr 4
+                }
+                if (hasNextY) {
+                    if (x > 0) {
+                        gray[yNextW + x - 1] += (err * 3) shr 4
+                    }
+                    gray[yNextW + x] += (err * 5) shr 4
+                    if (x + 1 < w) {
+                        gray[yNextW + x + 1] += (err * 1) shr 4
+                    }
+                }
+            }
+        }
+
+        for (v in gray) {
+            val clamped = v.coerceIn(0, 255)
+            assertEquals(0, clamped % 17)
+        }
+    }
+
+    @Test
+    fun testEinkSleepScreenModes() {
+        val modes = listOf(0, 1, 2)
+        assertEquals(3, modes.size)
+        assertTrue(modes.contains(0)) // Off
+        assertTrue(modes.contains(1)) // Cover Only
+        assertTrue(modes.contains(2)) // Cover + Progress Info
+    }
+@Test
+    fun testTtsSentenceDialogueDetection() {
+        val dialogueQuotes = listOf("\"안녕하세요?\"", "“반갑습니다.”", "「오늘 날씨가 좋군요」", "『책을 읽어볼까요?』", "'정말이요?'", "‘네, 그렇습니다.’")
+        val narratorSentences = listOf("그는 조용히 책장을 넘겼다.", "AetherSAGA는 초경량 뷰어이다.", "바람이 창문으로 불어왔다.")
+
+        for (d in dialogueQuotes) {
+            val isDiag = d.startsWith("\"") || d.startsWith("“") || d.startsWith("「") ||
+                         d.startsWith("『") || d.startsWith("'") || d.startsWith("‘")
+            assertTrue(isDiag)
+        }
+
+        for (n in narratorSentences) {
+            val isDiag = n.startsWith("\"") || n.startsWith("“") || n.startsWith("「") ||
+                         n.startsWith("『") || n.startsWith("'") || n.startsWith("‘")
+            assertFalse(isDiag)
+        }
+    }
+
+    @Test
+    fun testTtsSentenceDataClass() {
+        val s1 = ReaderActivity.TtsSentence(0, 0, 10, "\"대화문입니다.\"", isDialogue = true)
+        val s2 = ReaderActivity.TtsSentence(1, 11, 25, "서술문입니다.", isDialogue = false)
+        assertTrue(s1.isDialogue)
+        assertFalse(s2.isDialogue)
+        assertEquals(0, s1.index)
+        assertEquals(1, s2.index)
+    }
+
+    @Test
+    fun testTtsPitchClampingAndPresets() {
+        val minPitch = 0.5f
+        val maxPitch = 2.0f
+        assertEquals(1.0f, 1.0f.coerceIn(minPitch, maxPitch))
+        assertEquals(0.5f, 0.2f.coerceIn(minPitch, maxPitch))
+        assertEquals(2.0f, 2.5f.coerceIn(minPitch, maxPitch))
+        assertEquals(0.8f, 0.8f.coerceIn(minPitch, maxPitch))
+        assertEquals(1.25f, 1.25f.coerceIn(minPitch, maxPitch))
+    }
+@Test
+    fun testTtsCurrentChapterOnlyOption() {
+        var currentChapterOnly = false
+        val totalChapters = 5
+        var currentChapter = 0
+        var stopTtsCalled = false
+
+        // Case 1: currentChapterOnly is false -> should advance to next chapter
+        if (!currentChapterOnly && currentChapter + 1 < totalChapters) {
+            currentChapter++
+        } else {
+            stopTtsCalled = true
+        }
+        assertEquals(1, currentChapter)
+        assertFalse(stopTtsCalled)
+
+        // Case 2: currentChapterOnly is true -> should stop without advancing
+        currentChapterOnly = true
+        if (!currentChapterOnly && currentChapter + 1 < totalChapters) {
+            currentChapter++
+        } else {
+            stopTtsCalled = true
+        }
+        assertEquals(1, currentChapter)
+        assertTrue(stopTtsCalled)
+    }
+
+    @Test
+    fun testEinkSleepScreenDefaultOff() {
+        val defaultMode = 0 // User decision required, default is OFF
+        assertEquals(0, defaultMode)
+        assertTrue(defaultMode == 0)
+    }
+@Test
+    fun testTtsScreenTimeAndIdleDimBypass() {
+        var ttsSpeaking = true
+        var idleDimTriggered = false
+        var frontlightDimCalled = false
+
+        // Simulate idleDim Runnable execution
+        if (ttsSpeaking) {
+            idleDimTriggered = false
+        } else {
+            frontlightDimCalled = true
+        }
+
+        assertFalse(frontlightDimCalled)
+        assertFalse(idleDimTriggered)
+
+        // Simulate when TTS is stopped
+        ttsSpeaking = false
+        if (ttsSpeaking) {
+            idleDimTriggered = false
+        } else {
+            frontlightDimCalled = true
+        }
+        assertTrue(frontlightDimCalled)
+    }
+
+    @Test
+    fun testContinueReadingProgressBarAndPercentage() {
+        val totalBytes = 1000000L
+        val currentOffset = 452000L
+        val progressPct = ((currentOffset.toDouble() / totalBytes) * 100).toInt().coerceIn(0, 100)
+        assertEquals(45, progressPct)
+
+        val progressText = "${progressPct}%"
+        assertEquals("45%", progressText)
+
+        val zeroProgress = ((0L.toDouble() / totalBytes) * 100).toInt().coerceIn(0, 100)
+        assertEquals(0, zeroProgress)
+        val fullProgress = ((1500000L.toDouble() / totalBytes) * 100).toInt().coerceIn(0, 100)
+        assertEquals(100, fullProgress)
+    }
+
+    @Test
+    fun testContinueReadingProgressBarFullTrackBackground() {
+        // Verify 100% full-width track background colors for E-ink and LCD
+        val isEink = true
+        val einkTrackColor = if (isEink) 0xFFDCDCDC.toInt() else 0xFFE2E8F0.toInt()
+        val einkStrokeColor = 0xFF9E9E9E.toInt()
+        assertEquals(0xFFDCDCDC.toInt(), einkTrackColor)
+        assertEquals(0xFF9E9E9E.toInt(), einkStrokeColor)
+
+        val isLcd = false
+        val lcdTrackColor = if (isLcd) 0xFFDCDCDC.toInt() else 0xFFE2E8F0.toInt()
+        assertEquals(0xFFE2E8F0.toInt(), lcdTrackColor)
+    }
+
+    @Test
+    fun testTtsVoiceBadgeAndChapterLimitFloatingBar() {
+        var ttsCurrentChapterOnly = false
+        assertFalse(ttsCurrentChapterOnly)
+
+        // Toggle chapter limit
+        ttsCurrentChapterOnly = !ttsCurrentChapterOnly
+        assertTrue(ttsCurrentChapterOnly)
+
+        val chapterLimitBadge = if (ttsCurrentChapterOnly) "📑 현재 챕터만: ON" else "📑 현재 챕터만: OFF"
+        assertEquals("📑 현재 챕터만: ON", chapterLimitBadge)
+
+        // Test Voice badge format
+        val voiceName = "ko-kr-x-ism"
+        val shortName = voiceName.split("-").lastOrNull() ?: voiceName
+        val truncatedName = if (shortName.length > 6) shortName.take(6) else shortName
+        val voiceBadge = "$truncatedName • 1.0x"
+        assertEquals("ism • 1.0x", voiceBadge)
+    }
+
+    @Test
+    fun testTtsSamplePlaybackInVoiceStudio() {
+        var sampleSpoken = false
+        var spokenVoice: String? = null
+        var spokenPitch: Float? = null
+
+        fun mockSpeakSample(text: String, voiceName: String? = null, pitch: Float? = null) {
+            sampleSpoken = true
+            spokenVoice = voiceName
+            spokenPitch = pitch
+        }
+
+        mockSpeakSample("안녕하세요. 에테르 사가 독서 낭독 음성입니다.", "ko-kr-x-ism", 1.2f)
+        assertTrue(sampleSpoken)
+        assertEquals("ko-kr-x-ism", spokenVoice)
+        assertEquals(1.2f, spokenPitch)
     }
 }

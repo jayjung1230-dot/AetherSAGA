@@ -3,6 +3,8 @@ package com.aether.reader.engine
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.os.Handler
+import android.os.Looper
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
@@ -73,10 +75,15 @@ class PagingEngineImpl(private val pool: BitmapPoolImpl) : PagingEngine {
     @Volatile var bgColor: Int = 0xFFFFFFFF.toInt()
     @Volatile var bitmapConfig: Bitmap.Config = Bitmap.Config.RGB_565
     @Volatile var highlightProvider: (Int) -> List<Mark> = { emptyList() }
+    @Volatile var splitHighlightProvider: ((Int) -> Pair<List<Mark>, List<Mark>>)? = null
     @Volatile var dropCapsEnabled: Boolean = false
     @Volatile var forcedEncoding: String = "AUTO"
 
     private val exec = Executors.newSingleThreadExecutor { Thread(it, "aether-engine") }
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val markBgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+    private val markStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeWidth = 3f; style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
+    private val markDashEffect = DashPathEffect(floatArrayOf(2f, 7f), 0f)
     private val dispatcher = exec.asCoroutineDispatcher()
 
     private var container: BookContainer? = null
@@ -104,7 +111,7 @@ class PagingEngineImpl(private val pool: BitmapPoolImpl) : PagingEngine {
     }
 
     @Volatile private var cache: ChLayout? = null
-    private val layoutCache = LinkedHashMap<Int, ChLayout>(4, 0.75f, true)
+    private val layoutCache = LinkedHashMap<Int, ChLayout>(8, 0.75f, true)
 
     private fun clearLayoutCache() {
         synchronized(layoutCache) { layoutCache.clear() }
@@ -297,7 +304,7 @@ class PagingEngineImpl(private val pool: BitmapPoolImpl) : PagingEngine {
         listener?.onChapterLayoutStarted(chapter)
         val lay = buildChapterLayout(chapter)
         synchronized(layoutCache) {
-            if (layoutCache.size >= 4) {
+            if (layoutCache.size >= 8) {
                 val oldest = layoutCache.keys.firstOrNull()
                 if (oldest != null) layoutCache.remove(oldest)
             }
@@ -363,7 +370,11 @@ class PagingEngineImpl(private val pool: BitmapPoolImpl) : PagingEngine {
                 chapterPageCounts[ch] = if (lay.text.isBlank()) 0 else lay.pageCount
                 chapterExactMeasured[ch] = true
                 if (ch + 1 < chapters.size) {
-                    scheduleBackgroundPagination(myEpoch, ch + 1)
+                    mainHandler.postDelayed({
+                        if (myEpoch == layoutEpoch) {
+                            scheduleBackgroundPagination(myEpoch, ch + 1)
+                        }
+                    }, 60L)
                 } else {
                     listener?.onChapterLayoutFinished(cur.chapter, chapterPageCounts.sum().coerceAtLeast(1))
                 }
@@ -466,15 +477,15 @@ class PagingEngineImpl(private val pool: BitmapPoolImpl) : PagingEngine {
 
     /** Draws background color fills (style == 2) behind the text glyphs before StaticLayout draws. */
     private fun drawBackgroundMarks(c: Canvas, lay: ChLayout, l0: Int, l1: Int) {
-        val marks = highlightProvider(lay.chapter).filter { it.style == 2 }
+        val split = splitHighlightProvider?.invoke(lay.chapter)
+        val marks = split?.first ?: highlightProvider(lay.chapter).filter { it.style == 2 }
         if (marks.isEmpty()) return
-        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
         val sl = lay.sl
         val fontPx = sl.paint.textSize
         val isLight = (fgColor == 0xFF000000.toInt() || fgColor == 0xFF111111.toInt())
         for (m in marks) {
             val baseCol = m.color and 0x00FFFFFF
-            bgPaint.color = when {
+            markBgPaint.color = when {
                 baseCol == 0x000000 || baseCol == 0x111111 || baseCol == 0xFFFFFF ->
                     if (isLight) 0x36000000 else 0x44FFFFFF
                 else -> (0x55 shl 24) or 0x00FFE066 // warm readable highlighter shade
@@ -494,7 +505,7 @@ class PagingEngineImpl(private val pool: BitmapPoolImpl) : PagingEngine {
                 val topY = baseline - fontPx * 0.88f
                 val botY = baseline + fontPx * 0.24f
                 if (r > l) {
-                    c.drawRoundRect(l, topY, r, botY, 4f, 4f, bgPaint)
+                    c.drawRoundRect(l, topY, r, botY, 4f, 4f, markBgPaint)
                 }
             }
         }
@@ -502,13 +513,13 @@ class PagingEngineImpl(private val pool: BitmapPoolImpl) : PagingEngine {
 
     /** Draws underline marks (style == 0 solid, style == 1 dotted) after StaticLayout draws. */
     private fun drawMarks(c: Canvas, lay: ChLayout, l0: Int, l1: Int) {
-        val marks = highlightProvider(lay.chapter).filter { it.style != 2 }
+        val split = splitHighlightProvider?.invoke(lay.chapter)
+        val marks = split?.second ?: highlightProvider(lay.chapter).filter { it.style != 2 }
         if (marks.isEmpty()) return
-        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeWidth = 3f; this.style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
         val sl = lay.sl
         for (m in marks) {
-            p.color = m.color
-            p.pathEffect = if (m.style == 1) DashPathEffect(floatArrayOf(2f, 7f), 0f) else null
+            markStrokePaint.color = m.color
+            markStrokePaint.pathEffect = if (m.style == 1) markDashEffect else null
             for (line in l0 until l1) {
                 val ls = sl.getLineStart(line)
                 val visEnd = sl.getLineVisibleEnd(line)
@@ -518,7 +529,7 @@ class PagingEngineImpl(private val pool: BitmapPoolImpl) : PagingEngine {
                 val x1 = if (s <= ls) sl.getLineLeft(line) else sl.getPrimaryHorizontal(s)
                 val x2 = if (e >= visEnd) sl.getLineRight(line) else sl.getPrimaryHorizontal(e)
                 val y = sl.getLineBaseline(line) + 5f
-                c.drawLine(min(x1, x2), y, max(x1, x2), y, p)
+                c.drawLine(min(x1, x2), y, max(x1, x2), y, markStrokePaint)
             }
         }
     }
@@ -1172,6 +1183,21 @@ class PagingEngineImpl(private val pool: BitmapPoolImpl) : PagingEngine {
             curCharOffset
         }
         return BookLocation(c.chapter, off, progress)
+    }
+
+    val currentChapterIndex: Int get() = cur.chapter
+    val currentPageIndex: Int get() = cur.page
+
+    fun currentChapterText(): CharSequence? {
+        val lay = cache
+        if (lay != null && lay.chapter == cur.chapter) return lay.text
+        return container?.chapterText(cur.chapter)
+    }
+
+    fun pageForCharOffset(off: Long): Int? {
+        val lay = cache ?: return null
+        if (lay.chapter != cur.chapter) return null
+        return pageForChar(lay, off)
     }
 
     fun currentPageText(): String {

@@ -11,13 +11,13 @@
 
 <p align="center">
   <a href="./README_ko.md">🇰🇷 한국어 설명서 (Korean)</a> •
-  <a href="./RELEASE_NOTES.md">Release Notes (v1.1)</a> •
+  <a href="./RELEASE_NOTES.md">Release Notes (v2.0)</a> •
   <a href="./ARCHITECTURE.md">Architecture Spec</a> •
   <a href="./FUNCTION.md">Functional Spec</a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.1.0-blue.svg" alt="Version 1.1.0" />
+  <img src="https://img.shields.io/badge/version-2.0.0-blue.svg" alt="Version 2.0.0" />
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B%20(API%2026%2B)-green.svg" alt="Platform" />
   <img src="https://img.shields.io/badge/APK%20Size-~640%20KB-success.svg" alt="APK Size" />
   <img src="https://img.shields.io/badge/Dependencies-Zero%20Heavy%20Libs-orange.svg" alt="Dependencies" />
@@ -57,7 +57,20 @@ Transform your favorite reading moments into beautifully styled, high-resolution
   * **Feed / Social Carousel**: Automatically generates individual 1:1 quote cards and dispatches multi-image carousels tailored to each platform's limit (up to 10 for Instagram/Facebook/Threads, up to 4 for X/Twitter) or saves all cards to your local gallery.
 * **Rich Reading Milestone & Stats Sharing**: Share comprehensive infographics reflecting your real-time reading stats and live interactive trend charts/graphs. Choose between **Instagram Story (9:16 vertical infographic report)** or **Instagram Feed (1:1 square card)**, or export to Twitter/X, social messengers, or local gallery with direct feed-launch and clean single-asset story support.
 
-### ⚡ 3. Bifurcation Display Architecture (Hardware-Aware)
+### 🔊 3. Smart TTS Read Aloud System with Live Sentence Highlighting (Ver. 2.0)
+Transform books into seamless audiobooks with real-time visual tracking:
+* **Floating TTS Bar Row 2 Quick Controls**: One-click `[ 📑 Current Chapter Only: ON/OFF ]` bedtime toggle and direct `[ 🎙️ Voice/Pitch Settings ]` button right on the floating bar.
+* **Voice Studio Speaker Sample Previews (`🔊`)**: Offline audio previews for all voices, pitches (0.8x/1.0x/1.2x), and reading personas (Novel, News, Bedtime) without leaving the studio.
+* **Universal Sleep Screen Cover On/Off Toggle**: Clear, high-visibility `[ OFF ○ ] ↔ [ ON ● ]` toggle switch accessible across all devices (defaults to OFF).
+* **Library Continue Reading 100% Full-Width Track ProgressBar**: Dual-layer progress bar with a full-width light background track (with 1px crisp border on E-ink) showing 0% to 100% progress clearly across both E-ink and LCD while keeping `%` progress text intact. Upgraded the straight line to a true rounded progress bar with background track and clip progress fill while keeping `%` progress text intact.
+Transform books into seamless audiobooks with real-time visual tracking:
+* **Floating TTS Control Panel**: Floating non-intrusive control bar with Play/Pause (`▶`/`❚❚`), Stop (`⏹`), Sentence Back/Forward (`◀◀`/`▶▶`), and 6-level one-touch speed presets (**0.5x ~ 2.0x**).
+* **Live Sentence Highlighting**: Real-time visual tracking on screen—soft warm amber highlight on LCD/OLED, crisp underline and 10% grayscale on E-Ink Carta.
+* **Tap-to-Speak Sentence Jump**: Tap any sentence in the book while the TTS bar is up to immediately jump and read aloud from that exact point.
+* **Zero Word-Severing Across Page Boundaries**: Segmented sentence pipeline delivers whole utterances to the TTS engine without cutting words mid-sentence, automatically turning pages smoothly.
+* **Airtight Screen-On & Zero Screen Timeout**: Completely prevents device screen timeout, screensavers, and internal idle dimming via triple-protection pipeline (Window FLAG_KEEP_SCREEN_ON + View.keepScreenOn + PowerManager WakeLock) during playback.
+
+### ⚡ 4. Bifurcation Display Architecture (Hardware-Aware)
 A dual-rendering pipeline that adapts precisely to your display hardware:
 * **E-Ink Mode (Carta 1300/1200 & Kaleido 3)**:
   * Eliminates software color filters and battery-draining animations to protect raw e-paper contrast.

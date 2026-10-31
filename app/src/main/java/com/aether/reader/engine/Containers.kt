@@ -50,14 +50,37 @@ interface BookContainer : Closeable {
     fun getPageBounds(index: Int, targetW: Int, targetH: Int): RectF? = null
 }
 
+object HtmlPatterns {
+    val BR = Regex("""(?i)<br\s*/?>""")
+    val BLOCK_END = Regex("""(?i)</(p|div|h[1-6]|li|tr|section|blockquote)>""")
+    val TAG = Regex("""<[^>]+>""")
+    val MULTI_WS = Regex("""[ \t]+\n""")
+    val MULTI_NL = Regex("""\n{3,}""")
+    val HEAD = Regex("""(?is)<head.*?</head>""")
+    val SCRIPT_STYLE = Regex("""(?is)<(script|style).*?</\1>""")
+    val SCRIPT_STYLE_SVG = Regex("""(?is)<(script|style|svg).*?</\1>""")
+    val RP = Regex("""(?is)<rp>.*?</rp>""")
+    val RT = Regex("""(?is)<rt[^>]*>(.*?)</rt>""")
+    val VOID_TAGS = Regex("""(?i)<(span|a|sub|sup|small|big|font|div|p|em|i|b|strong|u|s|del|strike|code|tt)\b([^>]*?)/>""")
+    val SVG_IMAGE = Regex("""(?is)<svg\b[^>]*>.*?<image\b[^>]*?(?:xlink:href|href)\s*=\s*["']([^"']+)["'][^>]*>.*?</svg>""")
+    val STANDALONE_IMAGE = Regex("""(?is)<image\b[^>]*?(?:xlink:href|href)\s*=\s*["']([^"']+)["'][^>]*/?>""")
+    val ASIDE_NOTE = Regex("""(?is)<(aside|li|div|p)[^>]*\bid=["']([^"']*(?:fn|note|comment|footnote|endnote|ref)[^"']*)["'][^>]*>(.*?)</\1>""")
+    val FB2_BINARY = Regex("""(?is)<binary[^>]*>.*?</binary>""")
+    val FB2_DESC = Regex("""(?is)<description>.*?</description>""")
+    val FB2_CLOSE = Regex("""(?i)</(p|title|subtitle|section|v)>""")
+    val MD_HEADING = Regex("""(?m)^#{1,6}\s*""")
+    val YEAR = Regex("""\b(19\d{2}|20\d{2})\b""")
+    val SANITIZE_NAME = Regex("""[^\p{L}\p{N}._-]+""")
+}
+
 object Containers {
 
     internal fun safeFromHtml(html: String): CharSequence {
         val sp = try { Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT) } catch (_: Throwable) { null }
         if (sp != null) return sp
-        return html.replace(Regex("(?i)<br\\s*/?>"), "\n")
-            .replace(Regex("(?i)</(p|div|h[1-6]|li|tr|section|blockquote)>"), "\n")
-            .replace(Regex("<[^>]+>"), "")
+        return html.replace(HtmlPatterns.BR, "\n")
+            .replace(HtmlPatterns.BLOCK_END, "\n")
+            .replace(HtmlPatterns.TAG, "")
             .replace("&nbsp;", " ")
             .replace("&lt;", "<")
             .replace("&gt;", ">")
@@ -224,7 +247,7 @@ object Containers {
         }
 
         if (resolvedDisplayName.isNotBlank()) {
-            val sanitizedName = resolvedDisplayName.replace(Regex("[^\\p{L}\\p{N}._-]+"), "_")
+            val sanitizedName = resolvedDisplayName.replace(HtmlPatterns.SANITIZE_NAME, "_")
             val dispFile = File(cacheDir, sanitizedName)
             if (dispFile.exists() && dispFile.length() > 0L) {
                 try {
@@ -526,13 +549,13 @@ class TxtContainer(
         raf.readFully(bytes)
         var t = String(bytes, charset).replace("\uFEFF", "").replace("\r\n", "\n").replace('\r', '\n')
         if (isFb2) {
-            t = t.replace(Regex("(?is)<binary[^>]*>.*?</binary>"), "")
-                .replace(Regex("(?is)<description>.*?</description>"), "")
-                .replace(Regex("(?i)</(p|title|subtitle|section|v)>"), "\n")
-                .replace(Regex("<[^>]+>"), "")
-                .replace(Regex("\\n{3,}"), "\n\n")
+            t = t.replace(HtmlPatterns.FB2_BINARY, "")
+                .replace(HtmlPatterns.FB2_DESC, "")
+                .replace(HtmlPatterns.FB2_CLOSE, "\n")
+                .replace(HtmlPatterns.TAG, "")
+                .replace(HtmlPatterns.MULTI_NL, "\n\n")
         } else if (markdown) {
-            t = t.replace(Regex("(?m)^#{1,6}\\s*"), "")
+            t = t.replace(HtmlPatterns.MD_HEADING, "")
                 .replace("**", "").replace("__", "").replace("`", "")
         }
         return t.ifBlank { " " }
@@ -661,7 +684,7 @@ class EpubContainer(path: String, customTitle: String? = null) : BookContainer {
                             "date" -> if (!gotDate) {
                                 val t = p.nextText().trim()
                                 if (t.isNotEmpty()) {
-                                    val y = Regex("\\b(19\\d{2}|20\\d{2})\\b").find(t)
+                                    val y = HtmlPatterns.YEAR.find(t)
                                     publishYear = y?.value ?: t.take(4)
                                     gotDate = true
                                 }
@@ -690,7 +713,7 @@ class EpubContainer(path: String, customTitle: String? = null) : BookContainer {
             }
             if (publishYear.isEmpty()) {
                 Regex("(?is)<(?:[a-zA-Z0-9]+:)?date[^>]*>([^<]+)").find(opfXml)?.let {
-                    val y = Regex("\\b(19\\d{2}|20\\d{2})\\b").find(it.groupValues[1])
+                    val y = HtmlPatterns.YEAR.find(it.groupValues[1])
                     publishYear = y?.value ?: it.groupValues[1].trim().take(4)
                 }
             }
@@ -980,13 +1003,13 @@ class EpubContainer(path: String, customTitle: String? = null) : BookContainer {
                 Regex("(?is)<image\\b[^>]*?(?:xlink:href|href)\\s*=\\s*[\"']([^\"']+)[\"'][^>]*/?>"),
                 "<img src=\"$1\"/>"
             )
-            .replace(Regex("(?is)<head.*?</head>"), "")
-            .replace(Regex("(?is)<(script|style|svg).*?</\\1>"), "")
+            .replace(HtmlPatterns.HEAD, "")
+            .replace(HtmlPatterns.SCRIPT_STYLE_SVG, "")
             // 2. Clean ruby annotations and normalize self-closing non-void XHTML tags so TagSoup never leaves open spans
-            .replace(Regex("(?is)<rp>.*?</rp>"), "")
-            .replace(Regex("(?is)<rt[^>]*>(.*?)</rt>"), "($1)")
+            .replace(HtmlPatterns.RP, "")
+            .replace(HtmlPatterns.RT, "($1)")
             .replace(
-                Regex("(?i)<(span|a|sub|sup|small|big|font|div|p|em|i|b|strong|u|s|del|strike|code|tt)\\b([^>]*?)/>"),
+                HtmlPatterns.VOID_TAGS,
                 "<$1$2></$1>"
             )
 
@@ -1091,8 +1114,8 @@ class EpubContainer(path: String, customTitle: String? = null) : BookContainer {
 
     override fun chapterText(index: Int): String {
         return parseHtmlChapter(index).toString()
-            .replace(Regex("[ \\t]+\\n"), "\n")
-            .replace(Regex("\\n{3,}"), "\n\n")
+            .replace(HtmlPatterns.MULTI_WS, "\n")
+            .replace(HtmlPatterns.MULTI_NL, "\n\n")
             .trim()
     }
 
@@ -1212,8 +1235,8 @@ class MobiContainer(
                         val htmlChunk = String(outStream.toByteArray(), charset)
                         outStream.reset()
                         val cleaned = Containers.safeFromHtml(
-                            htmlChunk.replace(Regex("(?is)<head.*?</head>"), "")
-                                .replace(Regex("(?is)<(script|style).*?</\\1>"), "")
+                            htmlChunk.replace(HtmlPatterns.HEAD, "")
+                                .replace(HtmlPatterns.SCRIPT_STYLE, "")
                         ).toString().replace('\uFFFC', ' ').trim()
                         if (cleaned.isNotEmpty()) sectionTexts += cleaned
                     }

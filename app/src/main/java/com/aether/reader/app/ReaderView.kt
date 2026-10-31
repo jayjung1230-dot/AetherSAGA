@@ -42,6 +42,8 @@ class ReaderView(ctx: Context) : View(ctx) {
     var isEinkDisplay: Boolean = true
     var rulerSentenceRects: List<RectF>? = null
         set(v) { field = v; invalidate() }
+    var ttsHighlightRects: List<RectF>? = null
+        set(v) { field = v; invalidate() }
     var rulerY: Float = -1f
         set(v) { field = v; invalidate() }
     var selectionRects: List<RectF>? = null
@@ -78,6 +80,14 @@ class ReaderView(ctx: Context) : View(ctx) {
     private val shadow = Paint()
     private val handler = Handler(Looper.getMainLooper())
 
+    // Zero-allocation reusable drawing components
+    private val reusableUnionPath = Path()
+    private val reusableTmpPath = Path()
+    private val reusableFocusPath = Path()
+    private val ttsBgPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val ttsLinePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val spotlightHlPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
     fun clearPage() {
         activeAnim?.cancel()
         activeAnim = null
@@ -99,6 +109,7 @@ class ReaderView(ctx: Context) : View(ctx) {
         t = 1f
         selectionRects = null
         rulerSentenceRects = null
+        ttsHighlightRects = null
         invalidate()
         postInvalidateOnAnimation()
     }
@@ -129,14 +140,13 @@ class ReaderView(ctx: Context) : View(ctx) {
                 0x444A90E2 // Translucent modern blue for LCD/OLED
             }
             // Union all rects into one path so adjacent/overlapping lines are filled exactly once (no darker overlaps).
-            val unionPath = Path()
-            val tmpPath = Path()
+            reusableUnionPath.reset()
             for (r in selRects) {
-                tmpPath.reset()
-                tmpPath.addRoundRect(r.left - 2f * dens, r.top, r.right + 2f * dens, r.bottom, 3f * dens, 3f * dens, Path.Direction.CW)
-                if (unionPath.isEmpty) unionPath.set(tmpPath) else unionPath.op(tmpPath, Path.Op.UNION)
+                reusableTmpPath.reset()
+                reusableTmpPath.addRoundRect(r.left - 2f * dens, r.top, r.right + 2f * dens, r.bottom, 3f * dens, 3f * dens, Path.Direction.CW)
+                if (reusableUnionPath.isEmpty) reusableUnionPath.set(reusableTmpPath) else reusableUnionPath.op(reusableTmpPath, Path.Op.UNION)
             }
-            c.drawPath(unionPath, selectionPaint)
+            c.drawPath(reusableUnionPath, selectionPaint)
             // Selection underline guide
             selectionPaint.style = Paint.Style.STROKE
             selectionPaint.strokeWidth = 2f * dens
@@ -144,6 +154,35 @@ class ReaderView(ctx: Context) : View(ctx) {
             for (r in selRects) {
                 val uy = r.bottom + 1.5f * dens
                 c.drawLine(r.left, uy, r.right, uy, selectionPaint)
+            }
+        }
+
+        // TTS Active Sentence Real-time Highlight
+        val ttsRects = ttsHighlightRects
+        if (!ttsRects.isNullOrEmpty()) {
+            if (isEinkDisplay) {
+                // High-contrast E-Ink: soft gray tint + 2px sharp underline
+                val isLight = (fg == Color.BLACK || fg == ReaderTheme.EINK_INK)
+                ttsBgPaint.style = Paint.Style.FILL
+                ttsBgPaint.color = if (isLight) 0x22000000 else 0x28FFFFFF
+                ttsLinePaint.style = Paint.Style.STROKE
+                ttsLinePaint.strokeWidth = 2f * dens
+                ttsLinePaint.color = fg
+                for (r in ttsRects) {
+                    c.drawRoundRect(r.left - 2f * dens, r.top - 1f * dens, r.right + 2f * dens, r.bottom + 1f * dens, 3f * dens, 3f * dens, ttsBgPaint)
+                    c.drawLine(r.left, r.bottom + 1.5f * dens, r.right, r.bottom + 1.5f * dens, ttsLinePaint)
+                }
+            } else {
+                // LCD/OLED: Warm amber soft highlight
+                ttsBgPaint.style = Paint.Style.FILL
+                ttsBgPaint.color = 0x55FFD54F.toInt() // Soft warm amber
+                reusableUnionPath.reset()
+                for (r in ttsRects) {
+                    reusableTmpPath.reset()
+                    reusableTmpPath.addRoundRect(r.left - 2f * dens, r.top - 1f * dens, r.right + 2f * dens, r.bottom + 1f * dens, 3f * dens, 3f * dens, Path.Direction.CW)
+                    if (reusableUnionPath.isEmpty) reusableUnionPath.set(reusableTmpPath) else reusableUnionPath.op(reusableTmpPath, Path.Op.UNION)
+                }
+                c.drawPath(reusableUnionPath, ttsBgPaint)
             }
         }
 
@@ -183,9 +222,9 @@ class ReaderView(ctx: Context) : View(ctx) {
                     c.drawLine(bx, first.top, bx, first.bottom + 2f * dens, rulerPaint)
                 } else {
                     // Exact sentence spotlight mask for LCD/OLED tablets (dims everything outside sentence rects)
-                    val focusPath = Path()
+                    reusableFocusPath.reset()
                     for (r in sRects) {
-                        focusPath.addRoundRect(
+                        reusableFocusPath.addRoundRect(
                             r.left - 3f * dens,
                             r.top - 2f * dens,
                             r.right + 3f * dens,
@@ -196,19 +235,17 @@ class ReaderView(ctx: Context) : View(ctx) {
                         )
                     }
                     c.save()
-                    c.clipOutPath(focusPath)
+                    c.clipOutPath(reusableFocusPath)
                     rulerPaint.style = Paint.Style.FILL
                     rulerPaint.color = 0x3D000000
                     c.drawRect(0f, 0f, w, h, rulerPaint)
                     c.restore()
 
                     // Subtle warm highlight & underline on the focused sentence
-                    val hlPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        color = 0x26FFD54F.toInt()
-                        style = Paint.Style.FILL
-                    }
+                    spotlightHlPaint.color = 0x26FFD54F.toInt()
+                    spotlightHlPaint.style = Paint.Style.FILL
                     for (r in sRects) {
-                        c.drawRoundRect(r.left - 2f * dens, r.top, r.right + 2f * dens, r.bottom, 3f * dens, 3f * dens, hlPaint)
+                        c.drawRoundRect(r.left - 2f * dens, r.top, r.right + 2f * dens, r.bottom, 3f * dens, 3f * dens, spotlightHlPaint)
                     }
                 }
             }

@@ -13,6 +13,30 @@ enum class ReaderAction { NONE, NEXT, PREV, FULL_REFRESH, BOOKMARK, MENU, TOGGLE
 class Prefs(ctx: Context) {
     private val sp = ctx.getSharedPreferences("aether", Context.MODE_PRIVATE)
 
+    var ttsSpeed: Float
+        get() = sp.getFloat("tts_speed", 1.0f)
+        set(v) = sp.edit().putFloat("tts_speed", v).apply()
+
+    var ttsPitch: Float
+        get() = sp.getFloat("tts_pitch", 1.0f)
+        set(v) = sp.edit().putFloat("tts_pitch", v).apply()
+
+    var ttsVoiceName: String
+        get() = sp.getString("tts_voice_name", "") ?: ""
+        set(v) = sp.edit().putString("tts_voice_name", v).apply()
+
+    var ttsMultiVoiceEnabled: Boolean
+        get() = sp.getBoolean("tts_multi_voice_enabled", false)
+        set(v) = sp.edit().putBoolean("tts_multi_voice_enabled", v).apply()
+
+    var ttsDialoguePitch: Float
+        get() = sp.getFloat("tts_dialogue_pitch", 1.15f)
+        set(v) = sp.edit().putFloat("tts_dialogue_pitch", v).apply()
+
+    var ttsNarratorPitch: Float
+        get() = sp.getFloat("tts_narrator_pitch", 0.95f)
+        set(v) = sp.edit().putFloat("tts_narrator_pitch", v).apply()
+
     private fun int(key: String, def: Int) = object : ReadWriteProperty<Any?, Int> {
         override fun getValue(thisRef: Any?, property: KProperty<*>) = sp.getInt(key, def)
         override fun setValue(thisRef: Any?, property: KProperty<*>, value: Int) { sp.edit().putInt(key, value).apply() }
@@ -74,6 +98,10 @@ class Prefs(ctx: Context) {
     var transition by str("transition", PageTransition.INSTANT.name)
     var forcedKind by str("forcedKind", "")
     var displayDevicePreset by str("displayDevicePreset", "AUTO") // AUTO, MONO_EINK, COLOR_EINK, LCD_OLED
+    var einkSleepScreenMode by int("einkSleepScreenMode", 0) // 0: Off, 1: Cover Only, 2: Cover + Progress Info
+    var ttsCurrentChapterOnly: Boolean
+        get() = sp.getBoolean("tts_current_chapter_only", false)
+        set(v) = sp.edit().putBoolean("tts_current_chapter_only", v).apply()
     var readingTheme by str("readingTheme", "WHITE") // WHITE, SEPIA, DARK, OLED_BLACK
     var dark by bool("dark", false)
     var ghostClearEnabled by bool("ghostClearEnabled", true) // LCD/OLED defaults to false (see applyHardwareDefaults)
@@ -258,6 +286,31 @@ class Prefs(ctx: Context) {
         return true
     }
 
+    @Volatile private var cachedBookShelfMap: java.util.concurrent.ConcurrentHashMap<String, String>? = null
+
+    fun getAllBookShelves(): Map<String, String> {
+        val cached = cachedBookShelfMap
+        if (cached != null) return cached
+        val map = java.util.concurrent.ConcurrentHashMap<String, String>()
+        val json = sp.getString("book_shelf_map_v1", "{}") ?: "{}"
+        try {
+            val obj = org.json.JSONObject(json)
+            val keys = obj.keys()
+            while (keys.hasNext()) {
+                val k = keys.next()
+                map[k] = obj.getString(k)
+            }
+        } catch (_: Throwable) {}
+        cachedBookShelfMap = map
+        return map
+    }
+
+    private fun getBookShelfMap(): Map<String, String> = getAllBookShelves()
+
+    fun getBookShelf(bookPath: String): String {
+        return getAllBookShelves()[bookPath] ?: ""
+    }
+
     fun renameShelf(oldName: String, newName: String): Boolean {
         val trimmed = newName.trim()
         if (trimmed.isEmpty() || oldName == trimmed) return false
@@ -268,10 +321,12 @@ class Prefs(ctx: Context) {
         val arr = org.json.JSONArray()
         current.forEach { arr.put(it) }
 
-        val map = getBookShelfMap().toMutableMap()
+        val map = java.util.concurrent.ConcurrentHashMap(getAllBookShelves())
         for ((path, shelf) in map) {
             if (shelf == oldName) map[path] = trimmed
         }
+        cachedBookShelfMap = map
+
         val mapJson = org.json.JSONObject()
         map.forEach { (k, v) -> mapJson.put(k, v) }
 
@@ -290,11 +345,13 @@ class Prefs(ctx: Context) {
         val arr = org.json.JSONArray()
         current.forEach { arr.put(it) }
 
-        val map = getBookShelfMap().toMutableMap()
+        val map = java.util.concurrent.ConcurrentHashMap(getAllBookShelves())
         val it = map.entries.iterator()
         while (it.hasNext()) {
             if (it.next().value == name) it.remove()
         }
+        cachedBookShelfMap = map
+
         val mapJson = org.json.JSONObject()
         map.forEach { (k, v) -> mapJson.put(k, v) }
 
@@ -307,38 +364,22 @@ class Prefs(ctx: Context) {
         return true
     }
 
-    private fun getBookShelfMap(): Map<String, String> {
-        val json = sp.getString("book_shelf_map_v1", "{}") ?: "{}"
-        return try {
-            val obj = org.json.JSONObject(json)
-            val map = mutableMapOf<String, String>()
-            val keys = obj.keys()
-            while (keys.hasNext()) {
-                val k = keys.next()
-                map[k] = obj.getString(k)
-            }
-            map
-        } catch (_: Throwable) { emptyMap() }
-    }
-
-    fun getBookShelf(bookPath: String): String {
-        return getBookShelfMap()[bookPath] ?: ""
-    }
-
     fun setBookShelf(bookPath: String, shelfName: String) {
-        val map = getBookShelfMap().toMutableMap()
+        val map = java.util.concurrent.ConcurrentHashMap(getAllBookShelves())
         if (shelfName.isBlank()) {
             map.remove(bookPath)
         } else {
             map[bookPath] = shelfName.trim()
         }
+        cachedBookShelfMap = map
+
         val obj = org.json.JSONObject()
         map.forEach { (k, v) -> obj.put(k, v) }
         sp.edit().putString("book_shelf_map_v1", obj.toString()).apply()
     }
 
     fun setBooksShelf(bookPaths: Collection<String>, shelfName: String) {
-        val map = getBookShelfMap().toMutableMap()
+        val map = java.util.concurrent.ConcurrentHashMap(getAllBookShelves())
         val s = shelfName.trim()
         for (path in bookPaths) {
             if (s.isBlank()) {
@@ -347,6 +388,8 @@ class Prefs(ctx: Context) {
                 map[path] = s
             }
         }
+        cachedBookShelfMap = map
+
         val obj = org.json.JSONObject()
         map.forEach { (k, v) -> obj.put(k, v) }
         sp.edit().putString("book_shelf_map_v1", obj.toString()).apply()

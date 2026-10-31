@@ -64,7 +64,38 @@ class LibraryActivity : Activity() {
     private lateinit var deleteBtn: Button
     private lateinit var emailBtn: Button
 
-    private val thumbCache = object : LruCache<String, Bitmap>(48) {}
+    private val thumbCache = object : LruCache<String, Bitmap>(
+        ((Runtime.getRuntime().maxMemory() / 1024) / 8).toInt().coerceIn(4096, 65536)
+    ) {
+        override fun sizeOf(key: String, value: Bitmap): Int {
+            return (value.byteCount / 1024).coerceAtLeast(1)
+        }
+    }
+
+    private fun decodeSampledBitmap(path: String, reqWidth: Int, reqHeight: Int): Bitmap? {
+        try {
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            BitmapFactory.decodeFile(path, options)
+            if (options.outWidth <= 0 || options.outHeight <= 0) return null
+
+            var inSampleSize = 1
+            if (options.outHeight > reqHeight || options.outWidth > reqWidth) {
+                val halfHeight: Int = options.outHeight / 2
+                val halfWidth: Int = options.outWidth / 2
+                while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                    inSampleSize *= 2
+                }
+            }
+            options.inSampleSize = inSampleSize.coerceAtLeast(1)
+            options.inJustDecodeBounds = false
+            options.inPreferredConfig = Bitmap.Config.RGB_565
+            return BitmapFactory.decodeFile(path, options)
+        } catch (_: Throwable) {
+            return null
+        }
+    }
 
     private val fileImporter by lazy { FileImportManager(this, app.db, app.covers) }
     private val backupManager by lazy { BackupRestoreManager(this, app.db, app.prefs) }
@@ -148,7 +179,7 @@ class LibraryActivity : Activity() {
         }
         val appTitle = TextView(this).apply {
             val brand = "Aether SAGA"
-            val verText = "  Ver. 1.1"
+            val verText = "  Ver. 2.0"
             val subText = "\njourneys through endless stories"
             val ssb = android.text.SpannableStringBuilder(brand).apply {
                 setSpan(android.text.style.StyleSpan(Typeface.BOLD), 0, brand.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -249,15 +280,37 @@ class LibraryActivity : Activity() {
         }
         continueProgress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
-            progressDrawable = GradientDrawable().apply {
-                setColor(ReaderTheme.ACCENT_RIDI_BLUE)
-                cornerRadius = dp(2).toFloat()
+            val isEink = app.hardware.spec.displayKind != DisplayKind.LCD_OLED
+
+            // 1. Full-width 100% background track visible across the entire card
+            background = GradientDrawable().apply {
+                setColor(if (isEink) 0xFFDCDCDC.toInt() else 0xFFE2E8F0.toInt())
+                cornerRadius = dp(3).toFloat()
+                if (isEink) {
+                    setStroke(dp(1), 0xFF9E9E9E.toInt())
+                }
             }
+
+            // 2. LayerDrawable for clipped progress fill
+            val trackBg = GradientDrawable().apply {
+                setColor(if (isEink) 0xFFDCDCDC.toInt() else 0xFFE2E8F0.toInt())
+                cornerRadius = dp(3).toFloat()
+            }
+            val progressG = GradientDrawable().apply {
+                setColor(if (isEink) Color.BLACK else ReaderTheme.ACCENT_RIDI_BLUE)
+                cornerRadius = dp(3).toFloat()
+            }
+            val clip = android.graphics.drawable.ClipDrawable(progressG, Gravity.START, android.graphics.drawable.ClipDrawable.HORIZONTAL)
+            val layer = android.graphics.drawable.LayerDrawable(arrayOf(trackBg, clip)).apply {
+                setId(0, android.R.id.background)
+                setId(1, android.R.id.progress)
+            }
+            progressDrawable = layer
         }
         continueTextCol.addView(continueBadge)
         continueTextCol.addView(continueTitle)
         continueTextCol.addView(continueMeta)
-        continueTextCol.addView(continueProgress, LinearLayout.LayoutParams(-1, dp(3)).apply { topMargin = dp(5) })
+        continueTextCol.addView(continueProgress, LinearLayout.LayoutParams(-1, dp(6)).apply { topMargin = dp(6) })
 
         val continueBtn = pillButton(L10n.t("이어읽기 ▶", "Resume ▶"), inkCol, bgCol, borderCol) {
             allBooks.filter { it.lastRead > 0 }.maxByOrNull { it.lastRead }?.let { openBook(it) }
@@ -497,11 +550,13 @@ class LibraryActivity : Activity() {
             continueCard.visibility = View.GONE
         }
 
+        val shelfMap = p.getAllBookShelves()
         val rawList = allBooks.filter { b ->
+            val bookShelf = shelfMap[b.path].orEmpty()
             val matchShelf = when (selShelf) {
                 "" -> true
-                "__UNCLASSIFIED__" -> p.getBookShelf(b.path).isBlank()
-                else -> p.getBookShelf(b.path) == selShelf
+                "__UNCLASSIFIED__" -> bookShelf.isBlank()
+                else -> bookShelf == selShelf
             }
             val matchStatus = when (statusFilter) {
                 1 -> b.progress > 0f && b.progress < 0.98f
@@ -1243,7 +1298,7 @@ class LibraryActivity : Activity() {
         if (booksToSend.size == 1) {
             val singleBook = booksToSend.first()
             val coverBmp: Bitmap = singleBook.coverPath?.let { path ->
-                thumbCache.get(path) ?: BitmapFactory.decodeFile(path)?.also { b -> thumbCache.put(path, b) }
+                thumbCache.get(path) ?: decodeSampledBitmap(path, dp(58), dp(82))?.also { b -> thumbCache.put(path, b) }
             } ?: thumbCache.get("gen_${singleBook.path}") ?: renderDefaultBookCover(
                 dp(58), dp(82), singleBook.title, singleBook.author, isDark
             ).also { thumbCache.put("gen_${singleBook.path}", it) }
@@ -1906,7 +1961,7 @@ class LibraryActivity : Activity() {
         // 5. 앱 정보 및 릴리즈 노트 (설정 창 가장 아래 위치)
         box.addView(secHeader(L10n.t("버전 및 릴리즈 노트", "Version & Release Notes")))
         val releaseCard = makeCard()
-        val releaseBtn = pillButton(L10n.t("📋 릴리즈 노트 (Release Notes) • Ver. 1.1", "📋 Release Notes • Ver. 1.0"), inkCol, btnBg, btnBorder) {
+        val releaseBtn = pillButton(L10n.t("📋 릴리즈 노트 (Release Notes) • Ver. 2.0", "📋 Release Notes • Ver. 2.0"), inkCol, btnBg, btnBorder) {
             dlg.dismiss()
             showReleaseNotesDialog(onBack = { settingsMenu() })
         }
@@ -1932,7 +1987,7 @@ class LibraryActivity : Activity() {
         scroll.addView(box)
 
         val verBadge = TextView(this).apply {
-            text = "Aether SAGA  Ver. 1.1"
+            text = "Aether SAGA  Ver. 2.0"
             setPtSize(10.5f)
             setTextColor(inkCol)
             typeface = Typeface.create("serif", Typeface.BOLD)
@@ -2238,13 +2293,36 @@ class LibraryActivity : Activity() {
                 card.background = null
             }
 
-            val cover: Bitmap? = item.coverPath?.let { path ->
-                thumbCache.get(path) ?: BitmapFactory.decodeFile(path)?.also { b -> thumbCache.put(path, b) }
-            } ?: thumbCache.get("gen_${item.path}") ?: renderDefaultBookCover(
-                dp(120), dp(175), item.title, item.author, isDark
-            ).also { thumbCache.put("gen_${item.path}", it) }
+            val coverPath = item.coverPath
+            val cacheKey = coverPath ?: "gen_${item.path}"
+            val cachedBmp = thumbCache.get(cacheKey)
+            iv.tag = cacheKey
 
-            iv.setImageBitmap(cover)
+            if (cachedBmp != null) {
+                iv.setImageBitmap(cachedBmp)
+            } else {
+                val defaultCover = thumbCache.get("gen_${item.path}") ?: renderDefaultBookCover(
+                    dp(120), dp(175), item.title, item.author, isDark
+                ).also { thumbCache.put("gen_${item.path}", it) }
+                iv.setImageBitmap(defaultCover)
+
+                if (coverPath != null) {
+                    val reqW = dp(120)
+                    val reqH = dp(175)
+                    scope.launch(Dispatchers.IO) {
+                        val decoded = decodeSampledBitmap(coverPath, reqW, reqH)
+                        if (decoded != null) {
+                            thumbCache.put(coverPath, decoded)
+                            withContext(Dispatchers.Main) {
+                                if (iv.tag == coverPath) {
+                                    iv.setImageBitmap(decoded)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             iv.background = cardDrawable(Color.TRANSPARENT, 4, if (isSelectMode && isSelected) ReaderTheme.ACCENT_KINDLE else borderCol)
 
             return card
