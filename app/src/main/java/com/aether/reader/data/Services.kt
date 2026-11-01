@@ -998,33 +998,39 @@ object AndroidShareHelper {
 
         val brandPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF1F5E9C.toInt()
-            textSize = 32f
+            textSize = 34f
             typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
             letterSpacing = 0.08f
         }
-        c.drawText("Aether SAGA", 100f, 130f, brandPaint)
+        c.drawText("Aether SAGA", 100f, 125f, brandPaint)
 
-        val bookInfoPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = 0xFF555555.toInt()
-            textSize = 28f
-            typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
+        val bookTitlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF2C2825.toInt()
+            textSize = 36f
+            typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
         }
+        c.drawText(bookTitle.take(22), 100f, 175f, bookTitlePaint)
+
         val unknownAuthor = L10n.t("저자 미상", "Unknown Author")
-        val metaText = "${bookTitle.take(24)} · ${bookAuthor.ifBlank { unknownAuthor }.take(16)}"
-        c.drawText(metaText, 100f, 175f, bookInfoPaint)
+        val bookAuthorPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = 0xFF7A7468.toInt()
+            textSize = 26f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+        }
+        c.drawText(bookAuthor.ifBlank { unknownAuthor }.take(22), 100f, 215f, bookAuthorPaint)
 
         val rulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFE0DDD5.toInt()
             strokeWidth = 2f
         }
-        c.drawLine(100f, 210f, coverX - 35f, 210f, rulePaint)
+        c.drawLine(100f, 245f, coverX - 35f, 245f, rulePaint)
 
         val quoteMarkPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFD4CCBC.toInt()
-            textSize = 140f
+            textSize = 120f
             typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
         }
-        c.drawText("“", 95f, 320f, quoteMarkPaint)
+        c.drawText("“", 95f, 335f, quoteMarkPaint)
 
         val quotePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF1A1A1A.toInt()
@@ -1033,7 +1039,7 @@ object AndroidShareHelper {
         val contentW = w - 200
         val quoteText = quote.trim()
         val maxSquareQuoteH = if (!memo.isNullOrBlank()) 480f else 600f
-        var qSize = if (quoteText.length > 300) 28f else if (quoteText.length > 150) 34f else 42f
+        var qSize = if (quoteText.length > 250) 32f else if (quoteText.length > 120) 38f else 46f
         var quoteLayout: StaticLayout = StaticLayout.Builder.obtain(quoteText, 0, quoteText.length, TextPaint(quotePaint).apply { textSize = qSize }, contentW)
             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
             .setLineSpacing(10f, 1.22f)
@@ -1179,7 +1185,7 @@ object AndroidShareHelper {
 
         val bookTitlePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF2C2825.toInt()
-            textSize = 34f
+            textSize = 36f
             typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
         }
         c.drawText(bookTitle.take(22), 100f, 210f, bookTitlePaint)
@@ -1187,7 +1193,7 @@ object AndroidShareHelper {
         val unknownAuthor = L10n.t("저자 미상", "Unknown Author")
         val bookAuthorPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF7A7468.toInt()
-            textSize = 24f
+            textSize = 26f
             typeface = Typeface.create("sans-serif", Typeface.NORMAL)
         }
         c.drawText(bookAuthor.ifBlank { unknownAuthor }.take(22), 100f, 256f, bookAuthorPaint)
@@ -1242,9 +1248,10 @@ object AndroidShareHelper {
             }
         }
 
+        val uniformQmSize = if (n == 1) 80f else if (n == 2) 60f else 48f
         val quoteMarkPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFD4CCBC.toInt()
-            textSize = if (n <= 2) 54f else 46f
+            textSize = uniformQmSize
             typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
         }
 
@@ -1255,13 +1262,15 @@ object AndroidShareHelper {
 
         val memoPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF1F5E9C.toInt()
-            textSize = if (n <= 2) 26f else 23f
+            textSize = if (n <= 2) 26f else 22f
             typeface = Typeface.create("sans-serif", Typeface.ITALIC)
         }
 
+        // Standardized Uniform Tag Badge Scale across ALL slots
+        val uniformTagSize = if (n <= 2) 30f else 26f
         val tagPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF1F5E9C.toInt()
-            textSize = 21f
+            textSize = uniformTagSize
             typeface = Typeface.create("sans-serif", Typeface.BOLD)
         }
 
@@ -1280,7 +1289,7 @@ object AndroidShareHelper {
 
             val isProgress = item.chapterTitle?.contains("진행") == true || item.quote.contains("진행률")
 
-            // Tag or Chapter info
+            // Tag or Chapter info (Uniform size and bold weight across all slots)
             val tagText = buildString {
                 append(if (isProgress) "📊 " else if (item.isBookmark) "🔖 " else "🖍 ")
                 if (!item.chapterTitle.isNullOrBlank()) {
@@ -1290,36 +1299,30 @@ object AndroidShareHelper {
                     append(" #${idx + 1}")
                 }
             }
-            val curTagPaint = if (isProgress) {
-                TextPaint(tagPaint).apply { textSize = if (n <= 2) 32f else 28f }
-            } else {
-                tagPaint
-            }
-            c.drawText(tagText, 100f, curY, curTagPaint)
-            curY += if (isProgress && n == 1) 45f else 34f
+            c.drawText(tagText, 100f, curY, tagPaint)
+            curY += 42f
 
-            // Quote Mark
-            val qmSize = if (isProgress) (if (n == 1) 90f else 64f) else (if (n <= 2) 54f else 46f)
-            val curQmPaint = TextPaint(quoteMarkPaint).apply { textSize = qmSize }
-            c.drawText("“", 100f, curY + (if (isProgress && n == 1) 12f else 6f), curQmPaint)
-            curY += if (isProgress && n == 1) 50f else 38f
+            // Quote Mark (Harmonious uniform scale)
+            c.drawText("“", 100f, curY + 6f, quoteMarkPaint)
+            curY += if (n == 1) 50f else 42f
 
-            // Quote Text Layout (Dynamic Proportional Auto-Fit Engine: No truncation, full content preserved)
+            // Quote Text Layout (Dynamic Proportional Auto-Fit Engine: Modular Scale)
             val quoteText = item.quote.trim()
             val maxQuoteForSlot = slotH - (if (!item.memo.isNullOrBlank()) 140f else if (isProgress) 120f else 80f)
             val baseSize = when {
                 isProgress -> when {
-                    n == 1 -> 62f // 단독 진행현황 공유 시 62px 특대형 히어로 폰트
-                    n == 2 -> 48f // 2건 공유 시 48px 대형 헤드라인 폰트
-                    else -> 40f   // 3건 이상 공유 시 40px 볼드 헤드라인 폰트
+                    n == 1 -> 58f // 단독 진행현황 공유 시 58px 특대형 히어로 폰트
+                    n == 2 -> 44f // 2건 공유 시 44px 대형 헤드라인 폰트
+                    else -> 36f   // 3건 이상 공유 시 36px 볼드 헤드라인 폰트
                 }
-                n == 1 -> if (quoteText.length > 300) 28f else if (quoteText.length > 150) 34f else 40f
-                quoteText.length < 50 -> if (n <= 2) 34f else 30f
-                slotH > 600f -> 32f
-                slotH > 420f -> 29f
-                slotH > 280f -> 26f
-                slotH > 180f -> 24f
-                else -> 21f
+                quoteText.length < 50 -> when {
+                    n == 1 -> 50f
+                    n == 2 -> 38f
+                    else -> 32f
+                }
+                n == 1 -> if (quoteText.length > 250) 34f else 42f
+                n == 2 -> if (slotH > 500f) 34f else 30f
+                else -> if (slotH > 350f) 28f else 24f
             }
             var curSize = baseSize
             val activeQuotePaint = if (isProgress) {

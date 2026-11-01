@@ -389,6 +389,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 - **기술적 차별성:**
   - 표지 썸네일을 8-bit 그레이스케일 WebP 파일로 압축 캐싱하여 디스크 및 램 용량을 극도로 절약.
   - 책장 다중 선택 모드를 통한 대량 책장 이동 지원.
+  - **온디멘드(On-Demand) 도서 위치 자동 재연결 자가 치유:** 백그라운드 리소스 소모 없이, 사용자가 서재에서 책을 열거나 독서노트에서 하이라이트를 클릭했을 때 파일 부재 시 즉각적인 BFS 탐색(최대 400 디렉터리)을 가동하여 이동된 도서를 찾아내고 Room DB 경로 및 북마크를 원자적으로 자동 갱신.
 - **법적 및 마켓 분석:**
   표준 SQLite/Room 기반 데이터 영속화로 안전함.
 
@@ -555,6 +556,9 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   - [StatsDashboardDialog.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/StatsDashboardDialog.kt) (E-Ink 및 LCD/OLED 모두에서 독서 통계 공유 버튼 활성화 및 카드 저장/공유 다이얼로그 호출)
   - [LibraryActivity.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/LibraryActivity.kt) (도서 컨텍스트 메뉴 내 `[📷 독서 카드 저장 · SNS 공유]` 옵션 전 기기 지원)
 - **기술적 세부사항:**
+  - **모듈러 타이포그래피 스케일 정렬 & 도서 표지 원본 비율 보존:**
+    - 인스타그램 스토리(9:16) 및 피드(1:1) 카드 전반에 걸쳐 일관된 태그 배지(`26~30px`) 및 인용 부호(`48~80px`), 독서진행현황 헤드라인(`36~58px`)과 인포그래픽 프로그레스 바를 적용하여 시각적 위계를 완벽히 통일.
+    - 도서 표지 축소 시 고정 비율 강제 맵핑 대신 원본 고유 종횡비를 100% 보존하여 렌더링.
   - **Zero-SDK & Zero-Permission 클린룸 아키텍처:**
     - 카카오 SDK, Meta/Facebook SDK 등 외부 라이브러리를 일체 배제하여 앱 용량을 수십 MB 이상 절감하고 사용자 개인정보 트래킹 리스크를 0%로 차단.
     - 문자 메시지(SMS/MMS) 연동 시 위험 권한인 `android.permission.SEND_SMS`를 전혀 요구하지 않으며, 표준 `Intent.ACTION_SEND` 및 `Intent.ACTION_SENDTO`(`smsto:`)를 통해 사용자의 기본 문자 앱을 안전하게 실행.

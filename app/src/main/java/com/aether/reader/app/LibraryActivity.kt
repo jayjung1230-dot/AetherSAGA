@@ -771,7 +771,8 @@ class LibraryActivity : Activity() {
     }
 
     private fun openBook(book: BookEntity) {
-        val cleanPath = Containers.normalizePath(book.path)
+        val resolved = resolveOnDemandBookPath(book.path, book.sizeBytes)
+        val cleanPath = Containers.normalizePath(resolved)
         try {
             val intent = Intent(this, ReaderActivity::class.java).apply {
                 putExtra("path", cleanPath)
@@ -2032,10 +2033,14 @@ class LibraryActivity : Activity() {
         }
 
         if (L10n.isKorean) {
-            addSection("🌟 Ver. 2.1 독서 노트 공유 통합 & 인스타 스토리 오토핏", listOf(
+            addSection("🌟 Ver. 2.1 독서 노트 공유 통합, 모듈러 타이포 & 온디멘드 자가 복구", listOf(
                 "도서 정보 및 독서 노트 공유 단일 통합 창: 상단에 '[✓] 도서 기본 정보 및 진행률 (진행률 XX% 달성)' 기본 제공으로 하이라이트 유무에 관계없이 모든 공유 시나리오 100% 지원",
-                "인스타그램 스토리 600자 유동 조합: 기존 4개 고정 제한을 해제하고 최대 600자 이내에서 단문 여러 개 또는 장문 1개를 자유롭게 묶어 9:16 카드로 발행",
-                "동적 폰트 오토핏(Auto-Fit) 엔진: 긴 인용구도 말줄임표(...) 잘림 없이 폰트 크기 및 행간을 자동 최적화하여 원문 내용 100% 전체 수용"
+                "온디멘드(On-Demand) 도서 위치 자동 재연결: 지정 폴더 내 하위 폴더로 책 이동 시, 서재 및 독서노트에서 클릭하는 즉시 신속 탐색하여 DB 경로 및 북마크 자동 자가 복구",
+                "SNS 공유 카드 모듈러 타이포그래피 스케일 정렬: 슬롯 수에 비례한 일관된 태그 배지(26~30px) 및 따옴표(48~80px), 헤드라인과 인포그래픽 프로그레스 바 적용",
+                "인스타그램 스토리 슬롯 글자수별 공간 비례 할당: 문장 길이에 맞추어 카드 높이를 유동 배분하고, 600자 이내 복수 단문 또는 장문 1개 자유 조합 지원",
+                "동적 폰트 오토핏(Auto-Fit) 엔진: 긴 인용구도 말줄임표(...) 잘림 없이 폰트 크기 및 행간을 자동 최적화하여 원문 내용 100% 전체 수용",
+                "도서 표지 원본 가로세로 비율(Aspect Ratio) 100% 보존: 스토리 및 피드 카드 우측 상단 표지 축소 시 왜곡 없이 원본 비율 유지",
+                "독서노트 문장 선택 '전체 선택' 체크박스 양방향 동기화 및 중첩 스크롤 제스처 간섭 원천 해결, 고대비 상시 스크롤바 탑재"
             ))
             addSection("1. 극도의 초경량화 & Zero-Library 리더 엔진", listOf(
                 "Jetpack Compose, Hilt, Glide, Retrofit 일체 배제한 순수 Framework View 구현",
@@ -2090,10 +2095,14 @@ class LibraryActivity : Activity() {
                 "WebDAV 원격 독서 위치 동기화 및 설정 JSON 백업/복원"
             ))
         } else {
-            addSection("🌟 Ver. 2.1 Unified Notes Share & Story Auto-Fit Engine", listOf(
+            addSection("🌟 Ver. 2.1 Unified Share, Modular Typography & On-Demand Self-Healing", listOf(
                 "Unified Reading Notes & Progress Dialog: Default '[✓] Basic Info & Reading Progress' item covers all sharing flows seamlessly even with 0 highlights",
-                "Instagram Stories 600-Char Dynamic Budget: Flexibly bundle multiple short quotes or 1 long excerpt up to 600 characters into a single 9:16 card",
-                "Dynamic Auto-Fit Font Scaling: Long quotes fit seamlessly without any '...' truncation by automatically scaling typography and line spacing"
+                "On-Demand Self-Healing Book Relinking: When book files are moved into subfolders, clicking them in the library or notes instantly locates the file and self-heals database paths",
+                "Modular Typography Scale Alignment: Unified tag badges (26~30px) and quotation marks (48~80px) across all slots, paired with hero headlines & infographic progress bar",
+                "Proportional Slot Height Allocation: Dynamically allocates Instagram Story card space by note length, supporting flexible multi-quote bundles up to 600 characters",
+                "Dynamic Auto-Fit Font Scaling: Long quotes fit seamlessly without any '...' truncation by automatically scaling typography and line spacing",
+                "Original Book Cover Aspect Ratio: Guarantees 100% distortion-free book cover proportions on Story and Feed cards",
+                "Bi-directional Select-All Checkbox & Smooth Drag: Solved nested scroll gesture interception and added high-contrast persistent scrollbars"
             ))
             addSection("1. Ultra-Lightweight & Zero-Library Engine", listOf(
                 "Pure Android Framework Views without Compose, Hilt, Glide, or Retrofit",
@@ -2361,6 +2370,70 @@ class LibraryActivity : Activity() {
         super.onDestroy()
     }
 
+    /**
+     * On-Demand Self-Healing Book Relinking:
+     * If a book file was relocated into a subfolder within the designated library directory or its parent,
+     * performs an instant on-demand search, atomically updates database paths for both the book
+     * and all associated highlights/shelf assignments, and returns the newly resolved path.
+     */
+    private fun resolveOnDemandBookPath(currentPath: String, expectedSizeBytes: Long): String {
+        val clean = Containers.normalizePath(currentPath)
+        if (clean.startsWith("content://")) return clean
+        val oldFile = File(clean)
+        if (oldFile.exists()) return clean
+
+        // File is missing! On-demand search strictly within designated/parent directories
+        val candidateRoots = LinkedHashSet<File>()
+        var pDir: File? = oldFile.parentFile
+        while (pDir != null && pDir.path != "/" && pDir.path != "/storage" && pDir.path != "/storage/emulated") {
+            if (pDir.exists() && pDir.isDirectory) {
+                candidateRoots.add(pDir)
+                if (pDir.name.equals("Books", ignoreCase = true) ||
+                    pDir.name.equals("Download", ignoreCase = true) ||
+                    pDir.name.equals("Documents", ignoreCase = true)) {
+                    break
+                }
+            }
+            pDir = pDir.parentFile
+        }
+        if (candidateRoots.isEmpty()) {
+            val extDir = Environment.getExternalStorageDirectory()
+            if (extDir != null && extDir.exists()) {
+                val booksDir = File(extDir, "Books")
+                if (booksDir.exists() && booksDir.isDirectory) candidateRoots.add(booksDir)
+                val dlDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (dlDir != null && dlDir.exists() && dlDir.isDirectory) candidateRoots.add(dlDir)
+                val docDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+                if (docDir != null && docDir.exists() && docDir.isDirectory) candidateRoots.add(docDir)
+            }
+        }
+
+        val targetName = oldFile.name
+        for (root in candidateRoots) {
+            val matched = findMatchingBookFile(root, targetName, expectedSizeBytes)
+            if (matched != null) {
+                val newPath = matched.absolutePath
+                if (newPath != clean) {
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            app.db.books().updatePath(clean, newPath)
+                            app.db.highlights().updateBookPath(clean, newPath)
+                            val shelf = app.prefs.getBookShelf(clean)
+                            if (shelf.isNotBlank()) {
+                                app.prefs.setBookShelf(newPath, shelf)
+                                app.prefs.setBookShelf(clean, "")
+                            }
+                        } catch (_: Throwable) {}
+                    }
+                    allBooks = allBooks.map { if (it.path == clean) it.copy(path = newPath) else it }
+                    toast(L10n.t("도서 이동이 감지되어 새 위치로 자동 연결되었습니다.", "Book relocation detected; reconnected automatically."))
+                    return newPath
+                }
+            }
+        }
+        return clean
+    }
+
     private fun openBookAtHighlight(h: HighlightEntity) {
         val b = allBooks.find { it.path == h.bookPath || "file://${it.path}" == h.bookPath }
             ?: BookEntity(
@@ -2371,7 +2444,8 @@ class LibraryActivity : Activity() {
                 sizeBytes = 0L,
                 addedAt = System.currentTimeMillis()
             )
-        val cleanPath = Containers.normalizePath(b.path)
+        val resolved = resolveOnDemandBookPath(b.path, b.sizeBytes)
+        val cleanPath = Containers.normalizePath(resolved)
         try {
             val intent = Intent(this, ReaderActivity::class.java).apply {
                 putExtra("path", cleanPath)
@@ -2931,4 +3005,29 @@ class LibraryActivity : Activity() {
         }
     }
 
+
+    companion object {
+        fun findMatchingBookFile(root: File, targetName: String, expectedSize: Long = 0L): File? {
+            val queue = java.util.ArrayDeque<File>()
+            queue.add(root)
+            var limit = 0
+            while (queue.isNotEmpty() && limit < 400) {
+                val dir = queue.removeFirst()
+                val files = dir.listFiles() ?: continue
+                for (f in files) {
+                    if (f.isDirectory) {
+                        if (!f.name.startsWith(".")) queue.add(f)
+                    } else if (f.isFile) {
+                        if (f.name.equals(targetName, ignoreCase = true)) {
+                            if (expectedSize <= 0L || f.length() == expectedSize) {
+                                return f
+                            }
+                        }
+                    }
+                }
+                limit++
+            }
+            return null
+        }
+    }
 }

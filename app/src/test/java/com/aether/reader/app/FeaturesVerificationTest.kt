@@ -1573,32 +1573,75 @@ class FeaturesVerificationTest {
         fun computeBaseSize(isProgress: Boolean, quoteLength: Int, n: Int, slotH: Float): Float {
             return when {
                 isProgress -> when {
-                    n == 1 -> 62f
-                    n == 2 -> 48f
-                    else -> 40f
+                    n == 1 -> 58f
+                    n == 2 -> 44f
+                    else -> 36f
                 }
-                n == 1 -> if (quoteLength > 300) 28f else if (quoteLength > 150) 34f else 40f
-                quoteLength < 50 -> if (n <= 2) 34f else 30f
-                slotH > 600f -> 32f
-                slotH > 420f -> 29f
-                slotH > 280f -> 26f
-                slotH > 180f -> 24f
-                else -> 21f
+                quoteLength < 50 -> when {
+                    n == 1 -> 50f
+                    n == 2 -> 38f
+                    else -> 32f
+                }
+                n == 1 -> if (quoteLength > 250) 34f else 42f
+                n == 2 -> if (slotH > 500f) 34f else 30f
+                else -> if (slotH > 350f) 28f else 24f
             }
         }
 
-        // Case 1: Hero Single Card (n=1) -> 62f 특대형 히어로 폰트
+        // Case 1: Hero Single Card (n=1) -> 58f 특대형 히어로 폰트
         val singleProgressSize = computeBaseSize(isProgress = true, quoteLength = 24, n = 1, slotH = 1460f)
-        assertEquals(62f, singleProgressSize, 0.01f)
+        assertEquals(58f, singleProgressSize, 0.01f)
 
-        // Case 2: Progress status with 1 other long note (n=2) -> 48f 대형 헤드라인 폰트
+        // Case 2: Progress status with 1 other long note (n=2) -> 44f 대형 헤드라인 폰트
         val progressSize = computeBaseSize(isProgress = true, quoteLength = 24, n = 2, slotH = 280f)
         val noteSize = computeBaseSize(isProgress = false, quoteLength = 180, n = 2, slotH = 800f)
         assertTrue(progressSize > noteSize)
-        assertEquals(48f, progressSize, 0.01f)
+        assertEquals(44f, progressSize, 0.01f)
+        assertEquals(34f, noteSize, 0.01f)
 
-        // Case 3: Progress status with 3 notes (n=4) -> 40f 볼드 헤드라인
+        // Case 3: Progress status with 3 notes (n=4) -> 36f 볼드 헤드라인
         val multiProgressSize = computeBaseSize(isProgress = true, quoteLength = 24, n = 4, slotH = 150f)
-        assertEquals(40f, multiProgressSize, 0.01f)
+        assertEquals(36f, multiProgressSize, 0.01f)
+    }
+
+    @Test
+    fun testOnDemandBookRelinkingSearch() {
+        val tempDir = java.nio.file.Files.createTempDirectory("book_relink_test").toFile()
+        try {
+            val rootDir = File(tempDir, "Books")
+            rootDir.mkdirs()
+
+            // Subfolder structure: Books/Fiction/Fantasy/
+            val subDir = File(rootDir, "Fiction/Fantasy")
+            subDir.mkdirs()
+
+            val targetFile = File(subDir, "The_Hobbit.epub")
+            targetFile.writeText("Sample EPUB Content For Relinking Test")
+
+            // Test 1: Exact match with name and size
+            val foundExact = LibraryActivity.findMatchingBookFile(rootDir, "The_Hobbit.epub", targetFile.length())
+            assertNotNull(foundExact)
+            assertEquals(targetFile.absolutePath, foundExact?.absolutePath)
+
+            // Test 2: Case-insensitive match
+            val foundCase = LibraryActivity.findMatchingBookFile(rootDir, "the_hobbit.epub", targetFile.length())
+            assertNotNull(foundCase)
+            assertEquals(targetFile.absolutePath, foundCase?.absolutePath)
+
+            // Test 3: Match with size <= 0L (legacy or unknown size)
+            val foundAnySize = LibraryActivity.findMatchingBookFile(rootDir, "the_hobbit.epub", 0L)
+            assertNotNull(foundAnySize)
+            assertEquals(targetFile.absolutePath, foundAnySize?.absolutePath)
+
+            // Test 4: Size mismatch should return null to prevent collision
+            val notFoundWrongSize = LibraryActivity.findMatchingBookFile(rootDir, "the_hobbit.epub", 999999L)
+            assertNull(notFoundWrongSize)
+
+            // Test 5: Non-existent file name
+            val notFoundName = LibraryActivity.findMatchingBookFile(rootDir, "Non_Existent_Book.epub", 0L)
+            assertNull(notFoundName)
+        } finally {
+            tempDir.deleteRecursively()
+        }
     }
 }
