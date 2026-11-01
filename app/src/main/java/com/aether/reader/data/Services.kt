@@ -1225,7 +1225,7 @@ object AndroidShareHelper {
             val baseHeights = FloatArray(n) { i ->
                 val hasMemo = !bundleItems[i].memo.isNullOrBlank()
                 val isProg = bundleItems[i].chapterTitle?.contains("진행") == true || bundleItems[i].quote.contains("진행률")
-                if (hasMemo) 150f else if (isProg) 160f else 105f
+                if (hasMemo) 150f else if (isProg) (if (n == 1) totalAvailableH else 240f) else 105f
             }
             // 2. Weight proportional to the actual text length (quote + memo)
             val weights = FloatArray(n) { i ->
@@ -1291,23 +1291,30 @@ object AndroidShareHelper {
                 }
             }
             val curTagPaint = if (isProgress) {
-                TextPaint(tagPaint).apply { textSize = 25f }
+                TextPaint(tagPaint).apply { textSize = if (n <= 2) 32f else 28f }
             } else {
                 tagPaint
             }
             c.drawText(tagText, 100f, curY, curTagPaint)
-            curY += 34f
+            curY += if (isProgress && n == 1) 45f else 34f
 
             // Quote Mark
-            c.drawText("“", 100f, curY + 6f, quoteMarkPaint)
-            curY += 38f
+            val qmSize = if (isProgress) (if (n == 1) 90f else 64f) else (if (n <= 2) 54f else 46f)
+            val curQmPaint = TextPaint(quoteMarkPaint).apply { textSize = qmSize }
+            c.drawText("“", 100f, curY + (if (isProgress && n == 1) 12f else 6f), curQmPaint)
+            curY += if (isProgress && n == 1) 50f else 38f
 
             // Quote Text Layout (Dynamic Proportional Auto-Fit Engine: No truncation, full content preserved)
             val quoteText = item.quote.trim()
-            val maxQuoteForSlot = slotH - (if (!item.memo.isNullOrBlank()) 140f else 80f)
+            val maxQuoteForSlot = slotH - (if (!item.memo.isNullOrBlank()) 140f else if (isProgress) 120f else 80f)
             val baseSize = when {
+                isProgress -> when {
+                    n == 1 -> 62f // 단독 진행현황 공유 시 62px 특대형 히어로 폰트
+                    n == 2 -> 48f // 2건 공유 시 48px 대형 헤드라인 폰트
+                    else -> 40f   // 3건 이상 공유 시 40px 볼드 헤드라인 폰트
+                }
                 n == 1 -> if (quoteText.length > 300) 28f else if (quoteText.length > 150) 34f else 40f
-                isProgress || quoteText.length < 50 -> if (n <= 2) 34f else 30f // 독서 진행현황: 일반 노트와 동일한 폰트 사이즈(30~34f)로 확대
+                quoteText.length < 50 -> if (n <= 2) 34f else 30f
                 slotH > 600f -> 32f
                 slotH > 420f -> 29f
                 slotH > 280f -> 26f
@@ -1350,6 +1357,32 @@ object AndroidShareHelper {
             c.restore()
 
             curY += quoteLayout.height + 15f
+
+            // Visual Progress Bar for Progress Milestone Slot
+            if (isProgress) {
+                val pct = Regex("(\\d+)%").find(quoteText)?.groupValues?.get(1)?.toIntOrNull()
+                if (pct != null) {
+                    val barH = if (n == 1) 22f else 14f
+                    val barW = contentW.toFloat()
+                    val fillW = (barW * (pct.coerceIn(0, 100) / 100f)).coerceAtLeast(barH)
+                    val barY = curY + 12f
+                    val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFE5E0D5.toInt() }
+                    val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF1F5E9C.toInt() }
+                    c.drawRoundRect(RectF(100f, barY, 100f + barW, barY + barH), barH / 2f, barH / 2f, trackPaint)
+                    c.drawRoundRect(RectF(100f, barY, 100f + fillW, barY + barH), barH / 2f, barH / 2f, fillPaint)
+                    curY += barH + 20f
+
+                    if (n == 1) {
+                        val subPctPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                            color = 0xFF1F5E9C.toInt()
+                            textSize = 28f
+                            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+                        }
+                        c.drawText(L10n.t("${pct}% 완독을 향해 순항 중", "${pct}% on the reading journey"), 100f, curY + 22f, subPctPaint)
+                        curY += 45f
+                    }
+                }
+            }
 
             // Memo / Note
             if (!item.memo.isNullOrBlank()) {

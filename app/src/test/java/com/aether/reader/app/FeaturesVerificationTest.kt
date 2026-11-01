@@ -1569,11 +1569,16 @@ class FeaturesVerificationTest {
     }
 
     @Test
-    fun testInstagramStoryProgressStatusFontSizeMatchesNotes() {
+    fun testInstagramStoryProgressStatusHeroTypography() {
         fun computeBaseSize(isProgress: Boolean, quoteLength: Int, n: Int, slotH: Float): Float {
             return when {
+                isProgress -> when {
+                    n == 1 -> 62f
+                    n == 2 -> 48f
+                    else -> 40f
+                }
                 n == 1 -> if (quoteLength > 300) 28f else if (quoteLength > 150) 34f else 40f
-                isProgress || quoteLength < 50 -> if (n <= 2) 34f else 30f
+                quoteLength < 50 -> if (n <= 2) 34f else 30f
                 slotH > 600f -> 32f
                 slotH > 420f -> 29f
                 slotH > 280f -> 26f
@@ -1582,16 +1587,18 @@ class FeaturesVerificationTest {
             }
         }
 
-        // Case 1: Progress status with 1 other long note (n=2, small slotH 250f)
-        val progressSize = computeBaseSize(isProgress = true, quoteLength = 24, n = 2, slotH = 250f)
-        val noteSize = computeBaseSize(isProgress = false, quoteLength = 180, n = 2, slotH = 800f)
-        // Progress status font size (34f) matches or exceeds regular note font size (32f)!
-        assertTrue(progressSize >= noteSize)
-        assertEquals(34f, progressSize, 0.01f)
+        // Case 1: Hero Single Card (n=1) -> 62f 특대형 히어로 폰트
+        val singleProgressSize = computeBaseSize(isProgress = true, quoteLength = 24, n = 1, slotH = 1460f)
+        assertEquals(62f, singleProgressSize, 0.01f)
 
-        // Case 2: Progress status with 3 notes (n=4, very small slotH 150f)
+        // Case 2: Progress status with 1 other long note (n=2) -> 48f 대형 헤드라인 폰트
+        val progressSize = computeBaseSize(isProgress = true, quoteLength = 24, n = 2, slotH = 280f)
+        val noteSize = computeBaseSize(isProgress = false, quoteLength = 180, n = 2, slotH = 800f)
+        assertTrue(progressSize > noteSize)
+        assertEquals(48f, progressSize, 0.01f)
+
+        // Case 3: Progress status with 3 notes (n=4) -> 40f 볼드 헤드라인
         val multiProgressSize = computeBaseSize(isProgress = true, quoteLength = 24, n = 4, slotH = 150f)
-        assertEquals(30f, multiProgressSize, 0.01f)
-        // Without fix, it would have dropped to 21f!
+        assertEquals(40f, multiProgressSize, 0.01f)
     }
 }
