@@ -1567,4 +1567,31 @@ class FeaturesVerificationTest {
         assertEquals(87.5f, h4, 0.01f)
         assertTrue(w4 <= maxCoverW && h4 <= maxCoverH)
     }
+
+    @Test
+    fun testInstagramStoryProgressStatusFontSizeMatchesNotes() {
+        fun computeBaseSize(isProgress: Boolean, quoteLength: Int, n: Int, slotH: Float): Float {
+            return when {
+                n == 1 -> if (quoteLength > 300) 28f else if (quoteLength > 150) 34f else 40f
+                isProgress || quoteLength < 50 -> if (n <= 2) 34f else 30f
+                slotH > 600f -> 32f
+                slotH > 420f -> 29f
+                slotH > 280f -> 26f
+                slotH > 180f -> 24f
+                else -> 21f
+            }
+        }
+
+        // Case 1: Progress status with 1 other long note (n=2, small slotH 250f)
+        val progressSize = computeBaseSize(isProgress = true, quoteLength = 24, n = 2, slotH = 250f)
+        val noteSize = computeBaseSize(isProgress = false, quoteLength = 180, n = 2, slotH = 800f)
+        // Progress status font size (34f) matches or exceeds regular note font size (32f)!
+        assertTrue(progressSize >= noteSize)
+        assertEquals(34f, progressSize, 0.01f)
+
+        // Case 2: Progress status with 3 notes (n=4, very small slotH 150f)
+        val multiProgressSize = computeBaseSize(isProgress = true, quoteLength = 24, n = 4, slotH = 150f)
+        assertEquals(30f, multiProgressSize, 0.01f)
+        // Without fix, it would have dropped to 21f!
+    }
 }

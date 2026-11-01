@@ -1224,7 +1224,8 @@ object AndroidShareHelper {
             // 1. Minimum baseline height required per slot (tag + quote mark + margins + memo if present)
             val baseHeights = FloatArray(n) { i ->
                 val hasMemo = !bundleItems[i].memo.isNullOrBlank()
-                if (hasMemo) 150f else 105f
+                val isProg = bundleItems[i].chapterTitle?.contains("진행") == true || bundleItems[i].quote.contains("진행률")
+                if (hasMemo) 150f else if (isProg) 160f else 105f
             }
             // 2. Weight proportional to the actual text length (quote + memo)
             val weights = FloatArray(n) { i ->
@@ -1277,9 +1278,11 @@ object AndroidShareHelper {
             currentSlotTop += slotH
             var curY = slotTop + 20f
 
+            val isProgress = item.chapterTitle?.contains("진행") == true || item.quote.contains("진행률")
+
             // Tag or Chapter info
             val tagText = buildString {
-                append(if (item.isBookmark) "🔖 " else "🖍 ")
+                append(if (isProgress) "📊 " else if (item.isBookmark) "🔖 " else "🖍 ")
                 if (!item.chapterTitle.isNullOrBlank()) {
                     append(item.chapterTitle.take(30))
                 } else {
@@ -1287,7 +1290,12 @@ object AndroidShareHelper {
                     append(" #${idx + 1}")
                 }
             }
-            c.drawText(tagText, 100f, curY, tagPaint)
+            val curTagPaint = if (isProgress) {
+                TextPaint(tagPaint).apply { textSize = 25f }
+            } else {
+                tagPaint
+            }
+            c.drawText(tagText, 100f, curY, curTagPaint)
             curY += 34f
 
             // Quote Mark
@@ -1299,6 +1307,7 @@ object AndroidShareHelper {
             val maxQuoteForSlot = slotH - (if (!item.memo.isNullOrBlank()) 140f else 80f)
             val baseSize = when {
                 n == 1 -> if (quoteText.length > 300) 28f else if (quoteText.length > 150) 34f else 40f
+                isProgress || quoteText.length < 50 -> if (n <= 2) 34f else 30f // 독서 진행현황: 일반 노트와 동일한 폰트 사이즈(30~34f)로 확대
                 slotH > 600f -> 32f
                 slotH > 420f -> 29f
                 slotH > 280f -> 26f
@@ -1306,14 +1315,30 @@ object AndroidShareHelper {
                 else -> 21f
             }
             var curSize = baseSize
-            var quoteLayout = StaticLayout.Builder.obtain(quoteText, 0, quoteText.length, TextPaint(quoteTextPaint).apply { textSize = curSize }, contentW)
+            val activeQuotePaint = if (isProgress) {
+                TextPaint(quoteTextPaint).apply {
+                    textSize = curSize
+                    typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+                }
+            } else {
+                TextPaint(quoteTextPaint).apply { textSize = curSize }
+            }
+            var quoteLayout = StaticLayout.Builder.obtain(quoteText, 0, quoteText.length, activeQuotePaint, contentW)
                 .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                 .setLineSpacing(if (n <= 2) 6f else 4f, 1.18f)
                 .build()
 
             while (curSize > 16f && quoteLayout.height > maxQuoteForSlot) {
                 curSize -= 1.5f
-                quoteLayout = StaticLayout.Builder.obtain(quoteText, 0, quoteText.length, TextPaint(quoteTextPaint).apply { textSize = curSize }, contentW)
+                val loopPaint = if (isProgress) {
+                    TextPaint(quoteTextPaint).apply {
+                        textSize = curSize
+                        typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+                    }
+                } else {
+                    TextPaint(quoteTextPaint).apply { textSize = curSize }
+                }
+                quoteLayout = StaticLayout.Builder.obtain(quoteText, 0, quoteText.length, loopPaint, contentW)
                     .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                     .setLineSpacing(if (n <= 2) 5f else 3f, 1.16f)
                     .build()
