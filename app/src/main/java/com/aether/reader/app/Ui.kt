@@ -398,10 +398,8 @@ fun Activity.showReadingNotesShareDialog(
         }
     }
 
-    if (candidateItems.isEmpty()) {
-        Toast.makeText(this, L10n.t("공유할 문장이나 저장된 하이라이트/북마크가 없습니다", "No saved quotes, highlights, or bookmarks to share"), Toast.LENGTH_SHORT).show()
-        return
-    }
+    val pct = (book.progress * 100).toInt()
+    val defaultProgressQuote = L10n.t("'${resolvedTitle}' 독서 진행률 ${pct}% 달성!", "'${resolvedTitle}' reading progress: ${pct}%!")
 
     val coverBmp = AndroidShareHelper.prepareCoverBitmap(
         bookTitle = resolvedTitle,
@@ -528,8 +526,18 @@ fun Activity.showReadingNotesShareDialog(
         typeface = ReaderTheme.uiFontBold
     }
     val checkBoxes = ArrayList<CheckBox>()
+    val progressCb = CheckBox(this).apply {
+        text = L10n.t("📊 [도서 기본 정보 및 진행률] 진행률 ${pct}% 달성", "📊 [Basic Book Info & Progress] ${pct}% completed")
+        isChecked = (candidateItems.isEmpty() || initialQuote == null)
+        setPtSize(8.4f)
+        setTextColor(ReaderTheme.EINK_INK)
+        typeface = ReaderTheme.uiFontBold
+        setPadding(dp(4), dp(6), dp(4), dp(6))
+    }
+
     val toggleAllBtn = pillButton(L10n.t("전체 선택/해제", "Select All / None"), ReaderTheme.EINK_INK, ReaderTheme.EINK_PAPER, ReaderTheme.EINK_BORDER) {
-        val allChecked = checkBoxes.all { it.isChecked }
+        val allChecked = progressCb.isChecked && (checkBoxes.isEmpty() || checkBoxes.all { it.isChecked })
+        progressCb.isChecked = !allChecked
         checkBoxes.forEach { it.isChecked = !allChecked }
     }.apply {
         setPtSize(7.5f)
@@ -548,27 +556,46 @@ fun Activity.showReadingNotesShareDialog(
         enableVisibleScrollbar()
     }
     val listCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-    for ((idx, item) in candidateItems.withIndex()) {
-        val isInitial = (initialQuote != null && idx == 0)
-        val prefix = when {
-            isInitial -> L10n.t("✨ [현재 선택 문장] ", "✨ [Current Selection] ")
-            item.kind == 1 -> L10n.t("🔖 [북마크] ", "🔖 [Bookmark] ")
-            else -> L10n.t("🖍 [하이라이트] ", "🖍 [Highlight] ")
+    listCol.addView(progressCb)
+
+    if (candidateItems.isEmpty()) {
+        val noHlNotice = TextView(this).apply {
+            text = L10n.t("※ 저장된 하이라이트/메모가 없어 기본 진행률 카드로 공유됩니다.", "※ No highlights saved yet; sharing with basic reading progress.")
+            setPtSize(7.6f)
+            setTextColor(ReaderTheme.EINK_MUTED)
+            setPadding(dp(8), dp(4), dp(8), dp(8))
         }
-        val cb = CheckBox(this).apply {
-            text = "$prefix${item.chapterTitle}: ${item.quote.replace("\n", " ").take(65)}"
-            isChecked = if (initialQuote != null) isInitial else true
-            setPtSize(8.2f)
-            setTextColor(ReaderTheme.EINK_INK)
-            setPadding(dp(4), dp(6), dp(4), dp(6))
+        listCol.addView(noHlNotice)
+    } else {
+        val div = View(this).apply {
+            setBackgroundColor(noteBorderCol)
+            layoutParams = LinearLayout.LayoutParams(-1, dp(1)).apply {
+                setMargins(dp(4), dp(4), dp(4), dp(4))
+            }
         }
-        checkBoxes.add(cb)
-        listCol.addView(cb)
+        listCol.addView(div)
+        for ((idx, item) in candidateItems.withIndex()) {
+            val isInitial = (initialQuote != null && idx == 0)
+            val prefix = when {
+                isInitial -> L10n.t("✨ [현재 선택 문장] ", "✨ [Current Selection] ")
+                item.kind == 1 -> L10n.t("🔖 [북마크] ", "🔖 [Bookmark] ")
+                else -> L10n.t("🖍 [하이라이트] ", "🖍 [Highlight] ")
+            }
+            val cb = CheckBox(this).apply {
+                text = "$prefix${item.chapterTitle}: ${item.quote.replace("\n", " ").take(65)}"
+                isChecked = if (initialQuote != null) isInitial else true
+                setPtSize(8.2f)
+                setTextColor(ReaderTheme.EINK_INK)
+                setPadding(dp(4), dp(6), dp(4), dp(6))
+            }
+            checkBoxes.add(cb)
+            listCol.addView(cb)
+        }
     }
     listScroll.addView(listCol)
     val maxScrollH = (resources.displayMetrics.heightPixels * 0.28f).toInt().coerceAtLeast(dp(120))
     root.addView(listScroll, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-        if (candidateItems.size > 3) height = maxScrollH
+        if (candidateItems.size > 2) height = maxScrollH
     })
 
     lateinit var dlg: AlertDialog
@@ -577,9 +604,33 @@ fun Activity.showReadingNotesShareDialog(
         if (email.isBlank() || !email.contains("@")) {
             Toast.makeText(this, L10n.t("올바른 이메일 주소를 입력해주세요", "Please enter a valid email address"), Toast.LENGTH_SHORT).show()
         } else {
-            val selected = candidateItems.filterIndexed { i, _ -> checkBoxes[i].isChecked }
+            val selected = ArrayList<HighlightEntity>()
+            if (progressCb.isChecked) {
+                selected.add(
+                    HighlightEntity(
+                        id = -999L,
+                        bookPath = book.path,
+                        kind = 0,
+                        chapter = 0,
+                        startChar = 0,
+                        endChar = 0,
+                        quote = defaultProgressQuote,
+                        note = "",
+                        style = 0,
+                        colorTag = 0,
+                        progress = book.progress,
+                        chapterTitle = L10n.t("독서 진행 현황", "Reading Progress"),
+                        createdAt = System.currentTimeMillis()
+                    )
+                )
+            }
+            for (i in candidateItems.indices) {
+                if (checkBoxes[i].isChecked) {
+                    selected.add(candidateItems[i])
+                }
+            }
             if (selected.isEmpty()) {
-                Toast.makeText(this, L10n.t("공유할 문장이나 하이라이트/북마크를 1개 이상 선택해주세요", "Please select at least one quote or note"), Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, L10n.t("공유할 문장이나 진행률 항목을 1개 이상 선택해주세요", "Please select at least one quote or progress item"), Toast.LENGTH_SHORT).show()
             } else {
                 app.prefs.shareEmail = email
 
@@ -624,19 +675,34 @@ fun Activity.showReadingNotesShareDialog(
     }
 
     val executeSns = {
-        val selected = candidateItems.filterIndexed { i, _ -> checkBoxes[i].isChecked }
-        if (selected.isEmpty()) {
-            Toast.makeText(this, L10n.t("공유할 문장이나 하이라이트/북마크를 1개 이상 선택해주세요", "Please select at least one quote or note"), Toast.LENGTH_SHORT).show()
-        } else {
-            dlg.dismiss()
-            val quoteItems = selected.map { h ->
+        val quoteItems = ArrayList<AndroidShareHelper.SnsQuoteItem>()
+        if (progressCb.isChecked) {
+            quoteItems.add(
                 AndroidShareHelper.SnsQuoteItem(
-                    quote = h.quote,
-                    memo = h.note.ifBlank { null },
-                    chapterTitle = h.chapterTitle.ifBlank { null },
-                    isBookmark = (h.kind == 1)
+                    quote = defaultProgressQuote,
+                    memo = null,
+                    chapterTitle = L10n.t("독서 진행 현황", "Reading Progress"),
+                    isBookmark = false
+                )
+            )
+        }
+        for (i in candidateItems.indices) {
+            if (checkBoxes[i].isChecked) {
+                val h = candidateItems[i]
+                quoteItems.add(
+                    AndroidShareHelper.SnsQuoteItem(
+                        quote = h.quote,
+                        memo = h.note.ifBlank { null },
+                        chapterTitle = h.chapterTitle.ifBlank { null },
+                        isBookmark = (h.kind == 1)
+                    )
                 )
             }
+        }
+        if (quoteItems.isEmpty()) {
+            Toast.makeText(this, L10n.t("공유할 문장이나 진행률 항목을 1개 이상 선택해주세요", "Please select at least one quote or progress item"), Toast.LENGTH_SHORT).show()
+        } else {
+            dlg.dismiss()
             AndroidShareHelper.showSnsShareDialog(
                 activity = this,
                 bookTitle = resolvedTitle,

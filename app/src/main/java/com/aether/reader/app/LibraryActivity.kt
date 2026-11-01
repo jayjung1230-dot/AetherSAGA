@@ -356,7 +356,7 @@ class LibraryActivity : Activity() {
             showMainHighlightsDialog()
         }
         val snsShareBtn = pillButton(L10n.t("📷 독서카드/SNS", "📷 Card/SNS"), inkCol, cardBgCol, borderCol) {
-            showMainSnsShareDialog()
+            showMainNotesShareDialog()
         }
         val notesShareBtn = pillButton(L10n.t("📢 독서노트 공유", "📢 Share Notes"), inkCol, cardBgCol, borderCol) {
             showMainNotesShareDialog()
@@ -844,9 +844,16 @@ class LibraryActivity : Activity() {
                             val list = app.db.highlights().forBook(b.path)
                             if (list.isNotEmpty()) list else app.db.highlights().forBook("file://${b.path}")
                         }
-                        val sampleQuote = hl.firstOrNull { it.kind == 0 }?.quote ?: L10n.t("'${b.title}' 독서 진행률 $pct% 달성!", "'${b.title}' reading progress: $pct%!")
-                        val sampleMemo = hl.firstOrNull { it.kind == 0 && it.note.isNotBlank() }?.note
-                        val coverBmp = b.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }; AndroidShareHelper.showSnsShareDialog(this@LibraryActivity, b.title, b.author, sampleQuote, sampleMemo, isEink = !isLcd, coverBitmap = coverBmp)
+                        withContext(Dispatchers.Main) {
+                            showReadingNotesShareDialog(
+                                app = app,
+                                book = b,
+                                highlights = hl,
+                                totalChapters = 0,
+                                rawCoverBytes = null,
+                                isLcd = isLcd
+                            )
+                        }
                     }
                 }
                 optMulti -> enterSelectMode(b.path)
@@ -1987,13 +1994,13 @@ class LibraryActivity : Activity() {
         scroll.addView(box)
 
         val verBadge = TextView(this).apply {
-            text = "Aether SAGA  Ver. 2.0"
+            text = "Aether SAGA  Ver. 2.1"
             setPtSize(10.5f)
             setTextColor(inkCol)
             typeface = Typeface.create("serif", Typeface.BOLD)
         }
         val releaseDate = TextView(this).apply {
-            text = L10n.t("정식 릴리즈 • 2026. 10. 28", "Official Release • Oct 28, 2026")
+            text = L10n.t("정식 릴리즈 • 2026. 11. 01", "Official Release • Nov 01, 2026")
             setPtSize(7.5f)
             setTextColor(mutedCol)
             setPadding(0, dp(1), 0, dp(8))
@@ -2030,6 +2037,11 @@ class LibraryActivity : Activity() {
         }
 
         if (L10n.isKorean) {
+            addSection("🌟 Ver. 2.1 독서 노트 공유 통합 & 인스타 스토리 오토핏", listOf(
+                "도서 정보 및 독서 노트 공유 단일 통합 창: 상단에 '[✓] 도서 기본 정보 및 진행률 (진행률 XX% 달성)' 기본 제공으로 하이라이트 유무에 관계없이 모든 공유 시나리오 100% 지원",
+                "인스타그램 스토리 600자 유동 조합: 기존 4개 고정 제한을 해제하고 최대 600자 이내에서 단문 여러 개 또는 장문 1개를 자유롭게 묶어 9:16 카드로 발행",
+                "동적 폰트 오토핏(Auto-Fit) 엔진: 긴 인용구도 말줄임표(...) 잘림 없이 폰트 크기 및 행간을 자동 최적화하여 원문 내용 100% 전체 수용"
+            ))
             addSection("1. 극도의 초경량화 & Zero-Library 리더 엔진", listOf(
                 "Jetpack Compose, Hilt, Glide, Retrofit 일체 배제한 순수 Framework View 구현",
                 "약 640KB 초경량 설치 패키지(APK) 및 즉각적인 콜드 스타트 기동"
@@ -2083,6 +2095,11 @@ class LibraryActivity : Activity() {
                 "WebDAV 원격 독서 위치 동기화 및 설정 JSON 백업/복원"
             ))
         } else {
+            addSection("🌟 Ver. 2.1 Unified Notes Share & Story Auto-Fit Engine", listOf(
+                "Unified Reading Notes & Progress Dialog: Default '[✓] Basic Info & Reading Progress' item covers all sharing flows seamlessly even with 0 highlights",
+                "Instagram Stories 600-Char Dynamic Budget: Flexibly bundle multiple short quotes or 1 long excerpt up to 600 characters into a single 9:16 card",
+                "Dynamic Auto-Fit Font Scaling: Long quotes fit seamlessly without any '...' truncation by automatically scaling typography and line spacing"
+            ))
             addSection("1. Ultra-Lightweight & Zero-Library Engine", listOf(
                 "Pure Android Framework Views without Compose, Hilt, Glide, or Retrofit",
                 "Ultra-compact ~640KB installation package with instantaneous cold start"
@@ -2439,10 +2456,6 @@ class LibraryActivity : Activity() {
                 listDialog(L10n.t("📢 독서 노트 공유할 도서 선택", "Select Book to Share Reading Notes"), bookOptions) { idx ->
                     val b = allBooks[idx]
                     val bHl = allHl.filter { it.bookPath == b.path || it.bookPath == "file://${b.path}" }
-                    if (bHl.isEmpty()) {
-                        toast(L10n.t("'${b.title}'에 저장된 하이라이트/메모가 없습니다.", "No saved highlights or notes for '${b.title}'."))
-                        return@listDialog
-                    }
                     showReadingNotesShareDialog(
                         app = app,
                         book = b,

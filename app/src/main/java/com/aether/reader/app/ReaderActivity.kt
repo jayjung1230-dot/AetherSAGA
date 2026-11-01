@@ -1728,9 +1728,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 opt.startsWith("📦") -> showEmailHighlightsZipDialog(app, bTitle, bAuthor, highlights, onBack = { showTocAndNotesDialog() })
                 opt.startsWith("📢") -> showEmailShareDialog(null, onBack = { showTocAndNotesDialog() })
                 opt.startsWith("📷") || opt.startsWith("📱") -> {
-                    val sampleQuote = highlights.firstOrNull { it.kind == 0 }?.quote ?: L10n.t("즐거운 독서의 여정", "A pleasant journey of reading")
-                    val sampleMemo = highlights.firstOrNull { it.kind == 0 && it.note.isNotBlank() }?.note
-                    val coverBmp = book?.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }; AndroidShareHelper.showSnsShareDialog(this, bTitle, bAuthor, sampleQuote, sampleMemo, isEink = !isLcd, onBack = { showTocAndNotesDialog() }, coverBitmap = coverBmp)
+                    showEmailShareDialog(null, onBack = { showTocAndNotesDialog() })
                 }
                 opt.startsWith("🎴") -> showFlashcardsDialog(onBack = { showTocAndNotesDialog() })
             }
@@ -2800,9 +2798,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 optZip -> showEmailHighlightsZipDialog(app, bTitle, bAuthor, highlights, onBack = { exportMenu(onBack) })
                 optShare -> showEmailShareDialog(null, onBack = { exportMenu(onBack) })
                 optSns -> {
-                    val sampleQuote = highlights.firstOrNull { it.kind == 0 }?.quote ?: L10n.t("즐거운 독서의 여정", "A pleasant journey of reading")
-                    val sampleMemo = highlights.firstOrNull { it.kind == 0 && it.note.isNotBlank() }?.note
-                    val coverBmp = book?.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }; AndroidShareHelper.showSnsShareDialog(this, bTitle, bAuthor, sampleQuote, sampleMemo, isEink = !isLcd, onBack = { exportMenu(onBack) }, coverBitmap = coverBmp)
+                    showEmailShareDialog(null, onBack = { exportMenu(onBack) })
                 }
             }
         }

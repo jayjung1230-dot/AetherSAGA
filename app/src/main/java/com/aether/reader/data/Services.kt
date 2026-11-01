@@ -1025,16 +1025,23 @@ object AndroidShareHelper {
 
         val quotePaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF1A1A1A.toInt()
-            textSize = if (quote.length > 150) 36f else 42f
             typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
         }
         val contentW = w - 200
-        val quoteText = quote.trim().take(300)
-        val quoteLayout = StaticLayout.Builder.obtain(quoteText, 0, quoteText.length, quotePaint, contentW)
+        val quoteText = quote.trim()
+        val maxSquareQuoteH = if (!memo.isNullOrBlank()) 480f else 600f
+        var qSize = if (quoteText.length > 300) 28f else if (quoteText.length > 150) 34f else 42f
+        var quoteLayout: StaticLayout = StaticLayout.Builder.obtain(quoteText, 0, quoteText.length, TextPaint(quotePaint).apply { textSize = qSize }, contentW)
             .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-            .setLineSpacing(12f, 1.25f)
-            .setMaxLines(9)
+            .setLineSpacing(10f, 1.22f)
             .build()
+        while (qSize > 18f && quoteLayout.height > maxSquareQuoteH) {
+            qSize -= 1.5f
+            quoteLayout = StaticLayout.Builder.obtain(quoteText, 0, quoteText.length, TextPaint(quotePaint).apply { textSize = qSize }, contentW)
+                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                .setLineSpacing(8f, 1.18f)
+                .build()
+        }
 
         c.save()
         c.translate(100f, 370f)
@@ -1186,7 +1193,18 @@ object AndroidShareHelper {
 
         // Content Area: from y = 350f to y = 1810f (~1460px)
         val contentW = (w - 200).toInt()
-        val bundleItems = items.take(4)
+        val bundleItems = ArrayList<SnsQuoteItem>()
+        var accChars = 0
+        val maxStoryChars = 600
+        for (it in items) {
+            val len = it.quote.trim().length
+            if (bundleItems.isEmpty() || accChars + len <= maxStoryChars) {
+                bundleItems.add(it)
+                accChars += len
+            } else {
+                break
+            }
+        }
         val n = bundleItems.size.coerceAtLeast(1)
         val slotH = 1460f / n
 
@@ -1198,7 +1216,6 @@ object AndroidShareHelper {
 
         val quoteTextPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFF2C2825.toInt()
-            textSize = if (n <= 2) 32f else (if (n == 3) 28f else 25f)
             typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
         }
 
@@ -1241,14 +1258,28 @@ object AndroidShareHelper {
             c.drawText("“", 100f, curY + 6f, quoteMarkPaint)
             curY += 38f
 
-            // Quote Text Layout
-            val maxLinesForQuote = if (n <= 2) 8 else (if (n == 3) 5 else 4)
-            val quoteLayout = StaticLayout.Builder.obtain(item.quote.trim(), 0, item.quote.trim().length, quoteTextPaint, contentW)
+            // Quote Text Layout (Dynamic Auto-Fit Engine: No truncation, full content preserved)
+            val quoteText = item.quote.trim()
+            val maxQuoteForSlot = slotH - (if (!item.memo.isNullOrBlank()) 145f else 85f)
+            val baseSize = when {
+                n == 1 -> if (quoteText.length > 300) 28f else if (quoteText.length > 150) 34f else 40f
+                n == 2 -> if (quoteText.length > 150) 26f else 32f
+                n == 3 -> 26f
+                else -> 23f
+            }
+            var curSize = baseSize
+            var quoteLayout = StaticLayout.Builder.obtain(quoteText, 0, quoteText.length, TextPaint(quoteTextPaint).apply { textSize = curSize }, contentW)
                 .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                 .setLineSpacing(if (n <= 2) 6f else 4f, 1.18f)
-                .setMaxLines(maxLinesForQuote)
-                .setEllipsize(android.text.TextUtils.TruncateAt.END)
                 .build()
+
+            while (curSize > 17f && quoteLayout.height > maxQuoteForSlot) {
+                curSize -= 1.5f
+                quoteLayout = StaticLayout.Builder.obtain(quoteText, 0, quoteText.length, TextPaint(quoteTextPaint).apply { textSize = curSize }, contentW)
+                    .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+                    .setLineSpacing(if (n <= 2) 5f else 3f, 1.16f)
+                    .build()
+            }
 
             c.save()
             c.translate(100f, curY)
@@ -2289,7 +2320,18 @@ object AndroidShareHelper {
                 itemsCount = items.size,
                 isEink = isEink,
                 onStoryChosen = {
-                    val storyItems = items.take(4)
+                    val storyItems = ArrayList<SnsQuoteItem>()
+                    var accumulatedChars = 0
+                    val maxStoryChars = 600
+                    for (item in items) {
+                        val len = item.quote.trim().length
+                        if (storyItems.isEmpty() || accumulatedChars + len <= maxStoryChars) {
+                            storyItems.add(item)
+                            accumulatedChars += len
+                        } else {
+                            break
+                        }
+                    }
                     val storyBmp = renderStoryBundleCard(bookTitle, bookAuthor, storyItems, coverBitmap)
                     val storyUri = prepareSnsCardUri(activity, storyBmp, "AetherSAGA_Story.png")
                     if (storyUri != null) {
@@ -2671,9 +2713,9 @@ object AndroidShareHelper {
         }
         val storySubTv = TextView(activity).apply {
             val countNotice = if (itemsCount > 1) {
-                L10n.t("선택한 문장 최대 4건을 9:16 세로형 1장 카드로 묶어 업로드", "Bundle up to 4 quotes into 1 vertical story card")
+                L10n.t("선택 문장 유동 조합(최대 600자)을 9:16 세로형 1장 카드로 제작 (전체 내용 수용)", "Bundle selected quotes (up to 600 chars) into 1 vertical story card (Full content)")
             } else {
-                L10n.t("9:16 세로형 감성 독서 카드로 스토리에 업로드", "Upload as 9:16 vertical card to Stories")
+                L10n.t("9:16 세로형 감성 독서 카드로 스토리에 업로드 (전체 내용 수용)", "Upload as 9:16 vertical card to Stories (Full content)")
             }
             text = countNotice
             setPtSize(7.6f)

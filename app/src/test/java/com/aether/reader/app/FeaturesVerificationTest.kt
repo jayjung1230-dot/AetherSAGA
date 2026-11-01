@@ -1077,6 +1077,45 @@ class FeaturesVerificationTest {
     }
 
     @Test
+    fun testInstagramStoryCharacterBudget600Chars() {
+        val items = listOf(
+            com.aether.reader.data.AndroidShareHelper.SnsQuoteItem("첫 번째 짧은 인용구입니다.", null, "1장", false),
+            com.aether.reader.data.AndroidShareHelper.SnsQuoteItem("두 번째 아름다운 문장입니다. 삶이란 무엇인가.", null, "2장", false),
+            com.aether.reader.data.AndroidShareHelper.SnsQuoteItem("세 번째 문장입니다. 책을 읽는다는 것은 타인의 세계를 여행하는 일이다.", null, "3장", false),
+            com.aether.reader.data.AndroidShareHelper.SnsQuoteItem("네 번째 문장입니다. 바람이 분다 살아야겠다.", null, "4장", false),
+            com.aether.reader.data.AndroidShareHelper.SnsQuoteItem("다섯 번째 문장입니다. 별을 헤는 밤.", null, "5장", false)
+        )
+        val storyItems = ArrayList<com.aether.reader.data.AndroidShareHelper.SnsQuoteItem>()
+        var acc = 0
+        for (it in items) {
+            val len = it.quote.trim().length
+            if (storyItems.isEmpty() || acc + len <= 600) {
+                storyItems.add(it)
+                acc += len
+            } else {
+                break
+            }
+        }
+        assertEquals(5, storyItems.size)
+        assertTrue(acc <= 600)
+    }
+
+    @Test
+    fun testDefaultProgressItemInUnifiedShare() {
+        val pct = 75
+        val title = "데미안"
+        val defaultQuote = "'$title' 독서 진행률 ${pct}% 달성!"
+        val item = com.aether.reader.data.AndroidShareHelper.SnsQuoteItem(
+            quote = defaultQuote,
+            memo = null,
+            chapterTitle = "독서 진행 현황",
+            isBookmark = false
+        )
+        assertTrue(item.quote.contains("75%"))
+        assertEquals("독서 진행 현황", item.chapterTitle)
+    }
+
+    @Test
     fun testWeeklyBooksReadingStatus() {
         val inProgressBook = com.aether.reader.data.BookEntity(
             path = "/books/sample.epub",

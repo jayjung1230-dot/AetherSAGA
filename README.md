@@ -57,7 +57,7 @@ Transform your favorite reading moments into beautifully styled, high-resolution
   * **Feed / Social Carousel**: Automatically generates individual 1:1 quote cards and dispatches multi-image carousels tailored to each platform's limit (up to 10 for Instagram/Facebook/Threads, up to 4 for X/Twitter) or saves all cards to your local gallery.
 * **Rich Reading Milestone & Stats Sharing**: Share comprehensive infographics reflecting your real-time reading stats and live interactive trend charts/graphs. Choose between **Instagram Story (9:16 vertical infographic report)** or **Instagram Feed (1:1 square card)**, or export to Twitter/X, social messengers, or local gallery with direct feed-launch and clean single-asset story support.
 
-### 🔊 3. Smart TTS Read Aloud System with Live Sentence Highlighting (Ver. 2.0)
+### 🔊 3. Smart TTS Read Aloud System with Live Sentence Highlighting (Ver. 2.1)
 Transform books into seamless audiobooks with real-time visual tracking:
 * **Floating TTS Bar Row 2 Quick Controls**: One-click `[ 📑 Current Chapter Only: ON/OFF ]` bedtime toggle and direct `[ 🎙️ Voice/Pitch Settings ]` button right on the floating bar.
 * **Voice Studio Speaker Sample Previews (`🔊`)**: Offline audio previews for all voices, pitches (0.8x/1.0x/1.2x), and reading personas (Novel, News, Bedtime) without leaving the studio.
