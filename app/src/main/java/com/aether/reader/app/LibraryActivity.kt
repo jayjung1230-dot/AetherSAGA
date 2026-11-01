@@ -2461,20 +2461,24 @@ class LibraryActivity : Activity() {
             val otherBooks = allBooks.filterNot(isActive).sortedBy { it.title }
 
             withContext(Dispatchers.Main) {
+                val dm = resources.displayMetrics
+                val isLandscape = dm.widthPixels > dm.heightPixels
+                // Constrain dialog height to ~380-440dp so the list scrolls with a persistent, high-contrast scrollbar
+                val targetDialogH = if (isLandscape) {
+                    (dm.heightPixels * 0.80f).toInt().coerceAtMost(dp(420))
+                } else {
+                    (dm.heightPixels * 0.65f).toInt().coerceAtMost(dp(440))
+                }
+
                 val scroll = ScrollView(this@LibraryActivity).apply {
                     isFillViewport = true
-                    enableVisibleScrollbar(isDark = isDark, widthDp = 6)
+                    enableVisibleScrollbar(isDark = isDark, widthDp = 7)
                 }
                 val contentCol = LinearLayout(this@LibraryActivity).apply {
                     orientation = LinearLayout.VERTICAL
                     setPadding(dp(14), dp(8), dp(14), dp(8))
                 }
                 scroll.addView(contentCol)
-
-                val dm = resources.displayMetrics
-                val isLandscape = dm.widthPixels > dm.heightPixels
-                val maxScrollH = if (isLandscape) (dm.heightPixels * 0.85f).toInt().coerceAtMost(dp(540))
-                                 else (dm.heightPixels * 0.76f).toInt().coerceAtMost(dp(640))
 
                 lateinit var dlg: AlertDialog
 
@@ -2597,16 +2601,12 @@ class LibraryActivity : Activity() {
                     addBookRow(b, isUnreadGroup = true)
                 }
 
-                val dialogView = FrameLayout(this@LibraryActivity).apply {
-                    addView(scroll, FrameLayout.LayoutParams(-1, maxScrollH))
-                }
-
                 dlg = AlertDialog.Builder(this@LibraryActivity)
                     .setTitle(L10n.t("📢 독서 노트 공유할 도서 선택", "Select Book to Share Reading Notes"))
-                    .setView(dialogView)
+                    .setView(scroll)
                     .setNegativeButton(L10n.t("닫기", "Close"), null)
                     .create()
-                dlg.showWithOptimalWidth(this@LibraryActivity)
+                dlg.showWithOptimalWidth(this@LibraryActivity, customHeight = targetDialogH)
             }
         }
     }

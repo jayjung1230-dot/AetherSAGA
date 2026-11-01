@@ -1206,7 +1206,32 @@ object AndroidShareHelper {
             }
         }
         val n = bundleItems.size.coerceAtLeast(1)
-        val slotH = 1460f / n
+        val totalAvailableH = 1460f
+
+        // Dynamic Proportional Slot Height Allocation based on individual note/quote length
+        val slotHeights = FloatArray(n)
+        if (n == 1) {
+            slotHeights[0] = totalAvailableH
+        } else {
+            // 1. Minimum baseline height required per slot (tag + quote mark + margins + memo if present)
+            val baseHeights = FloatArray(n) { i ->
+                val hasMemo = !bundleItems[i].memo.isNullOrBlank()
+                if (hasMemo) 150f else 105f
+            }
+            // 2. Weight proportional to the actual text length (quote + memo)
+            val weights = FloatArray(n) { i ->
+                val qLen = bundleItems[i].quote.trim().length
+                val mLen = if (!bundleItems[i].memo.isNullOrBlank()) bundleItems[i].memo!!.trim().length else 0
+                (qLen + mLen).coerceAtLeast(15).toFloat()
+            }
+            val totalBase = baseHeights.sum()
+            val totalWeight = weights.sum().coerceAtLeast(1f)
+            val remainingH = (totalAvailableH - totalBase).coerceAtLeast(0f)
+
+            for (i in 0 until n) {
+                slotHeights[i] = baseHeights[i] + (remainingH * (weights[i] / totalWeight))
+            }
+        }
 
         val quoteMarkPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFD4CCBC.toInt()
@@ -1237,8 +1262,11 @@ object AndroidShareHelper {
             pathEffect = DashPathEffect(floatArrayOf(10f, 8f), 0f)
         }
 
+        var currentSlotTop = 350f
         for ((idx, item) in bundleItems.withIndex()) {
-            val slotTop = 350f + (idx * slotH)
+            val slotTop = currentSlotTop
+            val slotH = slotHeights[idx]
+            currentSlotTop += slotH
             var curY = slotTop + 20f
 
             // Tag or Chapter info
@@ -1258,14 +1286,16 @@ object AndroidShareHelper {
             c.drawText("“", 100f, curY + 6f, quoteMarkPaint)
             curY += 38f
 
-            // Quote Text Layout (Dynamic Auto-Fit Engine: No truncation, full content preserved)
+            // Quote Text Layout (Dynamic Proportional Auto-Fit Engine: No truncation, full content preserved)
             val quoteText = item.quote.trim()
-            val maxQuoteForSlot = slotH - (if (!item.memo.isNullOrBlank()) 145f else 85f)
+            val maxQuoteForSlot = slotH - (if (!item.memo.isNullOrBlank()) 140f else 80f)
             val baseSize = when {
                 n == 1 -> if (quoteText.length > 300) 28f else if (quoteText.length > 150) 34f else 40f
-                n == 2 -> if (quoteText.length > 150) 26f else 32f
-                n == 3 -> 26f
-                else -> 23f
+                slotH > 600f -> 32f
+                slotH > 420f -> 29f
+                slotH > 280f -> 26f
+                slotH > 180f -> 24f
+                else -> 21f
             }
             var curSize = baseSize
             var quoteLayout = StaticLayout.Builder.obtain(quoteText, 0, quoteText.length, TextPaint(quoteTextPaint).apply { textSize = curSize }, contentW)
@@ -1273,7 +1303,7 @@ object AndroidShareHelper {
                 .setLineSpacing(if (n <= 2) 6f else 4f, 1.18f)
                 .build()
 
-            while (curSize > 17f && quoteLayout.height > maxQuoteForSlot) {
+            while (curSize > 16f && quoteLayout.height > maxQuoteForSlot) {
                 curSize -= 1.5f
                 quoteLayout = StaticLayout.Builder.obtain(quoteText, 0, quoteText.length, TextPaint(quoteTextPaint).apply { textSize = curSize }, contentW)
                     .setAlignment(Layout.Alignment.ALIGN_NORMAL)

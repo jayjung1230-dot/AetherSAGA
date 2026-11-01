@@ -430,6 +430,27 @@ fun View.enableVisibleScrollbar(isDark: Boolean = false, widthDp: Int = 6) {
             setColor(if (isDark) 0x33FFFFFF.toInt() else 0x22000000.toInt())
             cornerRadius = radius
         }
+    } else {
+        try {
+            val mScrollCacheField = View::class.java.getDeclaredField("mScrollCache")
+            mScrollCacheField.isAccessible = true
+            val scrollCache = mScrollCacheField.get(this)
+            if (scrollCache != null) {
+                val scrollBarField = scrollCache.javaClass.getDeclaredField("scrollBar")
+                scrollBarField.isAccessible = true
+                val scrollBar = scrollBarField.get(scrollCache)
+                if (scrollBar != null) {
+                    val radius = widthDp * resources.displayMetrics.density / 2f
+                    val thumb = GradientDrawable().apply {
+                        shape = GradientDrawable.RECTANGLE
+                        setColor(if (isDark) 0xFFB0B0B0.toInt() else 0xFF333333.toInt())
+                        cornerRadius = radius
+                    }
+                    val setThumbMethod = scrollBar.javaClass.getMethod("setVerticalThumbDrawable", android.graphics.drawable.Drawable::class.java)
+                    setThumbMethod.invoke(scrollBar, thumb)
+                }
+            }
+        } catch (_: Throwable) {}
     }
 }
 

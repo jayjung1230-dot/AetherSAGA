@@ -53,7 +53,7 @@ Transform your favorite reading moments into beautifully styled, high-resolution
 * **Custom Visual Themes**: Export quotes in Paper Minimalist, Warm Amber, Dark Obsidian, or AMOLED Pitch Black styling.
 * **Typographic Elegance & Cover Art**: Formatted with book title, author metadata, an impactful 175×248px rounded book cover artwork in the header, quotation marks, and optional user notes without text interference.
 * **Smart Multi-Quote Social Dispatch (Story vs. Feed)**:
-  * **Story Mode**: Automatically bundles up to 4 selected highlights into a single cohesive 9:16 vertical reading story card (1080×1920) for Instagram Stories.
+  * **Story Mode (Dynamic Proportional Layout)**: Automatically bundles selected highlights within a 600-character budget into a 9:16 vertical story card (1080×1920) for Instagram Stories, dynamically distributing vertical space in exact proportion to each note's length so short quotes stay compact while long passages get generous breathing room.
   * **Feed / Social Carousel**: Automatically generates individual 1:1 quote cards and dispatches multi-image carousels tailored to each platform's limit (up to 10 for Instagram/Facebook/Threads, up to 4 for X/Twitter) or saves all cards to your local gallery.
 * **Rich Reading Milestone & Stats Sharing**: Share comprehensive infographics reflecting your real-time reading stats and live interactive trend charts/graphs. Choose between **Instagram Story (9:16 vertical infographic report)** or **Instagram Feed (1:1 square card)**, or export to Twitter/X, social messengers, or local gallery with direct feed-launch and clean single-asset story support.
 
