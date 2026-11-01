@@ -1529,4 +1529,42 @@ class FeaturesVerificationTest {
         assertEquals("ko-kr-x-ism", spokenVoice)
         assertEquals(1.2f, spokenPitch)
     }
+
+    @Test
+    fun testBookCoverAspectRatioPreservationInStoryAndFeedQuoteCards() {
+        val maxCoverW = 175f
+        val maxCoverH = 248f
+
+        fun computeCoverDimensions(bw: Float, bh: Float): Pair<Float, Float> {
+            val scale = minOf(maxCoverW / bw, maxCoverH / bh)
+            val coverW = (bw * scale).coerceAtLeast(1f)
+            val coverH = (bh * scale).coerceAtLeast(1f)
+            return Pair(coverW, coverH)
+        }
+
+        // Case 1: Square cover (e.g. 500x500)
+        val (w1, h1) = computeCoverDimensions(500f, 500f)
+        assertEquals(175f, w1, 0.01f)
+        assertEquals(175f, h1, 0.01f)
+        assertEquals(1.0f, h1 / w1, 0.001f) // Aspect ratio is preserved!
+
+        // Case 2: Standard 3:4 ratio book cover (e.g. 300x400)
+        val (w2, h2) = computeCoverDimensions(300f, 400f)
+        assertEquals(400f / 300f, h2 / w2, 0.001f)
+        assertTrue(w2 <= maxCoverW && h2 <= maxCoverH)
+
+        // Case 3: Tall ratio (e.g. 100x200 -> 1:2)
+        val (w3, h3) = computeCoverDimensions(100f, 200f)
+        assertEquals(2.0f, h3 / w3, 0.001f)
+        assertEquals(maxCoverH, h3, 0.01f)
+        assertEquals(124f, w3, 0.01f)
+        assertTrue(w3 <= maxCoverW && h3 <= maxCoverH)
+
+        // Case 4: Wide/Landscape image (e.g. 400x200 -> 2:1)
+        val (w4, h4) = computeCoverDimensions(400f, 200f)
+        assertEquals(0.5f, h4 / w4, 0.001f)
+        assertEquals(maxCoverW, w4, 0.01f)
+        assertEquals(87.5f, h4, 0.01f)
+        assertTrue(w4 <= maxCoverW && h4 <= maxCoverH)
+    }
 }

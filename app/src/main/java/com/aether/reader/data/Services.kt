@@ -954,15 +954,19 @@ object AndroidShareHelper {
         borderPaint.color = 0xFFB8B09E.toInt()
         c.drawRect(60f, 60f, w - 60f, h - 60f, borderPaint)
 
-        // Book Cover placement in Top Right ([시안 A-2]: 대형 강조형 175x248 px)
+        // Book Cover placement in Top Right ([시안 A-2]: 최대 175x248 px, 원본 가로세로 비율 완벽 보존)
         val isLocalCover = (coverBitmap == null)
         val coverToDraw: Bitmap = coverBitmap ?: renderTypographicCover(bookTitle, bookAuthor, "")
+        val maxCoverW = 175f
+        val maxCoverH = 248f
+        val bw = coverToDraw.width.toFloat().coerceAtLeast(1f)
+        val bh = coverToDraw.height.toFloat().coerceAtLeast(1f)
+        val scale = minOf(maxCoverW / bw, maxCoverH / bh)
+        val coverW = (bw * scale).coerceAtLeast(1f)
+        val coverH = (bh * scale).coerceAtLeast(1f)
+        val coverX = w - 100f - coverW
+        val coverY = 75f
         try {
-            val coverW = 175f
-            val coverH = 248f
-            val coverX = w - 100f - coverW
-            val coverY = 75f
-
             // 1. Soft drop shadow behind cover
             val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 color = 0x33000000.toInt()
@@ -1013,8 +1017,7 @@ object AndroidShareHelper {
             color = 0xFFE0DDD5.toInt()
             strokeWidth = 2f
         }
-        val coverStartX = w - 100f - 175f
-        c.drawLine(100f, 210f, coverStartX - 35f, 210f, rulePaint)
+        c.drawLine(100f, 210f, coverX - 35f, 210f, rulePaint)
 
         val quoteMarkPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFD4CCBC.toInt()
@@ -1115,11 +1118,16 @@ object AndroidShareHelper {
         borderPaint.color = 0xFFB8B09E.toInt()
         c.drawRect(60f, 60f, w - 60f, h - 60f, borderPaint)
 
-        // Book Cover placement in Top Right ([시안 A-2]: 175x248 px)
+        // Book Cover placement in Top Right ([시안 A-2]: 최대 175x248 px, 원본 가로세로 비율 완벽 보존)
         val isLocalCover = (coverBitmap == null)
         val coverToDraw: Bitmap = coverBitmap ?: renderTypographicCover(bookTitle, bookAuthor, "")
-        val coverW = 175f
-        val coverH = 248f
+        val maxCoverW = 175f
+        val maxCoverH = 248f
+        val bw = coverToDraw.width.toFloat().coerceAtLeast(1f)
+        val bh = coverToDraw.height.toFloat().coerceAtLeast(1f)
+        val scale = minOf(maxCoverW / bw, maxCoverH / bh)
+        val coverW = (bw * scale).coerceAtLeast(1f)
+        val coverH = (bh * scale).coerceAtLeast(1f)
         val coverX = w - 100f - coverW
         val coverY = 80f
         try {
