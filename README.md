@@ -11,13 +11,13 @@
 
 <p align="center">
   <a href="./README_ko.md">🇰🇷 한국어 설명서 (Korean)</a> •
-  <a href="./RELEASE_NOTES.md">Release Notes (v2.0)</a> •
+  <a href="./RELEASE_NOTES.md">Release Notes (v2.1)</a> •
   <a href="./ARCHITECTURE.md">Architecture Spec</a> •
   <a href="./FUNCTION.md">Functional Spec</a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.0-blue.svg" alt="Version 2.0.0" />
+  <img src="https://img.shields.io/badge/version-2.1.0-blue.svg" alt="Version 2.1.0" />
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B%20(API%2026%2B)-green.svg" alt="Platform" />
   <img src="https://img.shields.io/badge/APK%20Size-~640%20KB-success.svg" alt="APK Size" />
   <img src="https://img.shields.io/badge/Dependencies-Zero%20Heavy%20Libs-orange.svg" alt="Dependencies" />
@@ -41,11 +41,11 @@ Adhering to a strict **Zero Heavy Library Policy** (no Jetpack Compose, no Glide
 
 ## 🌟 Highlighted Special Features
 
-### 📚 1. Direct Main-Screen Bookshelf Workflows (New in v1.1)
+### 📚 1. Direct Main-Screen Bookshelf Workflows & Unified Share (Ver. 2.1)
 Access core reading assets directly from your library shelf without having to open the reader:
-* **One-Click Reading Card & SNS Sharing**: Produce stylized 1080×1080 quote cards and reading streak graphics directly from the main screen `[📷 독서카드/SNS]` chip.
-* **Targeted Reading Notes Export**: Select any book in your library via `[📢 독서노트 공유]` to compile, package, and share its highlights as TXT, Markdown, or zipped archives via email or messenger.
-* **Smart Expandable Highlight Viewer**: Browse all notes and bookmarks across all books via `[🖍 독서 기록]`. Features **[더보기 ▾] / [접기 ▴]** toggles for long quotes, a high-contrast permanent scrollbar, and instant deep-linking back to the exact chapter and character offset in the book.
+* **Unified Reading Notes & Progress Share (`[📢 독서 기록 공유]`)**: Consolidated single sharing entrypoint in the library toolbar. Features a persistent `[✓] 📊 Book Info & Progress` option, bi-directional `[✓] Select All` checkbox synchronization, and Instagram Story 600-character dynamic budget with zero text truncation (`...`).
+* **Intelligent Book Sorting & Dotted Divider**: In the share dialog, books with notes, active progress, or completed status are sorted to the top, separated from unread books by a clean dotted divider (`DottedDividerView`) and high-contrast scrollbar.
+* **Smart Expandable Highlight Viewer (`[🖍 독서 기록]`)**: Browse all notes and bookmarks across all books with **[더보기 ▾] / [접기 ▴]** toggles, permanent high-contrast scrollbar with optimized card right margin (`rightMargin = dp(10)`) preventing scrollbar overlap, and instant deep-linking back to the exact chapter and offset.
 * **Universal E-Ink Popup Outlines**: Guaranteed 2px high-contrast charcoal outlines and tactile button borders across all sharing and app-selection dialogs on e-paper.
 
 ### 🎨 2. Aesthetic SNS Quote Card & Stats Sharing

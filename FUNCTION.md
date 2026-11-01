@@ -1,7 +1,7 @@
 # Aether SAGA (에테르 사가) - 기능 명세 및 법적·마켓 컴플라이언스 분석서 (FUNCTION.md)
 
-> **앱 버전:** `Ver. 1.1` (공식 릴리즈) | **문서 버전:** v1.4.0  
-> **기준 일자:** 2026년 10월 28일  
+> **앱 버전:** `Ver. 2.1` (공식 릴리즈) | **문서 버전:** v2.1.0  
+> **기준 일자:** 2026년 11월 1일  
 > **대상 애플리케이션:** Aether SAGA (*journeys through endless stories*)  
 > **관련 문서:** [RELEASE_NOTES.md](./RELEASE_NOTES.md), [README.md](./README.md), [ARCHITECTURE.md](./ARCHITECTURE.md)  
 > **작성 목적:** 구글 플레이스토어(Google Play Store) 및 애플 앱스토어(Apple App Store) 출시 전 법적 리스크 사전 점검, 타사 전자책 앱(Kindle, Moon+ Reader, Kobo, Crema 등)과의 복제/표절 논쟁(Copycat Dispute) 원천 차단, 특허권·상표권·저작권 및 오픈소스 라이선스 클리어런스(Clearance) 확보를 위한 종합 기술 분석 보고서.
