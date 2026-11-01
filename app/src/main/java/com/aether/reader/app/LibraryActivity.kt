@@ -2441,26 +2441,172 @@ class LibraryActivity : Activity() {
             val allHl = withContext(Dispatchers.IO) { app.db.highlights().all() }
             val hlCountByBook = allHl.groupingBy { it.bookPath }.eachCount()
             val isLcd = strategy.kind == DisplayKind.LCD_OLED
+            val cardBg = if (isDark) ReaderTheme.DARK_CARD else (if (isLcd) cardBgCol else ReaderTheme.EINK_CARD_BG)
+            val cardBorder = if (isDark) ReaderTheme.DARK_BORDER else (if (isLcd) borderCol else ReaderTheme.EINK_BORDER_CONTRAST)
+            val strokePx = ReaderTheme.einkStrokePx(this@LibraryActivity, isLcd)
 
-            val bookOptions = allBooks.map { b ->
-                val count = hlCountByBook[b.path] ?: hlCountByBook["file://${b.path}"] ?: 0
-                val countDesc = if (count > 0) L10n.t("메모/북마크 ${count}건", "$count notes") else L10n.t("기록 없음", "No notes")
-                "${b.title} (${b.author.ifBlank { L10n.t("저자 미상", "Unknown") }})  •  $countDesc"
+            fun getHlCount(b: BookEntity): Int =
+                hlCountByBook[b.path] ?: hlCountByBook["file://${b.path}"] ?: 0
+
+            // 1. Sort: Books with notes/bookmarks, in progress, or completed come first
+            val isActive = { b: BookEntity ->
+                getHlCount(b) > 0 || b.progress > 0f || b.lastRead > 0L
             }
+            val activeBooks = allBooks.filter(isActive).sortedWith(
+                compareByDescending<BookEntity> { getHlCount(it) > 0 }
+                    .thenByDescending { it.progress }
+                    .thenByDescending { it.lastRead }
+                    .thenBy { it.title }
+            )
+            val otherBooks = allBooks.filterNot(isActive).sortedBy { it.title }
+
             withContext(Dispatchers.Main) {
-                listDialog(L10n.t("📢 독서 노트 공유할 도서 선택", "Select Book to Share Reading Notes"), bookOptions) { idx ->
-                    val b = allBooks[idx]
-                    val bHl = allHl.filter { it.bookPath == b.path || it.bookPath == "file://${b.path}" }
-                    showReadingNotesShareDialog(
-                        app = app,
-                        book = b,
-                        highlights = bHl,
-                        totalChapters = 0,
-                        rawCoverBytes = null,
-                        isLcd = isLcd,
-                        onBack = { showMainNotesShareDialog() }
-                    )
+                val scroll = ScrollView(this@LibraryActivity).apply {
+                    isFillViewport = true
+                    enableVisibleScrollbar(isDark = isDark, widthDp = 6)
                 }
+                val contentCol = LinearLayout(this@LibraryActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(14), dp(8), dp(14), dp(8))
+                }
+                scroll.addView(contentCol)
+
+                val dm = resources.displayMetrics
+                val isLandscape = dm.widthPixels > dm.heightPixels
+                val maxScrollH = if (isLandscape) (dm.heightPixels * 0.85f).toInt().coerceAtMost(dp(540))
+                                 else (dm.heightPixels * 0.76f).toInt().coerceAtMost(dp(640))
+
+                lateinit var dlg: AlertDialog
+
+                fun addBookRow(b: BookEntity, isUnreadGroup: Boolean) {
+                    val count = getHlCount(b)
+                    val pct = (b.progress * 100).toInt()
+
+                    val row = LinearLayout(this@LibraryActivity).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        background = cardDrawable(cardBg, 6, cardBorder, strokePx)
+                        setPadding(dp(12), dp(9), dp(12), dp(9))
+                        isClickable = true
+                        isFocusable = true
+                        setOnClickListener {
+                            dlg.dismiss()
+                            val bHl = allHl.filter { it.bookPath == b.path || it.bookPath == "file://${b.path}" }
+                            showReadingNotesShareDialog(
+                                app = app,
+                                book = b,
+                                highlights = bHl,
+                                totalChapters = 0,
+                                rawCoverBytes = null,
+                                isLcd = isLcd,
+                                onBack = { showMainNotesShareDialog() }
+                            )
+                        }
+                    }
+
+                    val infoCol = LinearLayout(this@LibraryActivity).apply {
+                        orientation = LinearLayout.VERTICAL
+                    }
+                    val titleTv = TextView(this@LibraryActivity).apply {
+                        text = b.title
+                        setPtSize(8.5f)
+                        setTextColor(if (isUnreadGroup) mutedCol else inkCol)
+                        typeface = if (isUnreadGroup) Typeface.DEFAULT else Typeface.DEFAULT_BOLD
+                        maxLines = 1
+                        ellipsize = android.text.TextUtils.TruncateAt.END
+                    }
+                    val authorTv = TextView(this@LibraryActivity).apply {
+                        text = b.author.ifBlank { L10n.t("저자 미상", "Unknown") }
+                        setPtSize(7.5f)
+                        setTextColor(mutedCol)
+                        maxLines = 1
+                        ellipsize = android.text.TextUtils.TruncateAt.END
+                    }
+                    infoCol.addView(titleTv)
+                    infoCol.addView(authorTv)
+                    row.addView(infoCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        rightMargin = dp(8)
+                    })
+
+                    val badgeTv = TextView(this@LibraryActivity).apply {
+                        setPtSize(7.6f)
+                        gravity = Gravity.END or Gravity.CENTER_VERTICAL
+                        when {
+                            count > 0 -> {
+                                text = "🔖 " + L10n.t("메모 ${count}건", "$count notes")
+                                setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+                                typeface = Typeface.DEFAULT_BOLD
+                            }
+                            b.progress >= 0.99f -> {
+                                text = "🏆 " + L10n.t("독서 완료", "Completed")
+                                setTextColor(if (isLcd) 0xFF2E7D32.toInt() else inkCol)
+                                typeface = Typeface.DEFAULT_BOLD
+                            }
+                            b.progress > 0f -> {
+                                text = "📖 $pct%"
+                                setTextColor(if (isLcd) ReaderTheme.ACCENT_RIDI_BLUE else inkCol)
+                            }
+                            else -> {
+                                text = L10n.t("기록 없음 (0%)", "No notes (0%)")
+                                setTextColor(mutedCol)
+                            }
+                        }
+                    }
+                    row.addView(badgeTv)
+
+                    contentCol.addView(row, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                        bottomMargin = dp(6)
+                        rightMargin = dp(8)
+                    })
+                }
+
+                // Add active / in-progress / completed / noted books
+                for (b in activeBooks) {
+                    addBookRow(b, isUnreadGroup = false)
+                }
+
+                // Add dashed divider (점선) between active books and unread books
+                if (activeBooks.isNotEmpty() && otherBooks.isNotEmpty()) {
+                    val dividerBox = LinearLayout(this@LibraryActivity).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(0, dp(6), dp(8), dp(6))
+                    }
+                    val dottedLine = DottedDividerView(
+                        this@LibraryActivity,
+                        dotColor = if (isDark) ReaderTheme.DARK_BORDER else borderCol,
+                        strokePx = dp(1),
+                        dashDp = 4f,
+                        gapDp = 4f
+                    ).apply {
+                        layoutParams = LinearLayout.LayoutParams(-1, dp(4))
+                    }
+                    val unreadLabel = TextView(this@LibraryActivity).apply {
+                        text = L10n.t("── 아직 독서 기록이 없는 도서 ──", "── Books with No Reading Records ──")
+                        setPtSize(7.4f)
+                        setTextColor(mutedCol)
+                        gravity = Gravity.CENTER
+                        setPadding(0, dp(4), 0, dp(2))
+                    }
+                    dividerBox.addView(dottedLine)
+                    dividerBox.addView(unreadLabel)
+                    contentCol.addView(dividerBox)
+                }
+
+                // Add other unread books
+                for (b in otherBooks) {
+                    addBookRow(b, isUnreadGroup = true)
+                }
+
+                val dialogView = FrameLayout(this@LibraryActivity).apply {
+                    addView(scroll, FrameLayout.LayoutParams(-1, maxScrollH))
+                }
+
+                dlg = AlertDialog.Builder(this@LibraryActivity)
+                    .setTitle(L10n.t("📢 독서 노트 공유할 도서 선택", "Select Book to Share Reading Notes"))
+                    .setView(dialogView)
+                    .setNegativeButton(L10n.t("닫기", "Close"), null)
+                    .create()
+                dlg.showWithOptimalWidth(this@LibraryActivity)
             }
         }
     }
@@ -2758,6 +2904,7 @@ class LibraryActivity : Activity() {
 
                     itemsBox.addView(card, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                         bottomMargin = dp(8)
+                        rightMargin = dp(10)
                     })
                     if (idx < currentList.size - 1) {
                         if (!isLcd) {
@@ -2765,6 +2912,7 @@ class LibraryActivity : Activity() {
                                 layoutParams = LinearLayout.LayoutParams(-1, dp(3)).apply {
                                     topMargin = dp(2)
                                     bottomMargin = dp(6)
+                                    rightMargin = dp(10)
                                 }
                             })
                         }

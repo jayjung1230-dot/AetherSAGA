@@ -8,6 +8,7 @@ import android.graphics.drawable.GradientDrawable
 import android.text.InputType
 import android.view.Gravity
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -513,7 +514,7 @@ fun Activity.showReadingNotesShareDialog(
     }
     root.addView(emailGuideTv)
 
-    // 3. Checklist Header + Select All / Deselect All
+    // 3. Checklist Header + Select All CheckBox
     val listHeaderRow = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
@@ -535,25 +536,57 @@ fun Activity.showReadingNotesShareDialog(
         setPadding(dp(4), dp(6), dp(4), dp(6))
     }
 
-    val toggleAllBtn = pillButton(L10n.t("전체 선택/해제", "Select All / None"), ReaderTheme.EINK_INK, ReaderTheme.EINK_PAPER, ReaderTheme.EINK_BORDER) {
-        val allChecked = progressCb.isChecked && (checkBoxes.isEmpty() || checkBoxes.all { it.isChecked })
-        progressCb.isChecked = !allChecked
-        checkBoxes.forEach { it.isChecked = !allChecked }
-    }.apply {
-        setPtSize(7.5f)
-        setPadding(dp(10), dp(4), dp(10), dp(4))
-        minHeight = dp(28)
-        minimumHeight = dp(28)
+    // Direct Select-All CheckBox with bi-directional synchronization
+    var isBulkUpdating = false
+    val selectAllCb = CheckBox(this).apply {
+        text = L10n.t("전체 선택", "Select All")
+        isChecked = (initialQuote == null && candidateItems.isNotEmpty())
+        isEnabled = candidateItems.isNotEmpty()
+        setPtSize(7.8f)
+        setTextColor(ReaderTheme.EINK_INK)
+        typeface = ReaderTheme.uiFontBold
+        setPadding(dp(2), dp(2), dp(4), dp(2))
+        setOnCheckedChangeListener { _, checked ->
+            if (isBulkUpdating) return@setOnCheckedChangeListener
+            isBulkUpdating = true
+            checkBoxes.forEach { it.isChecked = checked }
+            isBulkUpdating = false
+        }
     }
     listHeaderRow.addView(listHeaderTv, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-    listHeaderRow.addView(toggleAllBtn)
+    listHeaderRow.addView(selectAllCb)
     root.addView(listHeaderRow)
 
-    // 4. Scrollable Checklist
-    val listScroll = ScrollView(this).apply {
+    // 4. Scrollable Checklist (with touch disallow intercept so outer ScrollView does not block scrolling)
+    val listScroll = object : ScrollView(this) {
+        override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    parent?.requestDisallowInterceptTouchEvent(false)
+                }
+            }
+            return super.onInterceptTouchEvent(ev)
+        }
+
+        override fun onTouchEvent(ev: MotionEvent): Boolean {
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                    parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    parent?.requestDisallowInterceptTouchEvent(false)
+                }
+            }
+            return super.onTouchEvent(ev)
+        }
+    }.apply {
         background = cardDrawable(ReaderTheme.EINK_CARD_BG, 6, noteBorderCol, noteStrokePx)
-        setPadding(dp(8), dp(6), dp(8), dp(6))
+        setPadding(dp(8), dp(6), dp(10), dp(6))
         enableVisibleScrollbar()
+        isNestedScrollingEnabled = true
     }
     val listCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     listCol.addView(progressCb)
@@ -574,6 +607,13 @@ fun Activity.showReadingNotesShareDialog(
             }
         }
         listCol.addView(div)
+        val syncSelectAllState = {
+            if (!isBulkUpdating) {
+                isBulkUpdating = true
+                selectAllCb.isChecked = checkBoxes.isNotEmpty() && checkBoxes.all { it.isChecked }
+                isBulkUpdating = false
+            }
+        }
         for ((idx, item) in candidateItems.withIndex()) {
             val isInitial = (initialQuote != null && idx == 0)
             val prefix = when {
@@ -587,13 +627,15 @@ fun Activity.showReadingNotesShareDialog(
                 setPtSize(8.2f)
                 setTextColor(ReaderTheme.EINK_INK)
                 setPadding(dp(4), dp(6), dp(4), dp(6))
+                setOnCheckedChangeListener { _, _ -> syncSelectAllState() }
             }
             checkBoxes.add(cb)
             listCol.addView(cb)
         }
+        syncSelectAllState()
     }
     listScroll.addView(listCol)
-    val maxScrollH = (resources.displayMetrics.heightPixels * 0.28f).toInt().coerceAtLeast(dp(120))
+    val maxScrollH = (resources.displayMetrics.heightPixels * 0.30f).toInt().coerceAtLeast(dp(140))
     root.addView(listScroll, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
         if (candidateItems.size > 2) height = maxScrollH
     })
