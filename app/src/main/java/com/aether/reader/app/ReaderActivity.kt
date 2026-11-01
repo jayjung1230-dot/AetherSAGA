@@ -1715,8 +1715,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             L10n.t("📑 목차 이동 (총 ${engine.chapters.size}개 섹션)", "📑 Table of Contents (${engine.chapters.size} sections)"),
             L10n.t("🖍 하이라이트 및 북마크 ($hlCount / $bmCount)", "🖍 Highlights & Bookmarks ($hlCount / $bmCount)"),
             L10n.t("📦 하이라이트 압축파일(ZIP) 이메일 전송", "📦 Export Highlights (ZIP) via Email"),
-            L10n.t("📢 독서 노트 공유 (이메일 · SNS)", "📢 Share Reading Notes (Email · SNS)"),
-            L10n.t("📷 독서 카드 저장 · SNS 공유", "📷 Save Card & Share to SNS"),
+            L10n.t("📢 독서 기록 공유 (카드 · 이메일)", "📢 Share Reading Notes (Card · Email)"),
             L10n.t("🎴 하이라이트 플래시카드 복습", "🎴 Flashcard Review")
         )
 
@@ -1727,9 +1726,6 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 opt.startsWith("🖍") -> browseHighlights(onBack = { showTocAndNotesDialog() })
                 opt.startsWith("📦") -> showEmailHighlightsZipDialog(app, bTitle, bAuthor, highlights, onBack = { showTocAndNotesDialog() })
                 opt.startsWith("📢") -> showEmailShareDialog(null, onBack = { showTocAndNotesDialog() })
-                opt.startsWith("📷") || opt.startsWith("📱") -> {
-                    showEmailShareDialog(null, onBack = { showTocAndNotesDialog() })
-                }
                 opt.startsWith("🎴") -> showFlashcardsDialog(onBack = { showTocAndNotesDialog() })
             }
         }
@@ -2787,9 +2783,8 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         val bAuthor = book?.author?.ifBlank { null } ?: engine.bookAuthor
         val optBrowse = L10n.t("목록 열람 및 위치 이동", "Browse List & Jump")
         val optZip = L10n.t("📦 하이라이트 압축파일(ZIP) 이메일 전송", "📦 Export Highlights (ZIP) via Email")
-        val optShare = L10n.t("📢 독서 노트 공유 (이메일 · SNS)", "📢 Share Reading Notes (Email · SNS)")
-        val optSns = L10n.t("📷 독서 카드 저장 · SNS 공유", "📷 Save Card & Share to SNS")
-        val options = mutableListOf(optBrowse, optZip, optShare, optSns)
+        val optShare = L10n.t("📢 독서 기록 공유 (카드 · 이메일)", "📢 Share Reading Notes (Card · Email)")
+        val options = mutableListOf(optBrowse, optZip, optShare)
 
         listDialog(L10n.t("하이라이트 ($hlCount) / 북마크 ($bmCount)", "Highlights ($hlCount) / Bookmarks ($bmCount)"), options, onBack = onBack) { i ->
             val opt = options[i]
@@ -2797,9 +2792,6 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 optBrowse -> browseHighlights(onBack = { exportMenu(onBack) })
                 optZip -> showEmailHighlightsZipDialog(app, bTitle, bAuthor, highlights, onBack = { exportMenu(onBack) })
                 optShare -> showEmailShareDialog(null, onBack = { exportMenu(onBack) })
-                optSns -> {
-                    showEmailShareDialog(null, onBack = { exportMenu(onBack) })
-                }
             }
         }
     }
@@ -2865,15 +2857,13 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
             val itemActions = listOf(
                 L10n.t("해당 페이지로 이동", "Go to Page"),
-                L10n.t("이메일로 공유하기", "Share via Email"),
-                L10n.t("📷 독서 카드 저장 · SNS 공유", "📷 Save Card & Share to SNS"),
+                L10n.t("📢 독서 기록 공유 (카드 · 이메일)", "📢 Share Reading Notes (Card · Email)"),
                 L10n.t("삭제", "Delete")
             )
             listDialog(h.quote.take(40), itemActions, onBack = { browseHighlights(onBack) }) { a ->
                 when (a) {
                     0 -> pushHistoryAndJump(BookLocation(h.chapter, h.startChar, 0f))
                     1 -> showEmailShareDialog(h, onBack = { browseHighlights(onBack) })
-                    2 -> { val coverBmp = book?.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }; AndroidShareHelper.showSnsShareDialog(this, bTitle, bAuthor, h.quote, h.note.ifBlank { null }, isEink = !isLcd, onBack = { browseHighlights(onBack) }, coverBitmap = coverBmp) }
                     else -> scope.launch {
                         withContext(Dispatchers.IO) { app.db.highlights().delete(h.id) }
                         highlights = withContext(Dispatchers.IO) { app.db.highlights().forBook(path) }

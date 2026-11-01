@@ -179,7 +179,7 @@ class LibraryActivity : Activity() {
         }
         val appTitle = TextView(this).apply {
             val brand = "Aether SAGA"
-            val verText = "  Ver. 2.0"
+            val verText = "  Ver. 2.1"
             val subText = "\njourneys through endless stories"
             val ssb = android.text.SpannableStringBuilder(brand).apply {
                 setSpan(android.text.style.StyleSpan(Typeface.BOLD), 0, brand.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -355,10 +355,7 @@ class LibraryActivity : Activity() {
         val highlightsBtn = pillButton(L10n.t("🖍 독서 기록", "🖍 Notes & Bookmarks"), inkCol, cardBgCol, borderCol) {
             showMainHighlightsDialog()
         }
-        val snsShareBtn = pillButton(L10n.t("📷 독서카드/SNS", "📷 Card/SNS"), inkCol, cardBgCol, borderCol) {
-            showMainNotesShareDialog()
-        }
-        val notesShareBtn = pillButton(L10n.t("📢 독서노트 공유", "📢 Share Notes"), inkCol, cardBgCol, borderCol) {
+        val shareNotesBtn = pillButton(L10n.t("📢 독서 기록 공유", "📢 Share Reading Notes"), inkCol, cardBgCol, borderCol) {
             showMainNotesShareDialog()
         }
 
@@ -372,9 +369,7 @@ class LibraryActivity : Activity() {
         filterBar.addView(View(this), LinearLayout.LayoutParams(dp(6), 1))
         filterBar.addView(highlightsBtn)
         filterBar.addView(View(this), LinearLayout.LayoutParams(dp(6), 1))
-        filterBar.addView(snsShareBtn)
-        filterBar.addView(View(this), LinearLayout.LayoutParams(dp(6), 1))
-        filterBar.addView(notesShareBtn)
+        filterBar.addView(shareNotesBtn)
         filterScroll.addView(filterBar)
         root.addView(filterScroll)
 
@@ -810,14 +805,14 @@ class LibraryActivity : Activity() {
         val optShelf = L10n.t("📁 책장 이동 / 변경 (현재: $shelfDesc)", "📁 Move / Change Shelf (Current: $shelfDesc)")
         val optEmail = L10n.t("✉ 이메일로 도서 파일 전송", "✉ Send Book File via Email")
         val optZip = L10n.t("📦 하이라이트 압축파일(ZIP) 이메일 전송", "📦 Export Highlights (ZIP) via Email")
-        val optSns = L10n.t("📷 독서 카드 저장 · SNS 공유", "📷 Save Card & Share to SNS")
+        val optShare = L10n.t("📢 독서 기록 공유 (카드 · 이메일)", "📢 Share Reading Notes (Card · Email)")
         val optMulti = L10n.t("☑ 도서 다중 선택 (일괄 관리)", "☑ Multi-Select Books (Batch)")
         val optComplete = L10n.t("완독으로 표시 (100%)", "Mark as Completed (100%)")
         val optReset = L10n.t("읽기 기록 초기화 (0%)", "Reset Reading Progress (0%)")
         val optDelete = L10n.t("책장에서 제거", "Remove from Library")
         val optCancel = L10n.t("취소", "Cancel")
 
-        val menuOptions = mutableListOf(optOpen, optShelf, optEmail, optZip, optSns, optMulti, optComplete, optReset, optDelete, optCancel)
+        val menuOptions = mutableListOf(optOpen, optShelf, optEmail, optZip, optShare, optMulti, optComplete, optReset, optDelete, optCancel)
 
         listDialog(b.title, menuOptions) { i ->
             val opt = menuOptions[i]
@@ -838,7 +833,7 @@ class LibraryActivity : Activity() {
                         }
                     }
                 }
-                optSns -> {
+                optShare -> {
                     scope.launch {
                         val hl = withContext(Dispatchers.IO) {
                             val list = app.db.highlights().forBook(b.path)
@@ -1968,7 +1963,7 @@ class LibraryActivity : Activity() {
         // 5. 앱 정보 및 릴리즈 노트 (설정 창 가장 아래 위치)
         box.addView(secHeader(L10n.t("버전 및 릴리즈 노트", "Version & Release Notes")))
         val releaseCard = makeCard()
-        val releaseBtn = pillButton(L10n.t("📋 릴리즈 노트 (Release Notes) • Ver. 2.0", "📋 Release Notes • Ver. 2.0"), inkCol, btnBg, btnBorder) {
+        val releaseBtn = pillButton(L10n.t("📋 릴리즈 노트 (Release Notes) • Ver. 2.1", "📋 Release Notes • Ver. 2.1"), inkCol, btnBg, btnBorder) {
             dlg.dismiss()
             showReleaseNotesDialog(onBack = { settingsMenu() })
         }
