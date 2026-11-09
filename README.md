@@ -47,10 +47,12 @@ Access core reading assets directly from your library shelf without having to op
 * **On-Demand Self-Healing Book Relinking**: If a book file is moved into a new subfolder within your library directory, tapping it from the shelf or reading notes triggers an instantaneous on-demand BFS search that self-heals Room DB paths and bookmarks seamlessly with zero battery drain.
 * **Intelligent Book Sorting & Dotted Divider**: In the share dialog, books with notes, active progress, or completed status are sorted to the top, separated from unread books by a clean dotted divider (`DottedDividerView`) and high-contrast scrollbar.
 * **Smart Expandable Highlight Viewer (`[🖍 독서 기록]`)**: Browse all notes and bookmarks across all books with **[더보기 ▾] / [접기 ▴]** toggles, permanent high-contrast scrollbar with optimized card right margin (`rightMargin = dp(10)`) preventing scrollbar overlap, and instant deep-linking back to the exact chapter and offset.
+* **Book Metadata Enriched ZIP & Email Export**: Export highlights with distinct book source badges (`📖 《Title》(Author)`) in the checklist, and full book metadata headers across email body and TXT/Markdown documents, complete with Notion/Obsidian multi-book grouping.
 * **Universal E-Ink Popup Outlines**: Guaranteed 2px high-contrast charcoal outlines and tactile button borders across all sharing and app-selection dialogs on e-paper.
 
 ### 🎨 2. Aesthetic SNS Quote Card & Stats Sharing
 Transform your favorite reading moments into beautifully styled, high-resolution shareable image cards with a single tap:
+* **Universal In-Book Highlight Tap Shortcut (`[📢 SNS 공유]`)**: Tapping any highlight in the reading view reveals an instant floating anchor (`[✎ Note] | [📢 Share] | [✕ Delete]`) for 1-click quote card generation on all devices (E-Ink & LCD/OLED).
 * **Custom Visual Themes**: Export quotes in Paper Minimalist, Warm Amber, Dark Obsidian, or AMOLED Pitch Black styling.
 * **Typographic Elegance & Cover Art**: Formatted with book title, author metadata, an impactful 175×248px rounded book cover artwork in the header, quotation marks, and optional user notes without text interference.
 * **Smart Multi-Quote Social Dispatch (Story vs. Feed)**:

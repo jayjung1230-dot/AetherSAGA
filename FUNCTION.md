@@ -202,7 +202,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 ### 3.6. 본문 하이라이트 인라인 터치 삭제 인터랙션 & 입력 시간 분리 및 잔상 방지
 
 - **개요 및 목적:**
-  사용자가 본문에서 형광펜 하이라이트된 텍스트 영역을 탭하면, 하이라이트가 끝나는 지점의 우측 상단에 즉각 `✕ 삭제` 버튼이 앵커링되어 표시되고 클릭 시 한 번에 삭제됩니다. 아울러 3x3 터치 영역 명령과의 충돌을 방지하기 위해 탭/롱프레스 입력 시간을 정밀 분리하고, PDF 문서에서의 하이라이트 잔상(Ghosting)을 근본적으로 차단합니다.
+  사용자가 본문에서 형광펜 하이라이트된 텍스트 영역을 탭하면, 하이라이트가 끝나는 지점의 우측 상단에 즉각 `[✎ 메모] | [📢 SNS 공유] | [✕ 삭제]` 3대 액션 플로팅 앵커가 표시되어 메모 작성/열람, 전 기기(E-Ink 및 LCD/OLED) 원클릭 SNS 감성 카드 공유, 인라인 삭제를 즉시 수행할 수 있습니다. 아울러 3x3 터치 영역 명령과의 충돌을 방지하기 위해 탭/롱프레스 입력 시간을 정밀 분리하고, PDF 문서에서의 하이라이트 잔상(Ghosting)을 근본적으로 차단합니다.
 - **구현 파일 및 주요 심볼:**
   - [ReaderView.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/ReaderView.kt) (`onSingleTap` 터치 인터셉트, `LONG_PRESS_TIMEOUT_MS = 850L`, `selectionRects`)
   - [ReaderActivity.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/ReaderActivity.kt) (`handleReaderSingleTap`, `showHighlightDeleteAnchor`, `dismissHighlightDeleteButton`, `turn`, `showResult`)
@@ -540,6 +540,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   - **책 삭제 시 맞춤형 Yes/No 보관 다이얼로그:** 단일 또는 일괄 도서 삭제 시 하이라이트가 존재하는 경우 `[하이라이트 보관 및 책 제거] (Yes)` vs `[하이라이트도 함께 삭제] (No)` vs `[취소]` 3선택지를 제공하여 의도치 않은 데이터 유실을 100% 방지.
   - **경량 ZIP 압축 패키징 & MIME 이메일 연동:** 순수 Java `java.util.zip.ZipOutputStream`을 사용하여 UTF-8 텍스트(`Highlights.txt`)와 마크다운 서식(`Highlights.md`) 문서를 즉시 메모리/임시 파일로 생성하고, Android 표준 `FileProvider` (`ShareFileProvider`) 및 `Intent.ACTION_SEND` (`application/zip`)를 통해 기기 내 선호하는 이메일 앱으로 다이렉트 전송.
   - **단일화된 직관적 전송 버튼 및 도서 메타데이터 친절 안내:** 공유 다이얼로그 내 중복 버튼을 단일 "이메일 전송하기" 버튼으로 일원화하고, 하이라이트 압축파일 이메일 전송 창에 도서명 및 저자 정보를 최상단에 친절하게 안내.
+  - **도서 메타정보 포함 및 노션/옵시디언용 마크다운 도서별 자동 그룹화:** 다이얼로그 체크리스트 항목별 `📖 《도서명》(저자)` 뱃지 표출 및 이메일 본문, 압축파일(TXT·MD)에 도서 메타정보를 자동으로 수록하며, 복수 도서 선택 시 마크다운 문서 내에서 도서별 `## 📖 《도서명》 - 저자` 헤더로 자동 분리·그룹화하여 완벽한 지식 아카이빙 지원.
 - **법적 및 마켓 분석:**
   사용자 데이터 주권(Data Portability & Sovereignty)을 극대화하는 표준 ZIP/MIME 공유 체계로 GDPR 및 마켓 사용자 권리 규정을 완벽히 충족하며 외부 라이브러리 없이 구현되어 100% 독립성을 보유합니다.
 

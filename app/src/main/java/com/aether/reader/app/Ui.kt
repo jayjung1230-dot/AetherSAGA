@@ -182,6 +182,8 @@ fun Context.showEmailHighlightsZipDialog(
     }
     root.addView(introTv)
 
+    val distinctBooks = highlights.map { (it.bookTitle.ifBlank { bookTitle }).trim() to (it.bookAuthor.ifBlank { bookAuthor }).trim() }.distinct()
+
     // Detailed Book Information Card
     val infoCard = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
@@ -189,15 +191,23 @@ fun Context.showEmailHighlightsZipDialog(
         setPadding(dp(14), dp(12), dp(14), dp(12))
     }
     val titleTv = TextView(this).apply {
-        text = "《$bookTitle》"
-        setPtSize(10f)
+        text = if (distinctBooks.size > 1) {
+            L10n.t("📚 선택 도서: ", "📚 Selected Books: ") + distinctBooks.joinToString(", ") { "《${it.first}》" } + " (${distinctBooks.size}" + L10n.t("권)", " books)")
+        } else {
+            "《${distinctBooks.firstOrNull()?.first?.ifBlank { bookTitle } ?: bookTitle}》"
+        }
+        setPtSize(9.5f)
         typeface = ReaderTheme.uiFontBold
         setTextColor(inkCol)
     }
-    val authorPart = if (bookAuthor.isNotBlank()) L10n.t("저자: $bookAuthor", "Author: $bookAuthor") else L10n.t("저자: 저자 정보 없음", "Author: Unknown")
     val authorTv = TextView(this).apply {
-        text = "✍ $authorPart"
-        setPtSize(8.2f)
+        text = if (distinctBooks.size > 1) {
+            "✍ " + L10n.t("포함 저자: ", "Authors: ") + distinctBooks.mapNotNull { it.second.ifBlank { null } }.distinct().ifEmpty { listOf(L10n.t("저자 미상", "Unknown")) }.joinToString(", ")
+        } else {
+            val singleAuthor = distinctBooks.firstOrNull()?.second?.ifBlank { bookAuthor } ?: bookAuthor
+            "✍ " + (if (singleAuthor.isNotBlank()) L10n.t("저자: $singleAuthor", "Author: $singleAuthor") else L10n.t("저자: 저자 정보 없음", "Author: Unknown"))
+        }
+        setPtSize(8f)
         setTextColor(mutedCol)
         setPadding(0, dp(3), 0, dp(4))
     }
@@ -223,11 +233,19 @@ fun Context.showEmailHighlightsZipDialog(
         setPadding(0, 0, 0, dp(6))
     }
 
-    val zipBadgeTv = TextView(this).apply {
-        text = L10n.t(
+    val zipAttachLabel = if (distinctBooks.size > 1) {
+        L10n.t(
+            "📦 첨부파일: AetherSAGA_Highlights_${distinctBooks.size}권_${highlights.size}건.zip\n(도서 정보 수록 텍스트 .txt 및 마크다운 .md 포함)",
+            "📦 Attachment: AetherSAGA_Highlights_${distinctBooks.size}Books_${highlights.size}Items.zip\n(Includes text .txt & Markdown .md with book info)"
+        )
+    } else {
+        L10n.t(
             "📦 첨부파일: AetherSAGA_Highlights_${bookTitle.take(15)}.zip\n(텍스트 .txt 및 마크다운 .md 서식 문서 포함)",
             "📦 Attachment: AetherSAGA_Highlights_${bookTitle.take(15)}.zip\n(Includes text .txt & Markdown .md documents)"
         )
+    }
+    val zipBadgeTv = TextView(this).apply {
+        text = zipAttachLabel
         setPtSize(7.5f)
         setTextColor(ReaderTheme.ACCENT_KINDLE)
         setLineSpacing(dp(2).toFloat(), 1f)
@@ -246,7 +264,7 @@ fun Context.showEmailHighlightsZipDialog(
         setPadding(0, dp(10), 0, dp(4))
     }
     val previewHeaderTv = TextView(this).apply {
-        text = L10n.t("📝 전송 항목 선택 (${highlights.size}건)", "📝 Select Items to Send (${highlights.size})")
+        text = L10n.t("📝 전송 항목 및 도서 정보 선택 (${highlights.size}건)", "📝 Select Items to Send (${highlights.size})")
         setPtSize(8.3f)
         typeface = ReaderTheme.uiFontBold
         setTextColor(inkCol)
@@ -273,12 +291,15 @@ fun Context.showEmailHighlightsZipDialog(
     val previewCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     for ((idx, h) in highlights.withIndex()) {
         val prefix = if (h.kind == 1) "🔖 " else "🖍 "
-        val notePart = if (h.note.isNotBlank()) L10n.t(" (메모: ${h.note.take(35)})", " (Note: ${h.note.take(35)})") else ""
+        val notePart = if (h.note.isNotBlank()) L10n.t(" (메모: ${h.note.take(30)})", " (Note: ${h.note.take(30)})") else ""
         val chPart = h.chapterTitle.ifBlank { L10n.t("본문", "Body") }
+        val itemBook = h.bookTitle.ifBlank { bookTitle }
+        val itemAuthor = h.bookAuthor.ifBlank { bookAuthor }
+        val bookTag = if (itemAuthor.isNotBlank()) "📖 《$itemBook》($itemAuthor)" else "📖 《$itemBook》"
         val cb = CheckBox(this).apply {
-            text = "$prefix[$chPart] ${h.quote.replace("\n", " ").take(55)}$notePart"
+            text = "$bookTag\n$prefix[$chPart] ${h.quote.replace("\n", " ").take(45)}$notePart"
             isChecked = true // 기본값: 모두 선택
-            setPtSize(8f)
+            setPtSize(7.8f)
             setTextColor(inkCol)
             setPadding(dp(4), dp(4), dp(4), dp(4))
         }
@@ -291,13 +312,24 @@ fun Context.showEmailHighlightsZipDialog(
         if (highlights.size > 2) height = maxScrollH
     })
 
+    // Book Info in Export Option Checkbox
+    val includeBookInfoCb = CheckBox(this).apply {
+        text = L10n.t("🌟 압축파일(TXT/MD) 및 이메일에 도서 정보(제목·저자) 함께 포함", "🌟 Include book metadata (title, author) in ZIP & email")
+        isChecked = true
+        setPtSize(7.8f)
+        typeface = ReaderTheme.uiFontBold
+        setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+        setPadding(dp(4), dp(6), dp(4), dp(2))
+    }
+    root.addView(includeBookInfoCb)
+
     // Recipient email
     val emailLabel = TextView(this).apply {
         text = L10n.t("받는 사람 이메일 주소", "Recipient Email Address")
         setPtSize(8.5f)
         typeface = ReaderTheme.uiFontBold
         setTextColor(inkCol)
-        setPadding(0, dp(12), 0, dp(4))
+        setPadding(0, dp(10), 0, dp(4))
     }
     val emailInput = EditText(this).apply {
         setText(app.prefs.shareEmail)
@@ -341,7 +373,8 @@ fun Context.showEmailHighlightsZipDialog(
                     email,
                     bookTitle,
                     bookAuthor,
-                    selected
+                    selected,
+                    includeBookInfo = includeBookInfoCb.isChecked
                 )
                 if (ok) {
                     Toast.makeText(this, L10n.t("📨 이메일 앱이 열렸습니다. 확인 후 '보내기'를 눌러주세요.", "📨 Email app opened. Please review and tap 'Send'."), Toast.LENGTH_LONG).show()

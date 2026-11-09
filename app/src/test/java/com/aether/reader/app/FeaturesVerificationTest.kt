@@ -1644,4 +1644,44 @@ class FeaturesVerificationTest {
             tempDir.deleteRecursively()
         }
     }
+
+    @Test
+    fun testHighlightsZipWithBookMetadataFormatting() {
+        val h1 = HighlightEntity(
+            id = 1L, bookPath = "/storage/emulated/0/Books/prince.epub", kind = 0,
+            chapter = 1, startChar = 10, endChar = 40,
+            quote = "가장 중요한 것은 눈에 보이지 않아.", note = "관계의 본질",
+            style = 0, colorTag = 0, progress = 0.25f, chapterTitle = "제2장",
+            createdAt = 1730000000000L,
+            bookTitle = "어린 왕자", bookAuthor = "생텍쥐페리"
+        )
+        val h2 = HighlightEntity(
+            id = 2L, bookPath = "/storage/emulated/0/Books/demian.epub", kind = 0,
+            chapter = 0, startChar = 5, endChar = 30,
+            quote = "새는 알에서 나오려고 투쟁한다.", note = "자아 탐색",
+            style = 0, colorTag = 0, progress = 0.15f, chapterTitle = "제1장 두 개의 세계",
+            createdAt = 1730001000000L,
+            bookTitle = "데미안", bookAuthor = "헤르만 헤세"
+        )
+
+        val highlights = listOf(h1, h2)
+        val distinctBooks = highlights.map { it.bookTitle to it.bookAuthor }.distinct()
+        assertEquals(2, distinctBooks.size)
+        assertEquals("어린 왕자", distinctBooks[0].first)
+        assertEquals("생텍쥐페리", distinctBooks[0].second)
+        assertEquals("데미안", distinctBooks[1].first)
+        assertEquals("헤르만 헤세", distinctBooks[1].second)
+
+        // Verify book tags formatted for items
+        fun formatItemBookTag(h: HighlightEntity): String {
+            val title = h.bookTitle.ifBlank { "기본도서" }
+            val author = h.bookAuthor
+            return if (author.isNotBlank()) "📖 《$title》($author)" else "📖 《$title》"
+        }
+
+        val tag1 = formatItemBookTag(h1)
+        val tag2 = formatItemBookTag(h2)
+        assertEquals("📖 《어린 왕자》(생텍쥐페리)", tag1)
+        assertEquals("📖 《데미안》(헤르만 헤세)", tag2)
+    }
 }

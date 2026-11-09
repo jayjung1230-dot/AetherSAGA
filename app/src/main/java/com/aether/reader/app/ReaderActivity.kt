@@ -1017,28 +1017,32 @@ class ReaderActivity : Activity(), ReaderView.Listener {
 
         container.addView(memoBtn)
         container.addView(sep, LinearLayout.LayoutParams(dp(1), dp(16)))
-        if (isLcd) {
-            val snsBtn = TextView(this).apply {
-                text = "📱 SNS"
-                setPtSize(8f)
-                typeface = ReaderTheme.uiFontBold
-                setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
-                gravity = Gravity.CENTER
-                setPadding(dp(8), dp(4), dp(8), dp(4))
-                setOnClickListener {
-                    dismissHighlightDeleteButton()
-                    val bTitle = (book?.title?.ifBlank { null } ?: engine.bookTitle.ifBlank { null } ?: File(path).nameWithoutExtension)
-                    val bAuthor = book?.author?.ifBlank { null } ?: engine.bookAuthor
-                    val coverBmp = book?.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }; AndroidShareHelper.showSnsShareDialog(this@ReaderActivity, bTitle, bAuthor, h.quote, h.note.ifBlank { null }, isEink = !isLcd, coverBitmap = coverBmp)
-                }
+
+        // Universal SNS Share shortcut (available on both LCD/OLED and E-Ink)
+        val snsBtn = TextView(this).apply {
+            text = L10n.t("📢 SNS 공유", "📢 Share")
+            setPtSize(8f)
+            typeface = ReaderTheme.uiFontBold
+            setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+            gravity = Gravity.CENTER
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+            setOnClickListener {
+                dismissHighlightDeleteButton()
+                val bTitle = (book?.title?.ifBlank { null } ?: engine.bookTitle.ifBlank { null } ?: File(path).nameWithoutExtension)
+                val bAuthor = book?.author?.ifBlank { null } ?: engine.bookAuthor
+                val coverBmp = book?.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }
+                AndroidShareHelper.showSnsShareDialog(this@ReaderActivity, bTitle, bAuthor, h.quote, h.note.ifBlank { null }, isEink = !isLcd, coverBitmap = coverBmp)
             }
-            container.addView(snsBtn)
-            val sep2 = View(this).apply { setBackgroundColor(ReaderTheme.EINK_BORDER) }
-            container.addView(sep2, LinearLayout.LayoutParams(dp(1), dp(16)))
         }
+        container.addView(snsBtn)
+        val sep2 = View(this).apply {
+            setBackgroundColor(if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.EINK_DIVIDER_CONTRAST)
+        }
+        container.addView(sep2, LinearLayout.LayoutParams(dp(1), dp(16)))
+
         container.addView(delBtn)
 
-        val totalW = if (isLcd) dp(210) else dp(140)
+        val totalW = dp(220)
         val totalH = dp(32)
         val screenW = resources.displayMetrics.widthPixels
         val screenH = resources.displayMetrics.heightPixels
