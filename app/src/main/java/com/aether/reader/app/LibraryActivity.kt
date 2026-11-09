@@ -123,6 +123,9 @@ class LibraryActivity : Activity() {
                 app.db.books().normalizeFilePaths()
                 app.db.highlights().normalizeFilePaths()
                 migrateExistingContentBooks()
+                if (!app.prefs.isDefaultGuideInstalled) {
+                    seedDefaultGuideBookIfNeeded()
+                }
             } catch (_: Throwable) {}
         }
 
@@ -168,7 +171,7 @@ class LibraryActivity : Activity() {
             setPadding(dp(16), dp(12), dp(16), dp(8))
         }
 
-        // 1. Top App Bar (Kindle / Ridi clean minimalist header)
+        // 1. Top App Bar (Clean Minimalist clean minimalist header)
         val header = RelativeLayout(this).apply {
             setPadding(0, dp(4), 0, dp(10))
         }
@@ -179,7 +182,7 @@ class LibraryActivity : Activity() {
         }
         val appTitle = TextView(this).apply {
             val brand = "Aether SAGA"
-            val verText = "  Ver. 2.1"
+            val verText = "  Ver. 2.5"
             val subText = "\njourneys through endless stories"
             val ssb = android.text.SpannableStringBuilder(brand).apply {
                 setSpan(android.text.style.StyleSpan(Typeface.BOLD), 0, brand.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -222,7 +225,7 @@ class LibraryActivity : Activity() {
         selectBtn = pillButton(L10n.t("선택", "Select"), inkCol, cardBgCol, borderCol) {
             if (isSelectMode) exitSelectMode() else enterSelectMode()
         }
-        val importBtn = pillButton(L10n.t("+ 책 추가", "+ Add Book"), if (isDark) Color.BLACK else Color.WHITE, if (isDark) Color.WHITE else ReaderTheme.ACCENT_KINDLE) {
+        val importBtn = pillButton(L10n.t("+ 책 추가", "+ Add Book"), if (isDark) Color.BLACK else Color.WHITE, if (isDark) Color.WHITE else ReaderTheme.ACCENT_CHARCOAL) {
             showBookPicker()
         }
         val settingsBtn = pillButton(L10n.t("설정", "Settings"), inkCol, cardBgCol, borderCol) { settingsMenu() }
@@ -248,7 +251,7 @@ class LibraryActivity : Activity() {
         header.addView(brandLayout, brandParams)
         root.addView(header)
 
-        // 2. Continue Reading Banner (RidiBooks / Kindle Home style)
+        // 2. Continue Reading Banner (Modern Minimalist Home style)
         continueCard = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -262,7 +265,7 @@ class LibraryActivity : Activity() {
         val continueBadge = TextView(this).apply {
             text = L10n.t("최근 읽던 책 이어보기", "Continue Reading")
             textSize = 10.5f
-            setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+            setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
             typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
         }
         continueTitle = TextView(this).apply {
@@ -297,7 +300,7 @@ class LibraryActivity : Activity() {
                 cornerRadius = dp(3).toFloat()
             }
             val progressG = GradientDrawable().apply {
-                setColor(if (isEink) Color.BLACK else ReaderTheme.ACCENT_RIDI_BLUE)
+                setColor(if (isEink) Color.BLACK else ReaderTheme.ACCENT_PRIMARY_BLUE)
                 cornerRadius = dp(3).toFloat()
             }
             val clip = android.graphics.drawable.ClipDrawable(progressG, Gravity.START, android.graphics.drawable.ClipDrawable.HORIZONTAL)
@@ -332,7 +335,7 @@ class LibraryActivity : Activity() {
         shelfBtn = pillButton(L10n.t("📚 책장: 전체", "📚 Shelf: All"), inkCol, cardBgCol, borderCol) {
             showShelfFilterDialog()
         }
-        filterBtn = pillButton(L10n.t("전체 도서", "All Books"), if (isDark) Color.BLACK else Color.WHITE, if (isDark) Color.WHITE else ReaderTheme.ACCENT_KINDLE) {
+        filterBtn = pillButton(L10n.t("전체 도서", "All Books"), if (isDark) Color.BLACK else Color.WHITE, if (isDark) Color.WHITE else ReaderTheme.ACCENT_CHARCOAL) {
             statusFilter = (statusFilter + 1) % 4
             updateList()
         }
@@ -444,13 +447,23 @@ class LibraryActivity : Activity() {
                 setLineSpacing(0f, 1.25f)
                 setPadding(0, 0, 0, dp(18))
             }
-            val addFileBtn = pillButton(L10n.t("+ 파일 불러와서 책장에 추가하기", "+ Import Books to Library"), if (isDark) Color.BLACK else Color.WHITE, if (isDark) Color.WHITE else ReaderTheme.ACCENT_KINDLE) {
+            val addFileBtn = pillButton(L10n.t("+ 파일 불러와서 책장에 추가하기", "+ Import Books to Library"), if (isDark) Color.BLACK else Color.WHITE, if (isDark) Color.WHITE else ReaderTheme.ACCENT_CHARCOAL) {
                 showBookPicker()
+            }
+            val guideBtn = pillButton(L10n.t("📖 공식 사용 설명서 열기", "📖 Open Official User Guide"), inkCol, cardBgCol, borderCol) {
+                scope.launch {
+                    val guide = seedDefaultGuideBookIfNeeded() ?: allBooks.firstOrNull { it.path.contains("AetherSAGA_User_Guide") }
+                    if (guide != null) {
+                        openBook(guide)
+                    }
+                }
             }
             addView(emptyIcon)
             addView(emptyTitle)
             addView(emptyDesc)
             addView(addFileBtn)
+            addView(View(context).apply { layoutParams = LinearLayout.LayoutParams(1, dp(8)) })
+            addView(guideBtn)
         }
         contentFrame.addView(emptyBox, FrameLayout.LayoutParams(-1, -1))
 
@@ -467,7 +480,7 @@ class LibraryActivity : Activity() {
 
         selectAllBtn = pillButton(L10n.t("전체 선택", "Select All"), inkCol, bgCol, borderCol) { toggleSelectAll() }
         moveShelfBtn = pillButton(L10n.t("📁 책장 이동 (0)", "📁 Move Shelf (0)"), inkCol, bgCol, borderCol) { moveSelectedBooksToShelf() }
-        emailBtn = pillButton(L10n.t("✉ 메일 (0)", "✉ Email (0)"), Color.WHITE, ReaderTheme.ACCENT_RIDI_BLUE) { emailSelectedBooks() }
+        emailBtn = pillButton(L10n.t("✉ 메일 (0)", "✉ Email (0)"), Color.WHITE, ReaderTheme.ACCENT_PRIMARY_BLUE) { emailSelectedBooks() }
         deleteBtn = pillButton(L10n.t("🗑 삭제 (0)", "🗑 Delete (0)"), Color.WHITE, 0xFFC62828.toInt()) { deleteSelectedBooks() }
         val cancelSelectionBtn = pillButton("✕", inkCol, bgCol, borderCol) { exitSelectMode() }.apply {
             setPadding(dp(12), dp(6), dp(12), dp(6))
@@ -505,14 +518,14 @@ class LibraryActivity : Activity() {
             shelfBtn.text = L10n.t("📁 책장: 미분류", "📁 Shelf: Unclassified")
             shelfBtn.setTextColor(if (isDark) Color.BLACK else Color.WHITE)
             shelfBtn.background = GradientDrawable().apply {
-                setColor(if (isDark) Color.WHITE else ReaderTheme.ACCENT_KINDLE)
+                setColor(if (isDark) Color.WHITE else ReaderTheme.ACCENT_CHARCOAL)
                 cornerRadius = dp(16).toFloat()
             }
         } else {
             shelfBtn.text = L10n.t("📁 책장: $selShelf", "📁 Shelf: $selShelf")
             shelfBtn.setTextColor(if (isDark) Color.BLACK else Color.WHITE)
             shelfBtn.background = GradientDrawable().apply {
-                setColor(if (isDark) Color.WHITE else ReaderTheme.ACCENT_KINDLE)
+                setColor(if (isDark) Color.WHITE else ReaderTheme.ACCENT_CHARCOAL)
                 cornerRadius = dp(16).toFloat()
             }
         }
@@ -768,6 +781,53 @@ class LibraryActivity : Activity() {
                 }
             }
         } catch (_: Throwable) {}
+    }
+
+    private suspend fun seedDefaultGuideBookIfNeeded(): BookEntity? = withContext(Dispatchers.IO) {
+        try {
+            val booksDir = File(filesDir, "books").apply { mkdirs() }
+            val guideFile = File(booksDir, "AetherSAGA_User_Guide.epub")
+            if (!guideFile.exists() || guideFile.length() == 0L) {
+                assets.open("books/AetherSAGA_User_Guide.epub").use { input ->
+                    guideFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+            if (guideFile.exists() && guideFile.length() > 0L) {
+                val path = Containers.normalizePath(guideFile.absolutePath)
+                val existing = app.db.books().get(path)
+                if (existing != null) {
+                    app.prefs.isDefaultGuideInstalled = true
+                    return@withContext existing
+                }
+                var title = "Aether SAGA 사용 설명서"
+                var author = "Aether SAGA 개발팀"
+                var coverPath: String? = null
+                try {
+                    Containers.open(path, this@LibraryActivity, hintFormat = com.aether.reader.engine.BookFormat.EPUB).use { c ->
+                        if (c.title.isNotBlank()) title = c.title
+                        if (c.author.isNotBlank()) author = c.author
+                        coverPath = c.coverBytes()?.let { CoverCache(this@LibraryActivity).store(path, it) }
+                    }
+                } catch (_: Throwable) {}
+                val entity = BookEntity(
+                    path = path,
+                    title = title,
+                    author = author,
+                    format = com.aether.reader.engine.BookFormat.EPUB.name,
+                    sizeBytes = guideFile.length(),
+                    addedAt = System.currentTimeMillis(),
+                    coverPath = coverPath
+                )
+                app.db.books().insertAll(listOf(entity))
+                app.prefs.isDefaultGuideInstalled = true
+                return@withContext entity
+            }
+        } catch (e: Throwable) {
+            android.util.Log.e("AetherLibrary", "Failed to seed default guide book", e)
+        }
+        null
     }
 
     private fun openBook(book: BookEntity) {
@@ -1108,7 +1168,7 @@ class LibraryActivity : Activity() {
         selectBtn.text = L10n.t("완료", "Done")
         selectBtn.setTextColor(Color.WHITE)
         selectBtn.background = GradientDrawable().apply {
-            setColor(ReaderTheme.ACCENT_KINDLE)
+            setColor(ReaderTheme.ACCENT_CHARCOAL)
             cornerRadius = dp(16).toFloat()
         }
         selectionBottomBar.visibility = View.VISIBLE
@@ -1318,7 +1378,7 @@ class LibraryActivity : Activity() {
             val metaBadgeTv = TextView(this).apply {
                 text = "📚 함께 전송될 전자책 파일"
                 setPtSize(7.5f)
-                setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+                setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
                 typeface = ReaderTheme.uiFontBold
             }
             val metaTitleTv = TextView(this).apply {
@@ -1349,7 +1409,7 @@ class LibraryActivity : Activity() {
                 text = "📚\n${booksToSend.size}권"
                 gravity = Gravity.CENTER
                 setPtSize(9f)
-                setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+                setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
                 typeface = ReaderTheme.uiFontBold
                 background = cardDrawable(bgCol, 6, borderCol)
                 setPadding(dp(8), dp(10), dp(8), dp(10))
@@ -1360,7 +1420,7 @@ class LibraryActivity : Activity() {
             val metaBadgeTv = TextView(this).apply {
                 text = "📚 함께 전송될 전자책 파일 목록 (${booksToSend.size}권)"
                 setPtSize(7.5f)
-                setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+                setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
                 typeface = ReaderTheme.uiFontBold
             }
             val totalBytes = booksToSend.sumOf { it.sizeBytes }
@@ -1499,7 +1559,7 @@ class LibraryActivity : Activity() {
             }
         }
 
-        val sendActionBtn = pillButton("📨 이메일 전송하기", Color.WHITE, ReaderTheme.ACCENT_RIDI_BLUE, ReaderTheme.ACCENT_RIDI_BLUE) {
+        val sendActionBtn = pillButton("📨 이메일 전송하기", Color.WHITE, ReaderTheme.ACCENT_PRIMARY_BLUE, ReaderTheme.ACCENT_PRIMARY_BLUE) {
             executeSend()
         }.apply {
             setPtSize(9.5f)
@@ -1520,7 +1580,7 @@ class LibraryActivity : Activity() {
         val hw = app.hardware.spec
         val p = app.prefs
         val hwTier = when {
-            hw.isLowSpecEink -> L10n.t("저전력 E-Ink (Carta 1300 / 2GB급)", "Low-Power E-Ink (Carta 1300 / 2GB)")
+            hw.isLowSpecEink -> L10n.t("저전력 E-Ink 단말기", "Low-Power E-Ink Device")
             hw.isHighSpecEink -> L10n.t("고성능 E-Ink", "High-Performance E-Ink")
             else -> L10n.t("LCD/OLED 태블릿", "LCD/OLED Tablet")
         }
@@ -1643,7 +1703,7 @@ class LibraryActivity : Activity() {
         val isAuto = currentKind.isEmpty()
         val presetName = when {
             isAuto -> L10n.t("자동 감지 (기기 맞춤 권장)", "Auto Detect (Recommended)")
-            currentKind == DisplayKind.MONO_EINK.name -> L10n.t("흑백 E-Ink (Carta 1300/1200)", "Mono E-Ink (Carta 1300/1200)")
+            currentKind == DisplayKind.MONO_EINK.name -> L10n.t("흑백 E-Ink 모드", "Mono E-Ink Mode")
             currentKind == DisplayKind.COLOR_EINK.name -> L10n.t("컬러 E-Ink (Kaleido 3)", "Color E-Ink (Kaleido 3)")
             currentKind == DisplayKind.LCD_OLED.name -> L10n.t("LCD / OLED 태블릿", "LCD / OLED Tablet")
             else -> L10n.t("자동 감지 (기기 맞춤 권장)", "Auto Detect (Recommended)")
@@ -1659,7 +1719,7 @@ class LibraryActivity : Activity() {
             data class ModeOption(val id: String, val forcedKind: String, val preset: String, val title: String)
             val modes = listOf(
                 ModeOption("AUTO", "", "AUTO", L10n.t("자동 감지 (기기 환경에 맞춤 - 권장)", "Auto Detect (Recommended for Device)")),
-                ModeOption("MONO_EINK", DisplayKind.MONO_EINK.name, "MONO_EINK", L10n.t("흑백 E-Ink 모드 강제 적용 (Carta 1300/1200)", "Force Mono E-Ink (Carta 1300/1200)")),
+                ModeOption("MONO_EINK", DisplayKind.MONO_EINK.name, "MONO_EINK", L10n.t("흑백 E-Ink 모드 강제 적용", "Force Mono E-Ink Mode")),
                 ModeOption("COLOR_EINK", DisplayKind.COLOR_EINK.name, "COLOR_EINK", L10n.t("컬러 E-Ink 모드 강제 적용 (Kaleido 3)", "Force Color E-Ink (Kaleido 3)")),
                 ModeOption("LCD_OLED", DisplayKind.LCD_OLED.name, "GENERIC_TABLET", L10n.t("일반 LCD / OLED 모드 강제 적용 (컬러)", "Force Standard LCD / OLED (Color)"))
             )
@@ -1704,8 +1764,8 @@ class LibraryActivity : Activity() {
             return pillButton(
                 displayLabel,
                 if (active) Color.WHITE else inkCol,
-                if (active) ReaderTheme.ACCENT_KINDLE else btnBg,
-                if (active) ReaderTheme.ACCENT_KINDLE else btnBorder
+                if (active) ReaderTheme.ACCENT_CHARCOAL else btnBg,
+                if (active) ReaderTheme.ACCENT_CHARCOAL else btnBorder
             ) {
                 p.forcedKind = kindVal
                 p.displayDevicePreset = if (kindVal.isEmpty()) "AUTO" else kindVal
@@ -1744,7 +1804,7 @@ class LibraryActivity : Activity() {
                 return pillButton(
                     displayLabel,
                     if (active) Color.WHITE else inkCol,
-                    if (active) ReaderTheme.ACCENT_KINDLE else bgCol,
+                    if (active) ReaderTheme.ACCENT_CHARCOAL else bgCol,
                     borderCol
                 ) {
                     p.readingTheme = themeKey
@@ -1832,7 +1892,7 @@ class LibraryActivity : Activity() {
         fontCard.addView(styleSummary)
 
         val fontActionRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val addFontBtn = pillButton(L10n.t("+ 폰트 추가 (.ttf/.otf)", "+ Add Font (.ttf/.otf)"), Color.WHITE, ReaderTheme.ACCENT_KINDLE) {
+        val addFontBtn = pillButton(L10n.t("+ 폰트 추가 (.ttf/.otf)", "+ Add Font (.ttf/.otf)"), Color.WHITE, ReaderTheme.ACCENT_CHARCOAL) {
             dlg.dismiss()
             showFontPicker()
         }
@@ -1866,6 +1926,88 @@ class LibraryActivity : Activity() {
         docRow.addView(docSw)
         fontCard.addView(docRow)
         box.addView(fontCard)
+
+        // 2-2. Gemini AI 독서 어시스턴트 설정 카드
+        box.addView(secHeader(L10n.t("✨ Gemini AI 독서 어시스턴트 (Beta)", "✨ Gemini AI Reading Assistant (Beta)")))
+        val geminiCard = makeCard()
+
+        val geminiToggleRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(4), 0, dp(4))
+        }
+        val geminiCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val geminiTitleTv = TextView(this).apply {
+            text = L10n.t("Gemini AI 독서 도우미 사용", "Enable Gemini AI Assistant")
+            setPtSize(9f)
+            setTextColor(inkCol)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+        }
+        val geminiDescTv = TextView(this).apply {
+            text = L10n.t("문장 선택 및 하이라이트 탭 시 AI 심층 해석 & 1:1 토론 활성화", "Enable AI in-depth analysis & 1:1 discussion on text selection")
+            setPtSize(7.5f)
+            setTextColor(mutedCol)
+        }
+        geminiCol.addView(geminiTitleTv)
+        geminiCol.addView(geminiDescTv)
+
+        lateinit var geminiSw: ToggleSwitchView
+        geminiSw = toggleSwitch(p.geminiAiEnabled) {
+            p.geminiAiEnabled = !p.geminiAiEnabled
+            geminiSw.isChecked = p.geminiAiEnabled
+            Toast.makeText(this, if (p.geminiAiEnabled) L10n.t("Gemini AI (Beta)가 활성화되었습니다.", "Gemini AI (Beta) enabled.") else L10n.t("Gemini AI (Beta)가 비활성화되었습니다.", "Gemini AI (Beta) disabled."), Toast.LENGTH_SHORT).show()
+        }
+        geminiToggleRow.addView(geminiCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(8) })
+        geminiToggleRow.addView(geminiSw)
+        geminiCard.addView(geminiToggleRow)
+        geminiCard.addView(makeDivider())
+
+        // Gemini API Key row
+        val apiKeyRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(4), 0, dp(4))
+        }
+        val apiCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val apiTitleTv = TextView(this).apply {
+            text = L10n.t("🔑 Gemini API Key (Beta 인앱 1:1 실시간 대화)", "🔑 Gemini API Key (Beta In-App Chat)")
+            setPtSize(8.5f)
+            setTextColor(inkCol)
+        }
+        val keyStatus = if (p.geminiApiKey.isNotBlank()) {
+            L10n.t("✅ 무료 API Key 등록됨 (인앱 1:1 실시간 대화 모드)", "✅ API Key registered (In-App Chat active)")
+        } else {
+            L10n.t("ℹ️ 미등록 (외부 Gemini 앱 자동 연결 모드 동작)", "ℹ️ Not set (External App Mode active)")
+        }
+        val apiDescTv = TextView(this).apply {
+            text = keyStatus
+            setPtSize(7.5f)
+            setTextColor(if (p.geminiApiKey.isNotBlank()) 0xFF16A34A.toInt() else mutedCol)
+        }
+        apiCol.addView(apiTitleTv)
+        apiCol.addView(apiDescTv)
+
+        val setKeyBtn = pillButton(L10n.t("키 설정", "Set Key"), inkCol, btnBg, btnBorder) {
+            dlg.dismiss()
+            inputDialog(
+                title = L10n.t("Google Gemini API Key 입력", "Enter Gemini API Key"),
+                initial = p.geminiApiKey
+            ) { newKey ->
+                p.geminiApiKey = newKey.trim()
+                Toast.makeText(
+                    this,
+                    if (p.geminiApiKey.isNotBlank()) L10n.t("Gemini API Key가 저장되었습니다. (인앱 대화 활성화)", "Gemini API Key saved. (In-App Chat Active)")
+                    else L10n.t("API Key가 비워졌습니다. (외부 앱 모드)", "API Key cleared. (External App Mode)"),
+                    Toast.LENGTH_SHORT
+                ).show()
+                settingsMenu()
+            }
+        }
+        apiKeyRow.addView(apiCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) })
+        apiKeyRow.addView(setKeyBtn)
+        geminiCard.addView(apiKeyRow)
+
+        box.addView(geminiCard)
 
         // 3. 백업 및 서재 관리 카드
         box.addView(secHeader(L10n.t("데이터 백업 및 서재 관리", "Data Backup & Library Management")))
@@ -1964,7 +2106,18 @@ class LibraryActivity : Activity() {
         // 5. 앱 정보 및 릴리즈 노트 (설정 창 가장 아래 위치)
         box.addView(secHeader(L10n.t("버전 및 릴리즈 노트", "Version & Release Notes")))
         val releaseCard = makeCard()
-        val releaseBtn = pillButton(L10n.t("📋 릴리즈 노트 (Release Notes) • Ver. 2.1", "📋 Release Notes • Ver. 2.1"), inkCol, btnBg, btnBorder) {
+        val guideBtn = pillButton(L10n.t("📖 공식 사용 설명서 열기 (User Guide)", "📖 Official User Guide"), inkCol, btnBg, btnBorder) {
+            dlg.dismiss()
+            scope.launch {
+                val guide = seedDefaultGuideBookIfNeeded() ?: allBooks.firstOrNull { it.path.contains("AetherSAGA_User_Guide") }
+                if (guide != null) {
+                    openBook(guide)
+                }
+            }
+        }
+        releaseCard.addView(guideBtn, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
+        releaseCard.addView(makeDivider())
+        val releaseBtn = pillButton(L10n.t("📋 릴리즈 노트 (Release Notes) • Ver. 2.2", "📋 Release Notes • Ver. 2.2"), inkCol, btnBg, btnBorder) {
             dlg.dismiss()
             showReleaseNotesDialog(onBack = { settingsMenu() })
         }
@@ -1990,13 +2143,13 @@ class LibraryActivity : Activity() {
         scroll.addView(box)
 
         val verBadge = TextView(this).apply {
-            text = "Aether SAGA  Ver. 2.1"
+            text = "Aether SAGA  Ver. 2.5"
             setPtSize(10.5f)
             setTextColor(inkCol)
             typeface = Typeface.create("serif", Typeface.BOLD)
         }
         val releaseDate = TextView(this).apply {
-            text = L10n.t("정식 릴리즈 • 2026. 11. 01", "Official Release • Nov 01, 2026")
+            text = L10n.t("정식 릴리즈 • 2026. 11. 09", "Official Release • Nov 09, 2026")
             setPtSize(7.5f)
             setTextColor(mutedCol)
             setPadding(0, dp(1), 0, dp(8))
@@ -2033,6 +2186,12 @@ class LibraryActivity : Activity() {
         }
 
         if (L10n.isKorean) {
+            addSection("📖 Ver. 2.2 공식 사용 설명서(EPUB) 기본 탑재 & 독서 관리 고도화", listOf(
+                "공식 사용 설명서 EPUB 기본 탑재: 앱 신규 설치 및 빈 서재 상태에서 원클릭으로 바로 열람할 수 있는 고품질 《Aether SAGA 사용 설명서》 기본 번들링 제공", 
+                "서재 및 환경설정 연동: 서재 빈 화면 및 [환경설정 > 공식 사용 설명서 열기] 메뉴를 통해 언제든 설명서 열람 가능", 
+                "도서 하이라이트 ZIP 백업 도서 메타데이터 통합: 선택한 도서 정보(《도서명》(저자))가 헤더 및 마크다운 파일에 자동 포함되어 여러 권 동시 내보내기 시 가독성 극대화", 
+                "뷰어 내 하이라이트 문장 터치 시 [📢 SNS 공유] 바로가기 원클릭 팝업 액션 추가 (인스타 피드 1:1 및 스토리 9:16 오토핏)"
+            ))
             addSection("🌟 Ver. 2.1 독서 노트 공유 통합, 모듈러 타이포 & 온디멘드 자가 복구", listOf(
                 "도서 정보 및 독서 노트 공유 단일 통합 창: 상단에 '[✓] 도서 기본 정보 및 진행률 (진행률 XX% 달성)' 기본 제공으로 하이라이트 유무에 관계없이 모든 공유 시나리오 100% 지원",
                 "온디멘드(On-Demand) 도서 위치 자동 재연결: 지정 폴더 내 하위 폴더로 책 이동 시, 서재 및 독서노트에서 클릭하는 즉시 신속 탐색하여 DB 경로 및 북마크 자동 자가 복구",
@@ -2095,6 +2254,12 @@ class LibraryActivity : Activity() {
                 "WebDAV 원격 독서 위치 동기화 및 설정 JSON 백업/복원"
             ))
         } else {
+            addSection("📖 Ver. 2.2 Official User Guide (EPUB) Bundled & Enhanced Reading Notes", listOf(
+                "Official User Guide EPUB Bundled: Built-in 'Aether SAGA Official User Guide' seamlessly seeded on fresh install and available from empty library or settings menu", 
+                "Library & Settings Integration: One-click access to open or restore the user guide anytime", 
+                "Highlight ZIP Export with Book Metadata: Auto-embeds book title & author into exported TXT/Markdown files for structured archival across multiple books", 
+                "Quick SNS Share Action: Direct '[📢 SNS Share]' shortcut added to the highlight tap popup for instantaneous 1:1 and 9:16 card creation"
+            ))
             addSection("🌟 Ver. 2.1 Unified Share, Modular Typography & On-Demand Self-Healing", listOf(
                 "Unified Reading Notes & Progress Dialog: Default '[✓] Basic Info & Reading Progress' item covers all sharing flows seamlessly even with 0 highlights",
                 "On-Demand Self-Healing Book Relinking: When book files are moved into subfolders, clicking them in the library or notes instantly locates the file and self-heals database paths",
@@ -2166,7 +2331,7 @@ class LibraryActivity : Activity() {
             .showWithOptimalWidth(this, onBack = onBack)
     }
 
-    // Modern Kindle/Ridi Card Adapter
+    // Modern Modern Book Card Adapter
     private inner class BookGridAdapter : BaseAdapter() {
         override fun getCount() = items.size
         override fun getItem(p: Int) = items[p]
@@ -2205,12 +2370,12 @@ class LibraryActivity : Activity() {
                 }
                 coverFrame.addView(badgeTv, badgeParams)
 
-                // Progress ribbon (Ridi style bottom bar overlay)
+                // Progress ribbon (Progress bottom bar overlay)
                 val progressBar = ProgressBar(context, null, android.R.attr.progressBarStyleHorizontal).apply {
                     id = View.generateViewId()
                     max = 100
                     progressDrawable = GradientDrawable().apply {
-                        setColor(ReaderTheme.ACCENT_RIDI_BLUE)
+                        setColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
                         cornerRadius = dp(2).toFloat()
                     }
                     visibility = View.GONE
@@ -2293,7 +2458,7 @@ class LibraryActivity : Activity() {
                     checkBadge.setTextColor(Color.WHITE)
                     checkBadge.background = GradientDrawable().apply {
                         shape = GradientDrawable.OVAL
-                        setColor(ReaderTheme.ACCENT_KINDLE)
+                        setColor(ReaderTheme.ACCENT_CHARCOAL)
                         setStroke(dp(2), Color.WHITE)
                     }
                 } else {
@@ -2305,7 +2470,7 @@ class LibraryActivity : Activity() {
                     }
                 }
                 if (isSelected) {
-                    card.background = cardDrawable(if (isDark) 0x22FFFFFF.toInt() else 0x18000000.toInt(), 8, ReaderTheme.ACCENT_KINDLE)
+                    card.background = cardDrawable(if (isDark) 0x22FFFFFF.toInt() else 0x18000000.toInt(), 8, ReaderTheme.ACCENT_CHARCOAL)
                 } else {
                     card.background = null
                 }
@@ -2344,7 +2509,7 @@ class LibraryActivity : Activity() {
                 }
             }
 
-            iv.background = cardDrawable(Color.TRANSPARENT, 4, if (isSelectMode && isSelected) ReaderTheme.ACCENT_KINDLE else borderCol)
+            iv.background = cardDrawable(Color.TRANSPARENT, 4, if (isSelectMode && isSelected) ReaderTheme.ACCENT_CHARCOAL else borderCol)
 
             return card
         }
@@ -2612,7 +2777,7 @@ class LibraryActivity : Activity() {
                         when {
                             count > 0 -> {
                                 text = "🔖 " + L10n.t("메모 ${count}건", "$count notes")
-                                setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+                                setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
                                 typeface = Typeface.DEFAULT_BOLD
                             }
                             b.progress >= 0.99f -> {
@@ -2622,7 +2787,7 @@ class LibraryActivity : Activity() {
                             }
                             b.progress > 0f -> {
                                 text = "📖 $pct%"
-                                setTextColor(if (isLcd) ReaderTheme.ACCENT_RIDI_BLUE else inkCol)
+                                setTextColor(if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else inkCol)
                             }
                             else -> {
                                 text = L10n.t("기록 없음 (0%)", "No notes (0%)")
@@ -2747,7 +2912,7 @@ class LibraryActivity : Activity() {
                     }
                 }
 
-                val zipBtn = pillButton(L10n.t("📦 ZIP 이메일", "📦 ZIP Email"), Color.WHITE, ReaderTheme.ACCENT_RIDI_BLUE, ReaderTheme.ACCENT_RIDI_BLUE, strokePx) {
+                val zipBtn = pillButton(L10n.t("📦 ZIP 이메일", "📦 ZIP Email"), Color.WHITE, ReaderTheme.ACCENT_PRIMARY_BLUE, ReaderTheme.ACCENT_PRIMARY_BLUE, strokePx) {
                     val currentItems = filterHighlights()
                     val bTitle = if (selectedFilterPath != null) {
                         allBooks.find { it.path == selectedFilterPath || "file://${it.path}" == selectedFilterPath }?.title ?: File(selectedFilterPath!!).nameWithoutExtension
@@ -2791,7 +2956,7 @@ class LibraryActivity : Activity() {
                     val tagTv = TextView(this@LibraryActivity).apply {
                         text = if (isBookmark) "🔖 " + L10n.t("북마크", "Bookmark") else "🖍 " + L10n.t("형광펜", "Highlight")
                         setPtSize(7.6f)
-                        setTextColor(if (isBookmark) ReaderTheme.ACCENT_RIDI_BLUE else 0xFFD97706.toInt())
+                        setTextColor(if (isBookmark) ReaderTheme.ACCENT_PRIMARY_BLUE else 0xFFD97706.toInt())
                         typeface = Typeface.DEFAULT_BOLD
                     }
                     val infoTv = TextView(this@LibraryActivity).apply {
@@ -2838,7 +3003,7 @@ class LibraryActivity : Activity() {
                         val toggleBtn = TextView(this@LibraryActivity).apply {
                             text = L10n.t("더보기 ▾", "Show More ▾")
                             setPtSize(7.8f)
-                            setTextColor(if (isLcd) ReaderTheme.ACCENT_RIDI_BLUE else ReaderTheme.EINK_INK)
+                            setTextColor(if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.EINK_INK)
                             typeface = Typeface.DEFAULT_BOLD
                             setPadding(0, 0, 0, dp(4))
                             setOnClickListener {
@@ -2871,7 +3036,7 @@ class LibraryActivity : Activity() {
                         val noteTitleTv = TextView(this@LibraryActivity).apply {
                             text = L10n.t("📝 메모:", "📝 Note:")
                             setPtSize(7.6f)
-                            setTextColor(if (isLcd) ReaderTheme.ACCENT_RIDI_BLUE else ReaderTheme.EINK_INK)
+                            setTextColor(if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.EINK_INK)
                             typeface = Typeface.DEFAULT_BOLD
                         }
                         val noteBodyTv = TextView(this@LibraryActivity).apply {
@@ -2893,7 +3058,7 @@ class LibraryActivity : Activity() {
                             val noteToggleBtn = TextView(this@LibraryActivity).apply {
                                 text = L10n.t("더보기 ▾", "Show More ▾")
                                 setPtSize(7.6f)
-                                setTextColor(if (isLcd) ReaderTheme.ACCENT_RIDI_BLUE else ReaderTheme.EINK_INK)
+                                setTextColor(if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.EINK_INK)
                                 typeface = Typeface.DEFAULT_BOLD
                                 setPadding(0, dp(2), 0, 0)
                                 setOnClickListener {

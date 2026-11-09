@@ -34,8 +34,10 @@ object ReaderTheme {
     const val TRUE_BLACK_PAPER = 0xFF000000.toInt() // OLED true black
     const val TRUE_BLACK_INK = 0xFFD0D0D0.toInt()   // Soft white for true black
 
-    const val ACCENT_KINDLE = 0xFF2A2A2A.toInt()
-    const val ACCENT_RIDI_BLUE = 0xFF1F8CE6.toInt() // Subtle Ridi accent for interactive elements
+    const val ACCENT_CHARCOAL = 0xFF2A2A2A.toInt()
+    const val ACCENT_PRIMARY_BLUE = 0xFF1F8CE6.toInt() // Primary interactive blue accent
+    const val ACCENT_KINDLE = ACCENT_CHARCOAL
+    const val ACCENT_RIDI_BLUE = ACCENT_PRIMARY_BLUE
 
     const val CORNER_CARD_DP = 8
     const val CORNER_PILL_DP = 20
@@ -123,7 +125,7 @@ fun android.app.AlertDialog.showWithOptimalWidth(
     val windowOutlineDrawable = GradientDrawable().apply {
         setColor(ReaderTheme.EINK_PAPER)
         cornerRadius = corner
-        setStroke(strokeW, ReaderTheme.ACCENT_KINDLE)
+        setStroke(strokeW, ReaderTheme.ACCENT_CHARCOAL)
     }
     w.setBackgroundDrawable(windowOutlineDrawable)
 
@@ -226,13 +228,13 @@ fun android.app.AlertDialog.showWithOptimalWidth(
         background = GradientDrawable().apply {
             setColor(ReaderTheme.EINK_PAPER)
             cornerRadius = corner
-            setStroke(strokeW, ReaderTheme.ACCENT_KINDLE)
+            setStroke(strokeW, ReaderTheme.ACCENT_CHARCOAL)
         }
         // Draw continuous outline in foreground on top of all child panels (top, middle, bottom)
         foreground = GradientDrawable().apply {
             setColor(Color.TRANSPARENT)
             cornerRadius = corner
-            setStroke(strokeW, ReaderTheme.ACCENT_KINDLE)
+            setStroke(strokeW, ReaderTheme.ACCENT_CHARCOAL)
         }
         val pad = context.dp(3)
         setPadding(pad, pad, pad, pad)
@@ -461,7 +463,7 @@ fun Context.pillDrawable(bg: Int, stroke: Int = Color.TRANSPARENT, strokePx: Int
     if (stroke != Color.TRANSPARENT) setStroke(strokePx.coerceAtLeast(1), stroke)
 }
 
-/** Elegant Kindle/Ridi-style pill action button optimized for UI menus */
+/** Elegant Modern Book-style pill action button optimized for UI menus */
 fun Context.pillButton(
     text: String,
     fg: Int,
@@ -569,7 +571,7 @@ class ToggleSwitchView(context: Context) : View(context) {
         val radius = (h - 2 * pad) / 2f
 
         if (isChecked) {
-            trackPaint.color = ReaderTheme.ACCENT_KINDLE
+            trackPaint.color = ReaderTheme.ACCENT_CHARCOAL
             canvas.drawRoundRect(rect, radius, radius, trackPaint)
             val thumbR = radius - 3f * dens
             val cx = w - pad - radius
@@ -619,7 +621,7 @@ fun renderDefaultBookCover(width: Int, height: Int, title: String, author: Strin
     val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { shader = grad }
     canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), p)
 
-    // Book spine crease effect on the left (Classic Kindle/Ridi look)
+    // Book spine crease effect on the left (Classic Modern Book look)
     val spine = Paint().apply {
         shader = LinearGradient(0f, 0f, width * 0.08f, 0f, 
             intArrayOf(0x33000000, 0x11000000, 0x00000000), floatArrayOf(0f, 0.4f, 1f), Shader.TileMode.CLAMP)

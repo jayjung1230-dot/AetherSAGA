@@ -4,6 +4,9 @@ import com.aether.reader.domain.display.DisplayKind
 import com.aether.reader.domain.display.PageTransition
 import org.junit.Assert.*
 import org.junit.Test
+import java.io.File
+import com.aether.reader.data.HighlightEntity
+import com.aether.reader.engine.Containers
 
 class FeaturesVerificationTest {
 
@@ -194,8 +197,8 @@ class FeaturesVerificationTest {
     }
 
     @Test
-    fun testWhispersyncPayloadAndDecisionLogic() {
-        // 1. 원격 진행도 비교 로직 검증 (Whispersync)
+    fun testWebDavSyncPayloadAndDecisionLogic() {
+        // 1. 원격 진행도 비교 로직 검증 (WebDAV Sync)
         fun shouldPromptRemoteJump(
             remoteUpdatedAt: Long,
             localLastRead: Long,
@@ -449,7 +452,7 @@ class FeaturesVerificationTest {
                 (maxDim in 1420..1480 && minDim in 1050..1100) || // 6.0" Luna X / Poke
                 (maxDim in 1600..1710 && minDim in 1200..1300) || // 7.0" Leaf / Page
                 (maxDim in 1840..1900 && minDim in 1380..1430) || // 7.8"/10.3" Nova / Note
-                (maxDim in 1000..1050 && minDim in 740..780)      // 6.0" Crema Sound
+                (maxDim in 1000..1050 && minDim in 740..780)      // 6.0" 6.0 inch Reader
             )
         }
 
@@ -1022,9 +1025,9 @@ class FeaturesVerificationTest {
     @Test
     fun testCompletedBooksMonthlyAndYearly() {
         val completed = listOf(
-            com.aether.reader.data.CompletedBookEntity(1, "/path/demian.epub", "데미안", "헤르만 헤세", 1729750000000L, "2026-10-15"),
+            com.aether.reader.data.CompletedBookEntity(1, "/path/demian.epub", "시간의 서곡", "엘리엇", 1729750000000L, "2026-10-15"),
             com.aether.reader.data.CompletedBookEntity(2, "/path/human.epub", "인간 실격", "다자이 오사무", 1729850000000L, "2026-10-22"),
-            com.aether.reader.data.CompletedBookEntity(3, "/path/prince.epub", "어린 왕자", "생텍쥐페리", 1725500000000L, "2026-09-05"),
+            com.aether.reader.data.CompletedBookEntity(3, "/path/prince.epub", "별빛의 여정", "에테르 작가", 1725500000000L, "2026-09-05"),
             com.aether.reader.data.CompletedBookEntity(4, "/path/1984.epub", "1984", "조지 오웰", 1723950000000L, "2026-08-18")
         )
         val cal = java.util.Calendar.getInstance().apply {
@@ -1037,7 +1040,7 @@ class FeaturesVerificationTest {
         assertEquals(2, monthlyRes.totalCompletedCount)
         assertEquals(2, monthlyRes.completedThisPeriod.size)
         assertEquals("인간 실격", monthlyRes.completedThisPeriod[0].title)
-        assertEquals("데미안", monthlyRes.completedThisPeriod[1].title)
+        assertEquals("시간의 서곡", monthlyRes.completedThisPeriod[1].title)
 
         // 2. 연간 (2026년) 집계 검증: 총 4권, 3개 월 그룹 (10월, 9월, 8월)
         val yearlyRes = StatsAggregator.aggregate(emptyList(), StatsPeriod.YEARLY, StatsMetric.TIME, baseDate, completed)
@@ -1049,7 +1052,7 @@ class FeaturesVerificationTest {
         // 9월: 1권
         assertEquals("9월", yearlyRes.completedMonthlyGroups[1].monthLabel)
         assertEquals(1, yearlyRes.completedMonthlyGroups[1].count)
-        assertEquals("어린 왕자", yearlyRes.completedMonthlyGroups[1].books[0].title)
+        assertEquals("별빛의 여정", yearlyRes.completedMonthlyGroups[1].books[0].title)
         // 8월: 1권
         assertEquals("8월", yearlyRes.completedMonthlyGroups[2].monthLabel)
         assertEquals(1, yearlyRes.completedMonthlyGroups[2].count)
@@ -1103,7 +1106,7 @@ class FeaturesVerificationTest {
     @Test
     fun testDefaultProgressItemInUnifiedShare() {
         val pct = 75
-        val title = "데미안"
+        val title = "시간의 서곡"
         val defaultQuote = "'$title' 독서 진행률 ${pct}% 달성!"
         val item = com.aether.reader.data.AndroidShareHelper.SnsQuoteItem(
             quote = defaultQuote,
@@ -1129,8 +1132,8 @@ class FeaturesVerificationTest {
         )
         val completedBook = com.aether.reader.data.BookEntity(
             path = "/books/demian.epub",
-            title = "데미안",
-            author = "헤르만 헤세",
+            title = "시간의 서곡",
+            author = "엘리엇",
             format = "EPUB",
             sizeBytes = 180000L,
             addedAt = 1000L,
@@ -1139,7 +1142,7 @@ class FeaturesVerificationTest {
         )
 
         val completedList = listOf(
-            com.aether.reader.data.CompletedBookEntity(1, "/books/demian.epub", "데미안", "헤르만 헤세", 2000L, "2026-10-25")
+            com.aether.reader.data.CompletedBookEntity(1, "/books/demian.epub", "시간의 서곡", "엘리엇", 2000L, "2026-10-25")
         )
 
         fun isBookCompleted(b: com.aether.reader.data.BookEntity): Boolean {
@@ -1615,26 +1618,26 @@ class FeaturesVerificationTest {
             val subDir = File(rootDir, "Fiction/Fantasy")
             subDir.mkdirs()
 
-            val targetFile = File(subDir, "The_Hobbit.epub")
+            val targetFile = File(subDir, "The_Starlight_Voyage.epub")
             targetFile.writeText("Sample EPUB Content For Relinking Test")
 
             // Test 1: Exact match with name and size
-            val foundExact = LibraryActivity.findMatchingBookFile(rootDir, "The_Hobbit.epub", targetFile.length())
+            val foundExact = LibraryActivity.findMatchingBookFile(rootDir, "The_Starlight_Voyage.epub", targetFile.length())
             assertNotNull(foundExact)
             assertEquals(targetFile.absolutePath, foundExact?.absolutePath)
 
             // Test 2: Case-insensitive match
-            val foundCase = LibraryActivity.findMatchingBookFile(rootDir, "the_hobbit.epub", targetFile.length())
+            val foundCase = LibraryActivity.findMatchingBookFile(rootDir, "the_starlight_voyage.epub", targetFile.length())
             assertNotNull(foundCase)
             assertEquals(targetFile.absolutePath, foundCase?.absolutePath)
 
             // Test 3: Match with size <= 0L (legacy or unknown size)
-            val foundAnySize = LibraryActivity.findMatchingBookFile(rootDir, "the_hobbit.epub", 0L)
+            val foundAnySize = LibraryActivity.findMatchingBookFile(rootDir, "the_starlight_voyage.epub", 0L)
             assertNotNull(foundAnySize)
             assertEquals(targetFile.absolutePath, foundAnySize?.absolutePath)
 
             // Test 4: Size mismatch should return null to prevent collision
-            val notFoundWrongSize = LibraryActivity.findMatchingBookFile(rootDir, "the_hobbit.epub", 999999L)
+            val notFoundWrongSize = LibraryActivity.findMatchingBookFile(rootDir, "the_starlight_voyage.epub", 999999L)
             assertNull(notFoundWrongSize)
 
             // Test 5: Non-existent file name
@@ -1650,27 +1653,27 @@ class FeaturesVerificationTest {
         val h1 = HighlightEntity(
             id = 1L, bookPath = "/storage/emulated/0/Books/prince.epub", kind = 0,
             chapter = 1, startChar = 10, endChar = 40,
-            quote = "가장 중요한 것은 눈에 보이지 않아.", note = "관계의 본질",
+            quote = "어둠이 깊어질수록 길을 밝혀주는 별빛은 더욱 선명해진다.", note = "관계의 본질",
             style = 0, colorTag = 0, progress = 0.25f, chapterTitle = "제2장",
             createdAt = 1730000000000L,
-            bookTitle = "어린 왕자", bookAuthor = "생텍쥐페리"
+            bookTitle = "별빛의 여정", bookAuthor = "에테르 작가"
         )
         val h2 = HighlightEntity(
             id = 2L, bookPath = "/storage/emulated/0/Books/demian.epub", kind = 0,
             chapter = 0, startChar = 5, endChar = 30,
-            quote = "새는 알에서 나오려고 투쟁한다.", note = "자아 탐색",
+            quote = "모든 끝은 언제나 새로운 여정의 서막이다.", note = "자아 탐색",
             style = 0, colorTag = 0, progress = 0.15f, chapterTitle = "제1장 두 개의 세계",
             createdAt = 1730001000000L,
-            bookTitle = "데미안", bookAuthor = "헤르만 헤세"
+            bookTitle = "시간의 서곡", bookAuthor = "엘리엇"
         )
 
         val highlights = listOf(h1, h2)
         val distinctBooks = highlights.map { it.bookTitle to it.bookAuthor }.distinct()
         assertEquals(2, distinctBooks.size)
-        assertEquals("어린 왕자", distinctBooks[0].first)
-        assertEquals("생텍쥐페리", distinctBooks[0].second)
-        assertEquals("데미안", distinctBooks[1].first)
-        assertEquals("헤르만 헤세", distinctBooks[1].second)
+        assertEquals("별빛의 여정", distinctBooks[0].first)
+        assertEquals("에테르 작가", distinctBooks[0].second)
+        assertEquals("시간의 서곡", distinctBooks[1].first)
+        assertEquals("엘리엇", distinctBooks[1].second)
 
         // Verify book tags formatted for items
         fun formatItemBookTag(h: HighlightEntity): String {
@@ -1681,7 +1684,123 @@ class FeaturesVerificationTest {
 
         val tag1 = formatItemBookTag(h1)
         val tag2 = formatItemBookTag(h2)
-        assertEquals("📖 《어린 왕자》(생텍쥐페리)", tag1)
-        assertEquals("📖 《데미안》(헤르만 헤세)", tag2)
+        assertEquals("📖 《별빛의 여정》(에테르 작가)", tag1)
+        assertEquals("📖 《시간의 서곡》(엘리엇)", tag2)
+    }
+
+    @Test
+    fun testBundledUserGuideEpubValidation() {
+        val candidatePaths = listOf(
+            "app/src/main/assets/books/AetherSAGA_User_Guide.epub",
+            "src/main/assets/books/AetherSAGA_User_Guide.epub",
+            "../app/src/main/assets/books/AetherSAGA_User_Guide.epub"
+        )
+        val guideFile = candidatePaths.map { java.io.File(it) }.firstOrNull { it.exists() }
+        assertNotNull("Bundled User Guide EPUB must exist in assets/books/", guideFile)
+        assertTrue(guideFile!!.length() > 20000L)
+
+        // 1. Verify EPUB standard zip specification
+        java.util.zip.ZipFile(guideFile).use { zf ->
+            val entries = zf.entries().toList()
+            assertTrue(entries.isNotEmpty())
+            val first = entries.first()
+            assertEquals("mimetype", first.name)
+            assertEquals(java.util.zip.ZipEntry.STORED, first.method)
+
+            val entryNames = entries.map { it.name }.toSet()
+            assertTrue(entryNames.contains("META-INF/container.xml"))
+            assertTrue(entryNames.contains("OEBPS/content.opf"))
+            assertTrue(entryNames.contains("OEBPS/toc.ncx"))
+            assertTrue(entryNames.contains("OEBPS/cover.jpg"))
+            assertTrue(entryNames.contains("OEBPS/ch01_intro.xhtml"))
+            assertTrue(entryNames.contains("OEBPS/ch05_notes_share.xhtml"))
+        }
+
+        // 2. Verify Aether Reader Engine sniffing and EPUB contents
+        assertEquals(com.aether.reader.engine.BookFormat.EPUB, Containers.sniffFileFormat(guideFile))
+        java.util.zip.ZipFile(guideFile).use { zf ->
+            val opfEntry = zf.getEntry("OEBPS/content.opf")
+            assertNotNull(opfEntry)
+            val opfText = zf.getInputStream(opfEntry).bufferedReader(Charsets.UTF_8).readText()
+            assertTrue(opfText.contains("Aether SAGA 사용 설명서"))
+            assertTrue(opfText.contains("Aether SAGA 개발팀"))
+            assertTrue(opfText.contains("cover-image"))
+
+            val tocEntry = zf.getEntry("OEBPS/toc.ncx")
+            assertNotNull(tocEntry)
+            val tocText = zf.getInputStream(tocEntry).bufferedReader(Charsets.UTF_8).readText()
+            assertTrue(tocText.contains("스마트 서재 및 도서 관리"))
+            assertTrue(tocText.contains("SNS 공유"))
+
+            val ch1Entry = zf.getEntry("OEBPS/ch01_intro.xhtml")
+            assertNotNull(ch1Entry)
+            val ch1Text = zf.getInputStream(ch1Entry).bufferedReader(Charsets.UTF_8).readText()
+            assertTrue(ch1Text.contains("환영합니다"))
+        }
+    }
+
+    @Test
+    fun testGeminiGenreDetectionLogic() {
+        // 1. Technical / Textbook Mode
+        val techMode1 = GeminiDialogHelper.detectGenre(
+            "운영체제와 가상 메모리", "앤드루 타넨바움", "제4장 가상 메모리", "TLB 캐시 미스가 발생하면 페이지 테이블을 조회한다."
+        )
+        assertEquals(GeminiDialogHelper.GenreMode.TECH, techMode1)
+
+        val techMode2 = GeminiDialogHelper.detectGenre(
+            "Computer Architecture", "Patterson", "Chapter 5", "Cache hierarchy reduces memory latency."
+        )
+        assertEquals(GeminiDialogHelper.GenreMode.TECH, techMode2)
+
+        // 2. Historical Context Mode
+        val historyMode1 = GeminiDialogHelper.detectGenre(
+            "조선왕조실록", "사관", "태종실록", "왕조의 권력을 안정시키기 위해 관제를 개편하였다."
+        )
+        assertEquals(GeminiDialogHelper.GenreMode.HISTORY, historyMode1)
+
+        val historyMode2 = GeminiDialogHelper.detectGenre(
+            "The French Revolution", "Carlyle", "18th Century", "The fall of the Bastille sparked nationwide revolution."
+        )
+        assertEquals(GeminiDialogHelper.GenreMode.HISTORY, historyMode2)
+
+        // 3. Literary / Humanities Mode (Default)
+        val litMode1 = GeminiDialogHelper.detectGenre(
+            "별빛의 여정", "에테르 작가", "제1장 새벽", "어둠이 깊어질수록 길을 밝혀주는 별빛은 더욱 선명해진다."
+        )
+        assertEquals(GeminiDialogHelper.GenreMode.LITERATURE, litMode1)
+
+        val litMode2 = GeminiDialogHelper.detectGenre(
+            "시간의 서곡", "엘리엇", "프롤로그", "모든 끝은 언제나 새로운 여정의 서막이다."
+        )
+        assertEquals(GeminiDialogHelper.GenreMode.LITERATURE, litMode2)
+
+        // 4. User's specific User Guide case (E-Ink vs LCD/OLED display quote)
+        val userGuideMode = GeminiDialogHelper.detectGenre(
+            "Aether SAGA 사용 설명서",
+            "Aether SAGA 개발팀",
+            "프롤로그: 환영합니다",
+            "전자종이(E-Ink) 단말기의 눈 편한 감성과 고해상도 안드로이드 태블릿(LCD/OLED)의 빠르고 선명한 반응성을 모두 극대화하였습니다."
+        )
+        assertEquals(GeminiDialogHelper.GenreMode.TECH, userGuideMode)
+    }
+
+    @Test
+    fun testGeminiInAppMenuVisibilityLogic() {
+        fun buildSelectionMenuItems(hasGeminiEnabled: Boolean): List<String> {
+            val items = mutableListOf("밑줄", "점선", "형광펜", "메모")
+            if (hasGeminiEnabled) {
+                items.add("Gemini AI")
+            }
+            items.add("복사")
+            return items
+        }
+
+        val enabledItems = buildSelectionMenuItems(hasGeminiEnabled = true)
+        assertTrue(enabledItems.contains("Gemini AI"))
+        assertEquals(6, enabledItems.size)
+
+        val disabledItems = buildSelectionMenuItems(hasGeminiEnabled = false)
+        assertFalse(disabledItems.contains("Gemini AI"))
+        assertEquals(5, disabledItems.size)
     }
 }

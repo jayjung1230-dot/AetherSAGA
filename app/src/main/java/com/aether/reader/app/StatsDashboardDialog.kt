@@ -40,7 +40,7 @@ object StatsDashboardDialog {
         val cardBgCol = if (isEink) ReaderTheme.EINK_CARD_BG else Color.WHITE
         val borderCol = if (isEink) ReaderTheme.EINK_BORDER else 0xFFCBD5E1.toInt()
         val mutedCol = if (isEink) ReaderTheme.EINK_MUTED else 0xFF64748B.toInt()
-        val accentCol = if (isEink) ReaderTheme.EINK_INK else ReaderTheme.ACCENT_RIDI_BLUE
+        val accentCol = if (isEink) ReaderTheme.EINK_INK else ReaderTheme.ACCENT_PRIMARY_BLUE
 
         var currentPeriod = StatsPeriod.WEEKLY
         var currentMetric = StatsMetric.TIME
@@ -725,8 +725,8 @@ object StatsDashboardDialog {
             if (isEink) L10n.t("💾 독서 통계 카드 저장 · 공유", "💾 Save & Share Stats Card")
             else L10n.t("📱 독서 통계 SNS 공유 및 이미지 저장", "📱 Share Stats & Save Image"),
             Color.WHITE,
-            if (isEink) ReaderTheme.EINK_INK else ReaderTheme.ACCENT_RIDI_BLUE,
-            if (isEink) ReaderTheme.EINK_INK else ReaderTheme.ACCENT_RIDI_BLUE
+            if (isEink) ReaderTheme.EINK_INK else ReaderTheme.ACCENT_PRIMARY_BLUE,
+            if (isEink) ReaderTheme.EINK_INK else ReaderTheme.ACCENT_PRIMARY_BLUE
         ) {
             val periodLabel = when (currentPeriod) {
                 StatsPeriod.WEEKLY -> L10n.t("주간 독서 통계 리포트", "Weekly Reading Report")

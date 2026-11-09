@@ -220,7 +220,7 @@ fun Context.showEmailHighlightsZipDialog(
             (if (memoCount > 0) L10n.t(" · 작성 메모 ${memoCount}건", " · Notes $memoCount") else "")
         setPtSize(8f)
         typeface = ReaderTheme.uiFontMedium
-        setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+        setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
         setPadding(0, 0, 0, dp(3))
     }
 
@@ -247,7 +247,7 @@ fun Context.showEmailHighlightsZipDialog(
     val zipBadgeTv = TextView(this).apply {
         text = zipAttachLabel
         setPtSize(7.5f)
-        setTextColor(ReaderTheme.ACCENT_KINDLE)
+        setTextColor(ReaderTheme.ACCENT_CHARCOAL)
         setLineSpacing(dp(2).toFloat(), 1f)
     }
     infoCard.addView(titleTv)
@@ -318,7 +318,7 @@ fun Context.showEmailHighlightsZipDialog(
         isChecked = true
         setPtSize(7.8f)
         typeface = ReaderTheme.uiFontBold
-        setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+        setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
         setPadding(dp(4), dp(6), dp(4), dp(2))
     }
     root.addView(includeBookInfoCb)
@@ -386,7 +386,7 @@ fun Context.showEmailHighlightsZipDialog(
     }
 
     // Unified primary action button (Single Button for share)
-    val sendActionBtn = pillButton(L10n.t("📨 이메일 전송하기", "📨 Send Email"), Color.WHITE, ReaderTheme.ACCENT_RIDI_BLUE, ReaderTheme.ACCENT_RIDI_BLUE) {
+    val sendActionBtn = pillButton(L10n.t("📨 이메일 전송하기", "📨 Send Email"), Color.WHITE, ReaderTheme.ACCENT_PRIMARY_BLUE, ReaderTheme.ACCENT_PRIMARY_BLUE) {
         executeSend()
     }.apply {
         setPtSize(9.5f)
@@ -478,7 +478,7 @@ fun Activity.showReadingNotesShareDialog(
     val metaBadgeTv = TextView(this).apply {
         text = L10n.t("📚 함께 전송될 도서 정보", "📚 Book Information to Share")
         setPtSize(7.5f)
-        setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+        setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
         typeface = ReaderTheme.uiFontBold
     }
     val metaTitleTv = TextView(this).apply {
@@ -794,14 +794,14 @@ fun Activity.showReadingNotesShareDialog(
         orientation = LinearLayout.HORIZONTAL
         setPadding(0, dp(6), 0, 0)
     }
-    val sendBtn = pillButton(L10n.t("📨 이메일 전송하기", "📨 Send Email"), Color.WHITE, ReaderTheme.ACCENT_RIDI_BLUE, ReaderTheme.ACCENT_RIDI_BLUE) {
+    val sendBtn = pillButton(L10n.t("📨 이메일 전송하기", "📨 Send Email"), Color.WHITE, ReaderTheme.ACCENT_PRIMARY_BLUE, ReaderTheme.ACCENT_PRIMARY_BLUE) {
         executeSend()
     }.apply {
         setPtSize(9f)
         typeface = ReaderTheme.uiFontBold
         setPadding(dp(12), dp(10), dp(12), dp(10))
     }
-    val snsBtn = pillButton(L10n.t("📱 SNS 독서카드 공유", "📱 Share to SNS"), Color.WHITE, ReaderTheme.ACCENT_KINDLE, ReaderTheme.ACCENT_KINDLE) {
+    val snsBtn = pillButton(L10n.t("📱 SNS 독서카드 공유", "📱 Share to SNS"), Color.WHITE, ReaderTheme.ACCENT_CHARCOAL, ReaderTheme.ACCENT_CHARCOAL) {
         executeSns()
     }.apply {
         setPtSize(9f)

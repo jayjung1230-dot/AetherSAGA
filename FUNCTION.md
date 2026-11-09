@@ -1,7 +1,7 @@
 # Aether SAGA (에테르 사가) - 기능 명세 및 법적·마켓 컴플라이언스 분석서 (FUNCTION.md)
 
-> **앱 버전:** `Ver. 2.1` (공식 릴리즈) | **문서 버전:** v2.1.0  
-> **기준 일자:** 2026년 11월 1일  
+> **앱 버전:** `Ver. 2.2` (공식 릴리즈) | **문서 버전:** v2.2.0  
+> **기준 일자:** 2026년 11월 9일  
 > **대상 애플리케이션:** Aether SAGA (*journeys through endless stories*)  
 > **관련 문서:** [RELEASE_NOTES.md](./RELEASE_NOTES.md), [README.md](./README.md), [ARCHITECTURE.md](./ARCHITECTURE.md)  
 > **작성 목적:** 구글 플레이스토어(Google Play Store) 및 애플 앱스토어(Apple App Store) 출시 전 법적 리스크 사전 점검, 타사 전자책 앱(Kindle, Moon+ Reader, Kobo, Crema 등)과의 복제/표절 논쟁(Copycat Dispute) 원천 차단, 특허권·상표권·저작권 및 오픈소스 라이선스 클리어런스(Clearance) 확보를 위한 종합 기술 분석 보고서.
@@ -31,7 +31,7 @@
    - 3.16. 하드웨어 맞춤형 안전 TTS 음성 낭독 오디오 라우팅
    - 3.17. 만화/코믹스 스트리밍 엔진 (CBZ/CBR/ZIP 스마트 분할 및 콘트라스트)
    - 3.18. 서재 및 파일 관리 (책장 분류, 그레이스케일 캐시, SAF 연동)
-   - 3.19. Whispersync 스타일 WebDAV 원격 위치 동기화 및 마크다운 내보내기
+   - 3.19. WebDAV 클라우드 WebDAV 원격 위치 동기화 및 마크다운 내보내기
    - 3.20. 로컬 무선 Wi-Fi 파일 전송 웹 리모트 서버
    - 3.21. 전자잉크 vs LCD/OLED 화면 조명 최적화 및 이원화 (E-Ink System Brightness & LCD Eye-Care)
    - 3.22. 인라인 하이라이트 독서 메모 (Inline Highlight Memo Editor)
@@ -43,6 +43,9 @@
    - 3.28. LCD/OLED 전용 SNS 독서 카드 공유 및 스토어 라우팅 시스템 (LCD/OLED Exclusive SNS Sharing System)
    - 3.29. 팝업 대화상자 계층 UI, 은은한 배경 딤 및 상시 스크롤바 시스템 (Popup UI Hierarchy, Dimming & Universal Scrollbar)
    - 3.30. 동적 이중 언어(한국어/영어) 지원 및 시스템 로케일 자동 감지 시스템 (Bilingual Localization System: Korean & English)
+   - 3.31. 도서 정보 및 독서 노트 공유 통합 창 & 인스타그램 스토리 오토핏 (Unified Share & Story Auto-Fit Engine)
+   - 3.32. 도서 하이라이트 ZIP 압축파일 도서 메타데이터 통합 (Rich Metadata Highlight ZIP Export)
+   - 3.33. 공식 기본 전자책 《Aether SAGA 사용 설명서》(EPUB) 번들링 및 자동 시딩 (Bundled Official User Guide & Auto-Seeding)
 4. [특허권(Patent) 침해 여부 분석](#4-특허권patent-침해-여부-분석)
 5. [상표권(Trademark) 및 부정경쟁방지법 검토](#5-상표권trademark-및-부정경쟁방지법-검토)
 6. [타사 앱 복제 논쟁(Copycat Dispute) 회피 근거](#6-타사-앱-복제-논쟁copycat-dispute-회피-근거)
@@ -55,12 +58,12 @@
 
 ## 1. 개요 및 법적 검토 목적
 
-**Aether SAGA (*journeys through endless stories*)**는 크레마 루나 X(Crema Luna X, 6.0"), 오닉스 북스(Onyx Boox), 킨들(Kindle) 등 저사양 E-Ink 전자책 단말기와 안드로이드/iOS 태블릿 환경에서 동작하는 초경량 전자책 뷰어입니다.
+**Aether SAGA (*journeys through endless stories*)**는 E-Ink 리더(Crema Luna X, 6.0"), E-Ink 태블릿(Onyx Boox), 킨들(Kindle) 등 저사양 E-Ink 전자책 단말기와 안드로이드/iOS 태블릿 환경에서 동작하는 초경량 전자책 뷰어입니다.
 
 본 문서는 Aether SAGA의 장기적인 글로벌 앱 마켓(Google Play Store 및 Apple App Store) 정식 출시를 대비하여 작성되었습니다. 전자책 뷰어 생태계는 역사적으로 아마존(Amazon), 애플(Apple), 문리더(Moon+ Reader), 코보(Kobo) 등 기존 대형 플랫폼 및 인기 앱 간의 특허 분쟁(예: 책장 넘김 효과 특허, 동기화 특허)과 UI 저작권 분쟁이 빈번했던 분야입니다. 
 
 본 문서는 Aether SAGA에 구현된 모든 기능의 기술적 작동 원리를 상세히 기술하고, 다음과 같은 법적 리스크를 사전에 완벽히 소명하고 차단하는 데 목적이 있습니다:
-1. **특허권(Patent) 침해 리스크:** 애플의 3D Page Curl 관련 디자인/실용신안 특허, 아마존의 원클릭/Whispersync 특허 등과의 비침해성 증명.
+1. **특허권(Patent) 침해 리스크:** 애플의 3D Page Curl 관련 디자인/실용신안 특허, 아마존의 원클릭/WebDAV 동기화 특허 등과의 비침해성 증명.
 2. **복제 및 부정경쟁 논쟁(Copycat Claims):** 타사 전자책 앱의 독점적 UI나 소스코드를 도용하지 않고 클린룸(Clean-Room) 방식으로 독자 개발되었음을 증명.
 3. **폰트 소프트웨어 저작권 (Zero-Bundling 원칙):** 상용 폰트(Calibri, Arial 등) 및 서드파티 폰트의 번들링을 전면 배제하고, 안드로이드 OS 표준 폰트(시스템 명조, 시스템 고딕) 호출 및 SAF(Storage Access Framework)를 통한 사용자 폰트 동적 로드만 지원하여 폰트 저작권 리스크 0%를 달성했음을 소명.
 4. **오픈소스 GPL 오염(Copyleft Infection) 방지:** 독점적인 MuPDF/GPL 코드로 인한 소스코드 공개 의무 발생 가능성을 원천 배제.
@@ -112,7 +115,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 ### 3.2. E-Ink 패널 최적화 & 10단계 외곽선 스트로크 부스터
 
 - **개요 및 목적:**
-  전자잉크(Carta 1200/1300, Kaleido 3) 패널의 특성에 맞추어 텍스트 시인성을 극대화하고, 잔상(Ghosting)을 방지하기 위한 하드웨어 연동 기능입니다.
+  전자잉크(E-Ink 표준/1300, Kaleido 3) 패널의 특성에 맞추어 텍스트 시인성을 극대화하고, 잔상(Ghosting)을 방지하기 위한 하드웨어 연동 기능입니다.
 - **구현 파일 및 주요 심볼:**
   - [DisplayStrategy.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/domain/display/DisplayStrategy.kt)
   - [Strategies.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/platform/display/Strategies.kt) (`MonoEInkStrategy`, `ColorEInkStrategy`)
@@ -152,14 +155,14 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 - **목록 구성 정책 및 단순화 (Checkmark `✓` UI):**
   - **4대 핵심 디스플레이 모드로 단순화:** 개별 기기 해상도 프리셋 선택 시 실제 기기와 해상도가 불일치하여 발생할 수 있는 비트맵 스케일링 왜곡을 방지하고 사용자 혼선을 줄이기 위해 핵심 4대 모드로 단순화:
     1. `자동 감지 (기기 환경에 맞춤 - 권장)` (`AUTO`)
-    2. `흑백 E-Ink 모드 강제 적용 (Carta 1300/1200)` (`MONO_EINK`)
+    2. `흑백 E-Ink 모드 강제 적용 (E-Ink 고해상도)` (`MONO_EINK`)
     3. `컬러 E-Ink 모드 강제 적용 (Kaleido 3)` (`COLOR_EINK`)
     4. `일반 LCD / OLED 모드 강제 적용 (컬러)` (`LCD_OLED`)
   - **활성 항목 체크 표시 (`✓`):** 사용자가 현재 어떤 디스플레이 모드를 사용 중인지 한눈에 알 수 있도록 활성 항목 앞에 `✓  ` 접두어를 부여하고 미선택 항목은 공백 들여쓰기로 깔끔하게 정렬.
   - **기기별 하드웨어 최적화 종횡비:**
-    - 6.0인치: 루나 X / 사운드업 (1448x1072 Carta 1200, 300 PPI), 보급형 E-Ink (1024x758 Carta, 212 PPI)
-    - 6.8인치: 킨들 페이퍼화이트 (1648x1236 Carta 1200, 300 PPI)
-    - 7.0인치: 오닉스 리프 / 페이지 (1680x1264 Carta 1200, 300 PPI)
+    - 6.0인치: 루나 X / 사운드업 (1448x1072 E-Ink 표준, 300 PPI), 보급형 E-Ink (1024x758 Carta, 212 PPI)
+    - 6.8인치: 킨들 페이퍼화이트 (1648x1236 E-Ink 표준, 300 PPI)
+    - 7.0인치: 오닉스 리프 / 페이지 (1680x1264 E-Ink 표준, 300 PPI)
     - 7.8인치: 오닉스 노바 / 코보 포마 (1872x1404 Carta, 300 PPI)
     - 10.3인치: 오닉스 노트 / 대화면 (1872x1404 Carta, 227 PPI)
     - 13.3인치: 오닉스 맥스 / 대화면 (2200x1650 Carta, 207 PPI)
@@ -177,7 +180,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   - **16:9 비율 (비율 1.778):** 스마트폰 및 와이드 모니터. `marginScale = 0.95f`, `measure = 44f`.
 - **법적 및 마켓 분석:**
   기기 목록 표기는 하드웨어 해상도 호환성을 돕기 위한 기술적 참조용(Nominative Fair Use)이며, 상표 침해를 구성하지 않습니다.
-  - **비제휴 공식 면책 조항 (Nominative Fair Use Disclaimer):** 본 문서 및 애플리케이션 내에 언급된 크레마(Crema), 오닉스 북스(Onyx Boox), 킨들(Kindle), 코보(Kobo) 등 모든 기기명 및 제조사 상표는 해당 권리자의 독점적 재산이며, Aether SAGA는 이들 제조사/플랫폼과 어떠한 공식 제휴, 후원, 대리 또는 보증 관계도 없습니다. 본 표기는 순수하게 해당 하드웨어 패널의 해상도(DPI), 화면비(4:3 등), 흑백 명암비와의 기술적 호환성을 안내하기 위한 상표법상 정당한 식별 사용(Nominative Fair Use) 범위 내에서만 정당하게 사용되었습니다.
+  - **비제휴 공식 면책 조항 (Nominative Fair Use Disclaimer):** 본 문서 및 애플리케이션 내에 언급된 크레마(Crema), E-Ink 태블릿(Onyx Boox), 킨들(Kindle), 코보(Kobo) 등 모든 기기명 및 제조사 상표는 해당 권리자의 독점적 재산이며, Aether SAGA는 이들 제조사/플랫폼과 어떠한 공식 제휴, 후원, 대리 또는 보증 관계도 없습니다. 본 표기는 순수하게 해당 하드웨어 패널의 해상도(DPI), 화면비(4:3 등), 흑백 명암비와의 기술적 호환성을 안내하기 위한 상표법상 정당한 식별 사용(Nominative Fair Use) 범위 내에서만 정당하게 사용되었습니다.
 
 ---
 
@@ -395,7 +398,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 
 ---
 
-### 3.19. Whispersync 스타일 WebDAV 원격 위치 동기화 및 직관적 가이드 다이얼로그
+### 3.19. WebDAV 클라우드 WebDAV 원격 위치 동기화 및 직관적 가이드 다이얼로그
 
 - **개요 및 목적:**
   사용자의 독서 진행률, 챕터 위치, 북마크, 하이라이트를 WebDAV 클라우드 서버와 안전하게 동기화하고 독서 노트를 내보냅니다. 일반 사용자도 쉽게 설정할 수 있도록 WebDAV의 도입 목적, 프라이버시 이점, 기기간 동기화 원리를 알기 쉽게 설명하는 안내 UI를 제공합니다.
@@ -405,7 +408,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 - **기술적 차별성 및 특허 회피:**
   - **친화적 가이드 UI 탑재:** 단순 URL/계정 입력창만 노출하던 기존 방식에서 벗어나, 상단에 WebDAV의 기능적 목적(Nextcloud, Synology NAS, Koofr 등 개인 클라우드 스토리지를 통한 다기기 동기화)과 장점(기업 서버에 독서 기록이 수집되지 않는 100% 개인정보 보호)을 한눈에 알기 쉽게 설명하는 카드형 안내 배너 제공.
   - **엔드투엔드 로컬 자격 증명 암호화 (Keystore AES-256-GCM):** 사용자의 WebDAV 접속 비밀번호는 Android Keystore 기반의 EncryptedSharedPreferences를 통해 AES-256-GCM으로 로컬에 안전하게 암호화 보관되어 외부 유출 및 기기 내 타 앱 탈취를 원천 차단합니다.
-  - 아마존의 독점 Whispersync 프로토콜이나 특정 클라우드 벤더의 잠금(Lock-in) API를 사용하지 않고, IETF 표준 **WebDAV (RFC 4918)** HTTP 메소드(PROPFIND, PUT, GET)를 직접 구현하여 동작.
+  - 아마존의 독점 WebDAV 동기화 프로토콜이나 특정 클라우드 벤더의 잠금(Lock-in) API를 사용하지 않고, IETF 표준 **WebDAV (RFC 4918)** HTTP 메소드(PROPFIND, PUT, GET)를 직접 구현하여 동작.
 - **법적 및 마켓 분석:**
   개방형 표준 프로토콜 기반이므로 아마존 특허 비침해 및 프라이버시(Privacy-First) 준수.
 
@@ -645,7 +648,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 | 대상 특허 / 기술 분야 | 주요 특허권자 | 관련 특허 번호 예시 | Aether SAGA의 구현 방식 및 비침해 분석 결과 |
 |---|---|---|---|
 | **3D 페이지 컬 (Page Curl / Turn Effect)** | Apple Inc. | US D670,713, US 8,869,062 | **비침해 (100% 면책):** Aether SAGA는 3D 책장 넘김 효과, 메시 왜곡, 접힘 쉐이딩 애니메이션을 코드베이스에서 완전히 삭제하고 순수 **즉시 전환(`PageTransition.INSTANT`)**만을 채택함. 특허의 구성요소를 전혀 포함하지 않음. |
-| **Whispersync 다기기 동기화** | Amazon Technologies, Inc. | US 8,131,883 등 | **비침해:** 아마존의 중앙 집중식 독점 메시징/동기화 아키텍처가 아닌, 표준 IETF RFC 4918 **WebDAV 분산 프로토콜**을 사용하여 사용자의 자체 사설 스토리지와 동기화함. |
+| **WebDAV 동기화 다기기 동기화** | Amazon Technologies, Inc. | US 8,131,883 등 | **비침해:** 아마존의 중앙 집중식 독점 메시징/동기화 아키텍처가 아닌, 표준 IETF RFC 4918 **WebDAV 분산 프로토콜**을 사용하여 사용자의 자체 사설 스토리지와 동기화함. |
 | **1-Click 결제 및 서적 구매** | Amazon.com | US 5,960,411 (만료됨) | **비침해:** Aether SAGA는 도서 판매 기능이나 인앱 결제가 전혀 없는 순수 로컬 뷰어이므로 구매 관련 특허와 무관함. |
 | **인라인 각주 팝오버** | 범용 기술 (다수) | N/A | **비침해:** 선행 기술(Prior Art)이 풍부한 표준 하이퍼링크 기반 오버레이 뷰로 자유 실시 기술임. |
 
@@ -660,7 +663,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
    - 'Bionic Reading'은 해외 특정 상표권자에 의해 등록된 표장입니다.
    - **조치 완료:** Aether SAGA에서는 사용자의 요청 및 법적 안전성 확보를 위해 바이오닉 리딩 기능과 관련 포매터(`BionicTextFormatter.kt`), 설정 플래그, UI 항목 일체를 **코드베이스에서 전면 영구 삭제**하였습니다. 이로써 바이오닉 리딩 상표권 및 특허 분쟁 가능성을 0%로 완전히 소멸시켰습니다.
 3. **타사 기기명 참조 및 비제휴 공식 면책 조항 (Nominative Fair Use & Non-Affiliation Disclaimer):**
-   - 디스플레이 추천 목록의 "크레마 루나 X", "오닉스 리프", "킨들 페이퍼화이트" 등의 표기는 해당 기기와의 해상도 호환성을 안내하기 위한 **상표의 정당한 비침해적 식별 사용(Nominative Fair Use)**에 해당합니다.
+   - 디스플레이 추천 목록의 "E-Ink 리더", "오닉스 리프", "킨들 페이퍼화이트" 등의 표기는 해당 기기와의 해상도 호환성을 안내하기 위한 **상표의 정당한 비침해적 식별 사용(Nominative Fair Use)**에 해당합니다.
    - **공식 면책 선언:** Aether SAGA는 Crema, Onyx International, Amazon Kindle, Rakuten Kobo 등 언급된 하드웨어 제조사 및 전자책 서비스 제공업체와 어떠한 상업적 제휴, 후원, 대리 또는 보증 관계도 없음을 명백히 밝히며, 해당 상표는 오직 사용자 기기의 하드웨어 디스플레이 특성에 맞춘 조판 최적화 기준을 식별하기 위한 용도로만 제한적으로 사용됨을 공표합니다.
 
 ---
@@ -672,7 +675,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 1. **제로 서드파티 UI 라이브러리:**
    - 대부분의 안드로이드 리더가 웹뷰(Chromium Webview)나 오픈소스 MuPDF 뷰어 래퍼를 복제하여 사용하는 반면, Aether SAGA는 **100% 자체 Canvas 비트맵 래스터라이저(`PagingEngineImpl`)**로 구동됩니다.
 2. **E-Ink 전용 ALPHA_8 고속 렌더링 파이프라인:**
-   - 일반 리더 앱은 풀컬러(ARGB_8888)로만 렌더링하지만, Aether SAGA는 E-Ink Carta 1200/1300 패널의 특성에 맞추어 순수 그레이스케일 ALPHA_8 메모리 슬롯을 교체하는 독창적 하드웨어 파이프라인을 보유하고 있습니다.
+   - 일반 리더 앱은 풀컬러(ARGB_8888)로만 렌더링하지만, Aether SAGA는 E-Ink E-Ink 표준/1300 패널의 특성에 맞추어 순수 그레이스케일 ALPHA_8 메모리 슬롯을 교체하는 독창적 하드웨어 파이프라인을 보유하고 있습니다.
 3. **고유한 사용자 인터랙션:**
    - 본문 하이라이트 끝점 직접 터치 삭제 앵커링, 우측 상단 순수 벡터 리본 책갈피 인디케이터, 3x3 고정 규격 터치 존 등 Aether SAGA만의 독자적 UI 패턴을 확립하였습니다.
 
@@ -750,3 +753,24 @@ Aether SAGA는 제3자 폰트 번들링으로 인한 잠재적 라이선스 분�
 
 ---
 *본 문서는 Aether SAGA 프로젝트의 지식재산권 보호 및 글로벌 앱 마켓(Google Play, Apple App Store)의 정식 검수 등록 시 공식 법적·기술적 소명 자료로 활용할 수 있습니다.*
+
+---
+
+## 🤖 18. Gemini AI 독서 어시스턴트 & 심층 토론 (Gemini AI Reading Companion)
+
+Aether SAGA는 일반 Android 태블릿(LCD/OLED) 및 E-Ink 기기 환경에서 사용자가 읽고 있는 문장의 깊은 의미를 탐구할 수 있도록 **장르 맞춤형 Gemini AI 독서 어시스턴트**를 제공합니다.
+
+### 18.1 주요 특징
+1. **장르 자동 인식 지능 (Auto-Genre Intelligence)**:
+   - 도서 제목, 저자, 목차 챕터 및 하이라이트 문장 키워드를 복합 분석하여 3가지 모드로 자동 분류:
+     - **문학/철학/시 (LITERATURE)**: 문학적 상징, 은유적 해석, 실존적 성찰 질문 제시
+     - **교과서/기술문서 (TECH)**: 초등학생도 이해할 수 있는 일상 비유(ELI5), 3단계 동작 메커니즘 도식화
+     - **역사/인문사회 (HISTORY)**: 사건의 인과관계 사슬(원인/배경 → 촉발 사건 → 파급효과), 타임라인 전개
+2. **인앱 다이얼로그 & 장르 탭 자유 전환**:
+   - 뷰어 내에서 텍스트를 선택하거나 이미 저장된 하이라이트를 터치하여 [✨ Gemini AI]를 누르면 즉시 팝업이 표시됩니다.
+   - 팝업 상단의 [📖 문학·사유], [⚙️ 교과서·기술 튜터], [🏛️ 역사·인과관계] 탭을 터치하여 원하는 시각으로 자유롭게 분석을 전환할 수 있습니다.
+3. **Google Gemini 공식 앱 & 웹 딥링크 1:1 토론 (Open in Gemini)**:
+   - [🚀 Gemini 앱에서 1:1 토론 시작] 버튼 클릭 시, Android 기기에 설치된 공식 Google Gemini 앱(google.gemini://prompt?q=...) 또는 웹 브라우저(https://gemini.google.com/app?q=...)로 책의 출처 정보와 함께 정교하게 설계된 토론 프롬프트가 즉시 전달되어 1:1 핑퐁 토론을 이어갈 수 있습니다.
+4. **독서 기록 유기적 연동**:
+   - [📝 메모로 저장]: AI의 핵심 분석 인사이트를 현재 책의 로컬 하이라이트 메모로 1초 만에 저장.
+   - [📢 카드 공유]: 해당 문장을 1:1 인스타그램 피드 또는 9:16 인스타 스토리 카드로 즉시 생성.

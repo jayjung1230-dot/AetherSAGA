@@ -53,7 +53,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     private lateinit var loadingCard: LinearLayout
     private lateinit var loadingText: TextView
 
-    // Kindle / Ridi Floating Overlay Controls
+    // Clean Minimalist Floating Overlay Controls
     private lateinit var overlayContainer: FrameLayout
     private lateinit var topBarTitle: TextView
     private lateinit var topBarSubtitle: TextView
@@ -360,7 +360,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             setOnClickListener { hideOverlay() }
         }
 
-        // 1. Top Floating Bar (Kindle / Ridi style)
+        // 1. Top Floating Bar (Clean Minimalist style)
         val isEink = if (::strategy.isInitialized) strategy.kind != DisplayKind.LCD_OLED else true
         fun makeOverlayBarBg(): Drawable = if (isEink) {
             GradientDrawable().apply {
@@ -1023,7 +1023,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             text = L10n.t("📢 SNS 공유", "📢 Share")
             setPtSize(8f)
             typeface = ReaderTheme.uiFontBold
-            setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+            setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
             gravity = Gravity.CENTER
             setPadding(dp(8), dp(4), dp(8), dp(4))
             setOnClickListener {
@@ -1040,9 +1040,54 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         }
         container.addView(sep2, LinearLayout.LayoutParams(dp(1), dp(16)))
 
+        if (app.prefs.geminiAiEnabled) {
+            val isDark = isLcd && (app.prefs.readingTheme == "DARK" || app.prefs.readingTheme == "OLED_BLACK")
+            val geminiBtn = TextView(this).apply {
+                text = L10n.t("✨ Gemini (Beta)", "✨ Gemini (Beta)")
+                setPtSize(8f)
+                typeface = ReaderTheme.uiFontBold
+                setTextColor(if (isDark) 0xFF60A5FA.toInt() else ReaderTheme.ACCENT_PRIMARY_BLUE)
+                gravity = Gravity.CENTER
+                setPadding(dp(8), dp(4), dp(8), dp(4))
+                setOnClickListener {
+                    dismissHighlightDeleteButton()
+                    val bTitle = (book?.title?.ifBlank { null } ?: engine.bookTitle.ifBlank { null } ?: File(path).nameWithoutExtension)
+                    val bAuthor = book?.author?.ifBlank { null } ?: engine.bookAuthor
+                    val chTitle = engine.chapterTitle(engine.currentLocation().chapterIndex)
+                    GeminiDialogHelper.show(
+                        activity = this@ReaderActivity,
+                        bookTitle = bTitle,
+                        bookAuthor = bAuthor,
+                        chapterTitle = chTitle,
+                        quote = h.quote,
+                        highlight = h,
+                        isLcd = isLcd,
+                        isDark = isDark,
+                        onSaveMemo = { noteText ->
+                            scope.launch {
+                                val newNote = if (h.note.isNotBlank()) "${h.note}\n\n$noteText" else noteText
+                                withContext(Dispatchers.IO) { app.db.highlights().updateNote(h.id, newNote) }
+                                this@ReaderActivity.highlights = withContext(Dispatchers.IO) { app.db.highlights().forBook(path) }
+                                showResult(engine.refreshCurrent(), 0)
+                            }
+                        },
+                        onShareQuote = {
+                            val coverBmp = book?.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }
+                            AndroidShareHelper.showSnsShareDialog(this@ReaderActivity, bTitle, bAuthor, h.quote, h.note.ifBlank { null }, isEink = !isLcd, coverBitmap = coverBmp)
+                        }
+                    )
+                }
+            }
+            container.addView(geminiBtn)
+            val sepGemini = View(this).apply {
+                setBackgroundColor(if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.EINK_DIVIDER_CONTRAST)
+            }
+            container.addView(sepGemini, LinearLayout.LayoutParams(dp(1), dp(16)))
+        }
+
         container.addView(delBtn)
 
-        val totalW = dp(220)
+        val totalW = dp(295)
         val totalH = dp(32)
         val screenW = resources.displayMetrics.widthPixels
         val screenH = resources.displayMetrics.heightPixels
@@ -1141,6 +1186,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         val optDotted = L10n.t("밑줄: 점선 (Dotted)", "Underline: Dotted")
         val optBg = L10n.t("하이라이트: 글자 배경색 (Background)", "Highlight: Background")
         val optNote = L10n.t("메모 추가 (Add Note)...", "Add Note...")
+        val optGemini = L10n.t("✨ Gemini AI (Beta) 해석 & 토론", "✨ Gemini AI (Beta) Insights & Discussion")
         val optCopy = L10n.t("텍스트 복사 (Copy)", "Copy Text")
         val optFootnote = L10n.t("인라인 각주/미주 보기 (Footnote)", "View Footnote")
         val optShare = L10n.t("문장 공유하기 (이메일 · SNS)", "Share Quote (Email · SNS)")
@@ -1151,6 +1197,9 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         menuItems += optDotted
         menuItems += optBg
         menuItems += optNote
+        if (app.prefs.geminiAiEnabled) {
+            menuItems += optGemini
+        }
         menuItems += optCopy
         if (hasFootnotes) menuItems += optFootnote
         menuItems += optShare
@@ -1165,6 +1214,30 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 optDotted -> saveHighlight(r, 1, "")
                 optBg -> saveHighlight(r, 2, "")
                 optNote -> inputDialog(L10n.t("독서 메모 작성", "Write Reading Note"), multiline = true) { saveHighlight(r, 0, it) }
+                optGemini -> {
+                    val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+                    val isDark = isLcd && (app.prefs.readingTheme == "DARK" || app.prefs.readingTheme == "OLED_BLACK")
+                    val bTitle = (book?.title?.ifBlank { null } ?: engine.bookTitle.ifBlank { null } ?: File(path).nameWithoutExtension)
+                    val bAuthor = book?.author?.ifBlank { null } ?: engine.bookAuthor
+                    val chTitle = engine.chapterTitle(engine.currentLocation().chapterIndex)
+                    GeminiDialogHelper.show(
+                        activity = this@ReaderActivity,
+                        bookTitle = bTitle,
+                        bookAuthor = bAuthor,
+                        chapterTitle = chTitle,
+                        quote = r.text,
+                        highlight = null,
+                        isLcd = isLcd,
+                        isDark = isDark,
+                        onSaveMemo = { noteText ->
+                            saveHighlight(r, 0, noteText)
+                        },
+                        onShareQuote = {
+                            val coverBmp = book?.coverPath?.let { p -> if (java.io.File(p).exists()) android.graphics.BitmapFactory.decodeFile(p) else null }
+                            AndroidShareHelper.showSnsShareDialog(this@ReaderActivity, bTitle, bAuthor, r.text, null, isEink = !isLcd, coverBitmap = coverBmp)
+                        }
+                    )
+                }
                 optCopy -> {
                     try {
                         val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -1277,7 +1350,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         }
     }
 
-    // ---- Kindle / Ridi Interactive Sheets & Dialogs --------------------------------------
+    // ---- Clean Minimalist Interactive Sheets & Dialogs --------------------------------------
 
     private fun sectionHeader(title: String): TextView = TextView(this).apply {
         text = title
@@ -1361,7 +1434,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         }
         val fontSubTv = TextView(this).apply {
             setPtSize(7.5f)
-            setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+            setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
         }
         val updateFontLabel = {
             fontSubTv.text = when (p.fontPath) {
@@ -1375,7 +1448,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                         fn.contains("arimo") -> "Arimo"
                         fn.contains("literata") -> "Literata"
                         fn.contains("inter") -> "Inter"
-                        fn.contains("ridibatang") || fn.contains("ridi") -> L10n.t("리디바탕 (RIDI Batang)", "RIDI Batang")
+                        fn.contains("batang") -> L10n.t("바탕체 (Batang)", "Batang Serif")
                         fn.contains("gounbam") -> L10n.t("카페24 고운밤", "Cafe24 Gounbam")
                         else -> File(p.fontPath).nameWithoutExtension
                     }
@@ -1408,7 +1481,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             setTextColor(ReaderTheme.EINK_INK)
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         }
-        val addFontBtn = pillButton(L10n.t("+ 폰트 추가", "+ Add Font"), Color.WHITE, ReaderTheme.ACCENT_KINDLE) {
+        val addFontBtn = pillButton(L10n.t("+ 폰트 추가", "+ Add Font"), Color.WHITE, ReaderTheme.ACCENT_CHARCOAL) {
             dlg.dismiss()
             openFontPicker()
         }
@@ -1499,7 +1572,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             val valTv = TextView(this).apply {
                 text = valueProvider()
                 setPtSize(8.5f)
-                setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+                setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
                 typeface = ReaderTheme.uiFontBold
                 gravity = Gravity.CENTER
                 minWidth = dp(72)
@@ -1831,7 +1904,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 val valTv = TextView(this).apply {
                     text = "${initialPct}%"
                     setPtSize(9f)
-                    setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+                    setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
                     typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
                 }
                 valTvs.add(valTv)
@@ -1962,8 +2035,8 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                     btn.text = if (active) "✓ $icon $baseLabel" else "    $icon $baseLabel"
                     btn.setTextColor(if (active) Color.WHITE else ReaderTheme.EINK_INK)
                     btn.background = GradientDrawable().apply {
-                        setColor(if (active) ReaderTheme.ACCENT_KINDLE else ReaderTheme.EINK_PAPER)
-                        setStroke(dp(1), if (active) ReaderTheme.ACCENT_KINDLE else ReaderTheme.EINK_BORDER)
+                        setColor(if (active) ReaderTheme.ACCENT_CHARCOAL else ReaderTheme.EINK_PAPER)
+                        setStroke(dp(1), if (active) ReaderTheme.ACCENT_CHARCOAL else ReaderTheme.EINK_BORDER)
                         cornerRadius = dp(6).toFloat()
                     }
                 }
@@ -2065,7 +2138,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             val vTv = TextView(this).apply {
                 text = valStr()
                 setPtSize(8.5f)
-                setTextColor(ReaderTheme.ACCENT_RIDI_BLUE)
+                setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
                 typeface = ReaderTheme.uiFontBold
                 gravity = Gravity.CENTER
                 minWidth = dp(74)
@@ -2175,6 +2248,23 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             L10n.t("↻ 화면 회전 (가로/세로)", "↻ Rotate Screen") to { val l = orientationMgr.toggleOrientation(); showHud(L10n.t("화면 회전: $l", "Screen Orientation: $l")) },
             L10n.t("🔒 회전 잠금 켜기/끄기", "🔒 Toggle Rotation Lock") to { orientationMgr.toggleLock(); showHud(orientationMgr.lockLabel()) },
             L10n.t("⚡ 독서 보조 도구", "⚡ Reading Tools") to { showAdvancedFeaturesMenu(onBack = { showFullMenu() }) }
+        ))
+
+        val geminiToggleLabel = if (app.prefs.geminiAiEnabled) L10n.t("✨ Gemini AI (Beta): ON", "✨ Gemini AI (Beta): ON")
+                                else L10n.t("✨ Gemini AI (Beta): OFF", "✨ Gemini AI (Beta): OFF")
+        addCategoryGrid(L10n.t("✨ Gemini AI 독서 어시스턴트 (Beta)", "✨ Gemini AI Assistant (Beta)"), listOf(
+            geminiToggleLabel to {
+                app.prefs.geminiAiEnabled = !app.prefs.geminiAiEnabled
+                toast(if (app.prefs.geminiAiEnabled) L10n.t("✨ Gemini AI (Beta) 어시스턴트가 켜졌습니다.", "✨ Gemini AI (Beta) enabled.") else L10n.t("Gemini AI (Beta) 어시스턴트가 꺼졌습니다.", "Gemini AI (Beta) disabled."))
+                showFullMenu()
+            },
+            L10n.t("🔑 Gemini API Key 설정", "🔑 Set Gemini API Key") to {
+                inputDialog(L10n.t("Google Gemini API Key 입력 (Beta)", "Enter Gemini API Key (Beta)"), initial = app.prefs.geminiApiKey) { newKey ->
+                    app.prefs.geminiApiKey = newKey.trim()
+                    toast(if (app.prefs.geminiApiKey.isNotBlank()) L10n.t("Gemini API Key가 저장되었습니다. (인앱 대화 활성화)", "Gemini API Key saved. (In-App Chat Active)") else L10n.t("API Key가 비워졌습니다. (외부 앱 모드)", "API Key cleared. (External App Mode)"))
+                    showFullMenu()
+                }
+            }
         ))
 
         addCategoryGrid(L10n.t("기기 입력 및 클라우드", "Input & Cloud"), listOf(
@@ -2581,8 +2671,8 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 val isCurrent = (item.chapterIndex == curLoc.chapterIndex)
                 if (isCurrent) {
                     titleTv.typeface = ReaderTheme.uiFontBold
-                    titleTv.setTextColor(if (isLcd) ReaderTheme.ACCENT_RIDI_BLUE else ReaderTheme.EINK_INK)
-                    pageTv.setTextColor(if (isLcd) ReaderTheme.ACCENT_RIDI_BLUE else ReaderTheme.EINK_INK)
+                    titleTv.setTextColor(if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.EINK_INK)
+                    pageTv.setTextColor(if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.EINK_INK)
                 } else {
                     titleTv.typeface = ReaderTheme.uiFontMedium
                     titleTv.setTextColor(ReaderTheme.EINK_INK)
@@ -4026,7 +4116,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
 
     private var syncSnackbar: View? = null
 
-    private fun showWhispersyncSnackbar(device: String, pct: Int, ch: Int, off: Long) {
+    private fun showWebDavSyncSnackbar(device: String, pct: Int, ch: Int, off: Long) {
         syncSnackbar?.let { rootFrame.removeView(it) }
         val isDark = app.prefs.dark
         val cardBg = if (isDark) 0xEE2A2C30.toInt() else 0xF5FFFFFF.toInt()
@@ -4059,7 +4149,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 typeface = Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER
                 background = GradientDrawable().apply {
-                    setColor(ReaderTheme.ACCENT_RIDI_BLUE)
+                    setColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
                     cornerRadius = dp(14).toFloat()
                 }
                 setPadding(dp(12), dp(6), dp(12), dp(6))
@@ -4122,10 +4212,10 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                         val device = j.optString("device", "외부 기기")
                         val pct = (j.getDouble("progress") * 100).toInt()
                         if (isLcd) {
-                            showWhispersyncSnackbar(device, pct, ch, off)
+                            showWebDavSyncSnackbar(device, pct, ch, off)
                         } else {
                             AlertDialog.Builder(this@ReaderActivity)
-                                .setTitle("📖 독서 위치 동기화 (Whispersync)")
+                                .setTitle("📖 독서 위치 동기화 (WebDAV Sync)")
                                 .setMessage("다른 기기($device)에서 더 최근에 읽던 위치($pct%)가 있습니다.\n해당 위치로 이어서 읽으시겠습니까?")
                                 .setPositiveButton("이동") { _, _ -> pushHistoryAndJump(BookLocation(ch, off, 0f)) }
                                 .setNegativeButton("현재 위치 유지", null)
@@ -4307,6 +4397,54 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         langRow.addView(langBtn)
         langCard.addView(langRow)
         box.addView(langCard)
+
+        // Gemini AI Reading Assistant Section
+        box.addView(sectionHeader(L10n.t("✨ Gemini AI 독서 어시스턴트 (Beta)", "✨ Gemini AI Reading Assistant (Beta)")))
+        val geminiCard = settingsCardContainer()
+        addToggleRow(
+            geminiCard,
+            L10n.t("Gemini AI 독서 도우미 (Beta) 켜기", "Enable Gemini AI Assistant (Beta)"),
+            L10n.t("문장 탭 및 텍스트 선택 시 AI 심층 해석 & 1:1 토론 메뉴 활성화", "Enable AI in-depth analysis & 1:1 discussion on text selection"),
+            false,
+            { p.geminiAiEnabled }
+        ) {
+            p.geminiAiEnabled = !p.geminiAiEnabled
+            toast(if (p.geminiAiEnabled) L10n.t("Gemini AI 독서 도우미가 켜졌습니다", "Gemini AI Assistant enabled") else L10n.t("Gemini AI 독서 도우미가 꺼졌습니다", "Gemini AI Assistant disabled"))
+        }
+
+        val apiKeyRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(5), 0, dp(5))
+        }
+        val apiCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val apiTitleTv = TextView(this).apply {
+            text = L10n.t("🔑 Gemini API Key (Beta 인앱 1:1 실시간 대화)", "🔑 Gemini API Key (Beta In-App Chat)")
+            setPtSize(9f)
+            setTextColor(ReaderTheme.EINK_INK)
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+        }
+        val keyStatus = if (p.geminiApiKey.isNotBlank()) L10n.t("✅ 등록됨 (인앱 1:1 실시간 대화 모드)", "✅ Configured (In-App Chat Mode)") else L10n.t("ℹ️ 미등록 (외부 앱 자동 연결 모드 동작)", "ℹ️ Not set (External App Mode)")
+        val apiDescTv = TextView(this).apply {
+            text = keyStatus
+            setPtSize(7.5f)
+            setTextColor(if (p.geminiApiKey.isNotBlank()) 0xFF16A34A.toInt() else ReaderTheme.EINK_MUTED)
+        }
+        apiCol.addView(apiTitleTv)
+        apiCol.addView(apiDescTv)
+
+        val setKeyBtn = pillButton(L10n.t("키 설정", "Set Key"), ReaderTheme.EINK_INK, ReaderTheme.EINK_CARD_BG, ReaderTheme.EINK_BORDER) {
+            dlg.dismiss()
+            inputDialog(L10n.t("Google Gemini API Key 입력", "Enter Gemini API Key"), initial = p.geminiApiKey) { newKey ->
+                p.geminiApiKey = newKey.trim()
+                toast(if (p.geminiApiKey.isNotBlank()) L10n.t("Gemini API Key가 저장되었습니다. (인앱 대화 활성화)", "Gemini API Key saved. (In-App Chat Active)") else L10n.t("API Key가 비워졌습니다. (외부 앱 모드)", "API Key cleared. (External App Mode)"))
+                showAdvancedFeaturesMenu(onBack)
+            }
+        }
+        apiKeyRow.addView(apiCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        apiKeyRow.addView(setKeyBtn)
+        geminiCard.addView(apiKeyRow)
+        box.addView(geminiCard)
 
         box.addView(sectionHeader(L10n.t("시선 집중 및 가독성 보조", "Focus & Readability Tools")))
         val focusCard = settingsCardContainer()
@@ -4557,7 +4695,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             setPadding(0, dp(8), 0, dp(8))
             gravity = Gravity.CENTER_VERTICAL
         }
-        val noteTv = TextView(this).apply { setPtSize(8.5f); setTextColor(ReaderTheme.ACCENT_RIDI_BLUE); setPadding(0, 0, 0, dp(10)) }
+        val noteTv = TextView(this).apply { setPtSize(8.5f); setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE); setPadding(0, 0, 0, dp(10)) }
         val btnRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
 
         box.addView(countTv)

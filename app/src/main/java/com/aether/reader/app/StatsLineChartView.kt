@@ -100,7 +100,7 @@ class StatsLineChartView(context: Context) : View(context) {
 
         val inkColor = if (isEink) ReaderTheme.EINK_INK else 0xFF1E293B.toInt()
         val mutedColor = if (isEink) ReaderTheme.EINK_MUTED else 0xFF64748B.toInt()
-        val accentColor = if (isEink) ReaderTheme.EINK_INK else ReaderTheme.ACCENT_RIDI_BLUE
+        val accentColor = if (isEink) ReaderTheme.EINK_INK else ReaderTheme.ACCENT_PRIMARY_BLUE
 
         // 1. 가이드 수평선 (3단계: Top, Mid, Bottom)
         val yTop = paddingTop

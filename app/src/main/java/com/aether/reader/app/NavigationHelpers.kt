@@ -52,7 +52,7 @@ object InlineFootnoteResolver {
         val cardBg = if (isDark) ReaderTheme.DARK_CARD else ReaderTheme.EINK_PAPER
         val textFg = if (isDark) ReaderTheme.DARK_TEXT else ReaderTheme.EINK_INK
         val mutedFg = if (isDark) ReaderTheme.DARK_MUTED else ReaderTheme.EINK_MUTED
-        val borderCol = if (isDark) ReaderTheme.DARK_BORDER else if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.ACCENT_KINDLE
+        val borderCol = if (isDark) ReaderTheme.DARK_BORDER else if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.ACCENT_CHARCOAL
 
         val root = FrameLayout(context).apply {
             // LCD/OLED: 부드러운 딤 배경, E-Ink: 잔상 없는 초경량 배경

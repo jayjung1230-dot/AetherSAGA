@@ -95,7 +95,7 @@ class App : Application() {
                         "kopubworlddotum_pro_medium.otf", "kopubworldbatang_pro_medium.otf",
                         "nanumgothic_regular.ttf", "nanummyeongjo_regular.ttf",
                         "maruburi_regular.ttf", "chosunilbo_myungjo.ttf",
-                        "ridibatang.otf", "kodia.ttf",
+                        "batang.otf", "kodia.ttf",
                         "notosans_regular.ttf", "notoserif_regular.ttf",
                         "roboto_regular.ttf", "merriweather_regular.ttf",
                         "arimo_regular.ttf", "inter_regular.ttf", "literata_regular.ttf",

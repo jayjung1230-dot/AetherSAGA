@@ -70,7 +70,7 @@ class ReaderView(ctx: Context) : View(ctx) {
     private var animDir = 1
     private var t = 1f
 
-    // Kindle/Ridi footer paints
+    // Modern Book footer paints
     private val footerPaintLeft = Paint(Paint.ANTI_ALIAS_FLAG)
     private val footerPaintRight = Paint(Paint.ANTI_ALIAS_FLAG)
     private val progressTrackPaint = Paint()
@@ -251,7 +251,7 @@ class ReaderView(ctx: Context) : View(ctx) {
             }
         }
 
-        // Kindle / Ridi minimalist refined footer
+        // Clean Minimalist minimalist refined footer
         val footerY = h - (dens * 12f)
         val marginX = dens * 22f
         val isLight = (fg == Color.BLACK || fg == ReaderTheme.EINK_INK)
@@ -291,7 +291,7 @@ class ReaderView(ctx: Context) : View(ctx) {
         // Ridi-style ultra-thin bottom reading progress bar (2dp)
         val barH = dens * 2f
         progressTrackPaint.color = if (isLight) 0xFFE5E5E0.toInt() else 0xFF28282C.toInt()
-        progressFillPaint.color = if (isEinkDisplay) fg else ReaderTheme.ACCENT_RIDI_BLUE
+        progressFillPaint.color = if (isEinkDisplay) fg else ReaderTheme.ACCENT_PRIMARY_BLUE
         c.drawRect(0f, h - barH, w, h, progressTrackPaint)
         c.drawRect(0f, h - barH, w * progressRatio, h, progressFillPaint)
     }

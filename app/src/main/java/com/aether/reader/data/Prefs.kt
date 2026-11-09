@@ -78,6 +78,7 @@ class Prefs(ctx: Context) {
 
     // Typography & Viewer Baseline Defaults (8pt, 2.0x line height, 2dp paragraph gap, 20dp margin, boldness 1)
     var useDocumentDefaults by bool("useDocumentDefaults", false)
+    var isDefaultGuideInstalled by bool("default_guide_installed_v1", false)
     var fontSizePt by int("fontSizePt", 8)
     var lineHeight by float("lineHeight", 2.0f)
     var paraSpacingDp by int("paraSpacingDp", 2)
@@ -117,6 +118,11 @@ class Prefs(ctx: Context) {
     var autoTurnSeconds by int("autoTurnSeconds", 20)
     var turboPaging by bool("turboPaging", false)
     var experimentalOverride by bool("experimentalOverride", false)
+
+    // Gemini AI Reading Assistant
+    var geminiAiEnabled by bool("geminiAiEnabled", true) // Default ON
+    var geminiApiKey by str("geminiApiKey", "")
+    var geminiModel by str("geminiModel", "gemini-1.5-flash")
 
     // Daily Reading Stats
     var statsDate by str("statsDate", "")

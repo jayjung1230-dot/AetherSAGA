@@ -2408,7 +2408,7 @@ object AndroidShareHelper {
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
             background = GradientDrawable().apply {
-                setColor(ReaderTheme.ACCENT_RIDI_BLUE)
+                setColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
                 cornerRadius = activity.dp(ReaderTheme.CORNER_PILL_DP).toFloat()
             }
             setPadding(activity.dp(14), activity.dp(9), activity.dp(14), activity.dp(9))

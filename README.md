@@ -11,13 +11,13 @@
 
 <p align="center">
   <a href="./README_ko.md">🇰🇷 한국어 설명서 (Korean)</a> •
-  <a href="./RELEASE_NOTES.md">Release Notes (v2.1)</a> •
+  <a href="./RELEASE_NOTES.md">Release Notes (v2.2)</a> •
   <a href="./ARCHITECTURE.md">Architecture Spec</a> •
   <a href="./FUNCTION.md">Functional Spec</a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1.0-blue.svg" alt="Version 2.1.0" />
+  <img src="https://img.shields.io/badge/version-2.2.0-blue.svg" alt="Version 2.2.0" />
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B%20(API%2026%2B)-green.svg" alt="Platform" />
   <img src="https://img.shields.io/badge/APK%20Size-~640%20KB-success.svg" alt="APK Size" />
   <img src="https://img.shields.io/badge/Dependencies-Zero%20Heavy%20Libs-orange.svg" alt="Dependencies" />
@@ -75,7 +75,7 @@ Transform books into seamless audiobooks with real-time visual tracking:
 
 ### ⚡ 4. Bifurcation Display Architecture (Hardware-Aware)
 A dual-rendering pipeline that adapts precisely to your display hardware:
-* **E-Ink Mode (Carta 1300/1200 & Kaleido 3)**:
+* **E-Ink Mode (E-Ink 고해상도 & Kaleido 3)**:
   * Eliminates software color filters and battery-draining animations to protect raw e-paper contrast.
   * Replaces flat UI borders with specialized **anti-ghosting dotted dividers** (`DashPathEffect([3dp, 3dp])`).
   * Configurable full-screen flash refresh (**1–30 pages**) to wipe residual e-ink particles.

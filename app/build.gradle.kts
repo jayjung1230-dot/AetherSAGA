@@ -17,8 +17,8 @@ android {
         applicationId = "com.aether.reader"
         minSdk = 26          // Luna X is API 30; 26 keeps older LCD tablets
         targetSdk = 30       // Scoped Storage semantics + MANAGE_EXTERNAL_STORAGE on the primary device
-        versionCode = 210
-        versionName = "2.1.0"
+        versionCode = 250
+        versionName = "2.5.0"
         resourceConfigurations += listOf("en", "ko")
     }
 

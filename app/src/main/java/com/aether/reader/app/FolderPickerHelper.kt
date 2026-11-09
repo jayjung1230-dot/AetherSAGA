@@ -213,7 +213,7 @@ object FolderPickerHelper {
             setPadding(dp(9), dp(7), dp(9), dp(7))
         }
 
-        val addSelectedBtn = context.pillButton("선택한 도서 추가 (0권)", Color.WHITE, ReaderTheme.ACCENT_KINDLE) {
+        val addSelectedBtn = context.pillButton("선택한 도서 추가 (0권)", Color.WHITE, ReaderTheme.ACCENT_CHARCOAL) {
             if (selectedFiles.isEmpty()) {
                 Toast.makeText(context, "선택된 도서가 없습니다. 목록에서 도서를 터치하여 선택해 주세요.", Toast.LENGTH_SHORT).show()
             } else {
@@ -227,7 +227,7 @@ object FolderPickerHelper {
             setPadding(dp(11), dp(7), dp(11), dp(7))
         }
 
-        val addFolderAllBtn = context.pillButton("📂 폴더 전체 추가", ReaderTheme.ACCENT_KINDLE, ReaderTheme.EINK_PAPER, ReaderTheme.EINK_BORDER) {
+        val addFolderAllBtn = context.pillButton("📂 폴더 전체 추가", ReaderTheme.ACCENT_CHARCOAL, ReaderTheme.EINK_PAPER, ReaderTheme.EINK_BORDER) {
             if (currentMatchingFiles.isEmpty()) {
                 Toast.makeText(context, "현재 폴더에 추가할 수 있는 도서가 없습니다.", Toast.LENGTH_SHORT).show()
             } else {
@@ -251,7 +251,7 @@ object FolderPickerHelper {
             if (isMultiCapable) {
                 if (isMultiSelect) {
                     multiToggleBtn?.text = "✓ 다중 선택 중"
-                    multiToggleBtn?.background = cardDrawable(ReaderTheme.ACCENT_KINDLE, 6, ReaderTheme.ACCENT_KINDLE)
+                    multiToggleBtn?.background = cardDrawable(ReaderTheme.ACCENT_CHARCOAL, 6, ReaderTheme.ACCENT_CHARCOAL)
                     multiToggleBtn?.setTextColor(Color.WHITE)
                 } else {
                     multiToggleBtn?.text = "☑ 복수 선택"
@@ -284,7 +284,7 @@ object FolderPickerHelper {
 
         if (onSystemPickerFallback != null) {
             bottomRow.addView(View(context), LinearLayout.LayoutParams(0, 1, 1f))
-            val sysBtn = context.pillButton("안드로이드 시스템 탐색기로 열기", ReaderTheme.ACCENT_RIDI_BLUE, ReaderTheme.EINK_PAPER, ReaderTheme.EINK_BORDER) {
+            val sysBtn = context.pillButton("안드로이드 시스템 탐색기로 열기", ReaderTheme.ACCENT_PRIMARY_BLUE, ReaderTheme.EINK_PAPER, ReaderTheme.EINK_BORDER) {
                 dlg.dismiss()
                 onSystemPickerFallback()
             }.apply {
@@ -315,7 +315,7 @@ object FolderPickerHelper {
                 val upTv = TextView(context).apply {
                     text = "⬆️ [상위 폴더로 이동 (..)]"
                     textSize = 13.5f
-                    setTextColor(ReaderTheme.ACCENT_KINDLE)
+                    setTextColor(ReaderTheme.ACCENT_CHARCOAL)
                     typeface = ReaderTheme.uiFontBold
                 }
                 upRow.addView(upTv)
@@ -391,7 +391,7 @@ object FolderPickerHelper {
                     gravity = Gravity.CENTER_VERTICAL
                     setPadding(dp(10), dp(10), dp(10), dp(10))
                     isClickable = true
-                    background = if (isSelected) cardDrawable(0x28FF9900.toInt(), 6, ReaderTheme.ACCENT_KINDLE)
+                    background = if (isSelected) cardDrawable(0x28FF9900.toInt(), 6, ReaderTheme.ACCENT_CHARCOAL)
                         else context.pillDrawable(ReaderTheme.EINK_CARD_BG, Color.TRANSPARENT)
                     setOnClickListener {
                         if (isMultiSelect) {
@@ -434,7 +434,7 @@ object FolderPickerHelper {
                 val nameTv = TextView(context).apply {
                     text = f.name
                     textSize = 13f
-                    setTextColor(if (isSelected) ReaderTheme.ACCENT_KINDLE else ReaderTheme.EINK_INK)
+                    setTextColor(if (isSelected) ReaderTheme.ACCENT_CHARCOAL else ReaderTheme.EINK_INK)
                     typeface = ReaderTheme.uiFontBold
                 }
                 val sizeTv = TextView(context).apply {
@@ -453,7 +453,7 @@ object FolderPickerHelper {
                 val selectBadge = TextView(context).apply {
                     text = if (isSelected) "✓ 선택됨" else "선택"
                     textSize = 11f
-                    setTextColor(ReaderTheme.ACCENT_KINDLE)
+                    setTextColor(ReaderTheme.ACCENT_CHARCOAL)
                     typeface = if (isSelected) ReaderTheme.uiFontBold else Typeface.DEFAULT
                     setPadding(dp(6), dp(2), dp(6), dp(2))
                 }
