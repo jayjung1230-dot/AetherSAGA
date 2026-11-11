@@ -629,7 +629,9 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     // ---- configuration -----------------------------------------------------------------
 
     private fun configureEngine() {
-        strategy = app.profiles.detect(app.prefs.displaySettings())
+        val vw = if (view.width > 0) view.width else null
+        val vh = if (view.height > 0) view.height else null
+        strategy = app.profiles.detect(app.prefs.displaySettings(), vw, vh)
         val isLcd = (strategy.kind == DisplayKind.LCD_OLED)
         val bg: Int
         val fg: Int
@@ -718,6 +720,13 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         app.profiles.onConfigurationChanged()
+        val vw = if (view.width > 0) view.width else null
+        val vh = if (view.height > 0) view.height else null
+        strategy = app.profiles.detect(app.prefs.displaySettings(), vw, vh)
+        if (opened && view.width > 0 && view.height > 0) {
+            val isImgOrFixed = book?.format in listOf("PDF", "CBZ", "CBR", "EPUB") || engine.isImageBased
+            relayoutNow(reopenContainer = isImgOrFixed)
+        }
     }
 
     override fun onSizeReady(w: Int, h: Int) {
@@ -785,7 +794,8 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                     return@launch
                 }
             } else {
-                relayoutNow()
+                val isImgOrFixed = book?.format in listOf("PDF", "CBZ", "CBR", "EPUB") || engine.isImageBased
+                relayoutNow(reopenContainer = isImgOrFixed)
             }
         }
     }

@@ -15,16 +15,20 @@ import com.aether.reader.domain.display.*
  * landscape always spread; portrait is always a single column.
  */
 internal fun layoutFor(m: DisplayMetricsInfo, allowDarkMode: Boolean, trueBlack: Boolean, allowSpread: Boolean = true): LayoutSpec {
-    val spread = allowSpread && m.isLandscape && when (m.aspectClass) {
-        AspectClass.RATIO_4_3 -> m.widthPx >= 1600       // small 4:3 e-ink (1448 px) stays single; big tablets spread
-        else -> true
+    val spread = allowSpread && when {
+        m.aspectClass == AspectClass.SQUARE_FOLD -> m.isLandscape && m.widthPx >= 1800
+        m.isLandscape && m.aspectClass == AspectClass.RATIO_4_3 -> m.widthPx >= 1600       // small 4:3 e-ink (1448 px) stays single; big tablets spread
+        m.isLandscape -> true
+        else -> false
     }
     val (marginScale, measure) = when (m.aspectClass) {
+        AspectClass.SQUARE_FOLD -> 1.0f to 38f
         AspectClass.RATIO_4_3 -> 1.1f to 38f
         AspectClass.RATIO_3_2 -> 1.05f to 40f
         AspectClass.RATIO_16_10 -> 1.0f to 42f
         AspectClass.RATIO_16_9 -> 0.95f to 44f
         AspectClass.ULTRAWIDE -> 0.9f to 46f
+        AspectClass.EXTREME_TALL -> 0.85f to 34f
     }
     return LayoutSpec(if (spread) 2 else 1, marginScale, measure, allowDarkMode, trueBlack)
 }

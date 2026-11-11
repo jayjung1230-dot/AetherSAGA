@@ -5,9 +5,11 @@ import android.graphics.Bitmap
 /** Which family of panel the app is running on. */
 enum class DisplayKind { MONO_EINK, COLOR_EINK, LCD_OLED }
 
-/** Long-side / short-side ratio buckets. Luna X (1448x1072 = 1.351) falls in RATIO_4_3. */
+/** Long-side / short-side ratio buckets. Luna X (1448x1072 = 1.351) falls in RATIO_4_3.
+ * SQUARE_FOLD (1.10~1.25) covers Galaxy Z Fold 3/4/5/6 and Fold Ultra/SE unfolded main screens.
+ * EXTREME_TALL (2.30~2.80) covers Galaxy Z Fold cover screens and Galaxy Z Flip screens. */
 enum class AspectClass(val ratio: Float) {
-    RATIO_4_3(1.333f), RATIO_3_2(1.5f), RATIO_16_10(1.6f), RATIO_16_9(1.778f), ULTRAWIDE(2.0f);
+    SQUARE_FOLD(1.15f), RATIO_4_3(1.333f), RATIO_3_2(1.5f), RATIO_16_10(1.6f), RATIO_16_9(1.778f), ULTRAWIDE(2.0f), EXTREME_TALL(2.5f);
     companion object {
         fun classify(r: Float): AspectClass = entries.minByOrNull { kotlin.math.abs(it.ratio - r) }!!
     }
@@ -89,8 +91,8 @@ data class DisplaySettings(
 
 interface DisplayProfileManager {
     /** Inspect system props/modes/metrics and return the active strategy. */
-    fun detect(settings: DisplaySettings): DisplayStrategy
-    fun metrics(): DisplayMetricsInfo
+    fun detect(settings: DisplaySettings, widthPx: Int? = null, heightPx: Int? = null): DisplayStrategy
+    fun metrics(widthPx: Int? = null, heightPx: Int? = null): DisplayMetricsInfo
     /** Re-run detection on config change / display hot-plug / fold state change. */
     fun addListener(listener: (DisplayStrategy) -> Unit)
     fun removeListener(listener: (DisplayStrategy) -> Unit)

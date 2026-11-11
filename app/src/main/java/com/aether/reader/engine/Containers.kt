@@ -119,7 +119,7 @@ object Containers {
         when (ext) {
             "epub" -> return BookFormat.EPUB
             "pdf" -> return BookFormat.PDF
-            "cbz" -> return BookFormat.CBZ
+            "cbz", "cbr" -> return BookFormat.CBZ
             "mobi", "azw", "azw3", "prc" -> return BookFormat.MOBI
             "md", "markdown" -> return BookFormat.MD
             "txt", "fb2", "log", "html", "htm" -> return BookFormat.TXT
@@ -132,7 +132,7 @@ object Containers {
                 when {
                     mime.contains("epub") -> return BookFormat.EPUB
                     mime.contains("pdf") -> return BookFormat.PDF
-                    mime.contains("cbz") || mime.contains("comicbook") -> return BookFormat.CBZ
+                    mime.contains("cbz") || mime.contains("cbr") || mime.contains("comicbook") -> return BookFormat.CBZ
                     mime.contains("mobi") || mime.contains("amazon.ebook") -> return BookFormat.MOBI
                     mime.contains("markdown") -> return BookFormat.MD
                     mime.startsWith("text/") -> return BookFormat.TXT
@@ -149,7 +149,7 @@ object Containers {
         return when {
             displayName.contains(".epub", ignoreCase = true) -> BookFormat.EPUB
             displayName.contains(".pdf", ignoreCase = true) -> BookFormat.PDF
-            displayName.contains(".cbz", ignoreCase = true) -> BookFormat.CBZ
+            displayName.contains(".cbz", ignoreCase = true) || displayName.contains(".cbr", ignoreCase = true) -> BookFormat.CBZ
             displayName.contains(".mobi", ignoreCase = true) || displayName.contains(".azw", ignoreCase = true) -> BookFormat.MOBI
             displayName.contains(".md", ignoreCase = true) -> BookFormat.MD
             cleanPath.startsWith("content://") -> BookFormat.TXT
@@ -400,14 +400,14 @@ object Containers {
                     val pfd = ParcelFileDescriptor.open(f, ParcelFileDescriptor.MODE_READ_ONLY)
                     PdfContainer(pfd, cleanTitle)
                 }
-                BookFormat.CBZ -> CbzContainer(actualPath, cleanTitle)
+                BookFormat.CBZ, BookFormat.CBR -> CbzContainer(actualPath, cleanTitle)
                 BookFormat.MOBI, BookFormat.AZW3 -> MobiContainer(actualPath, cleanTitle, enc)
                 BookFormat.MD -> TxtContainer(actualPath, true, enc, cleanTitle)
                 else -> TxtContainer(actualPath, false, enc, cleanTitle)
             }
         } catch (e: Throwable) {
             // Ultimate resilience fallback: if an archive/container fails to parse as EPUB/MOBI, attempt safe text fallback if readable
-            if (fmt != BookFormat.PDF && fmt != BookFormat.CBZ) {
+            if (fmt != BookFormat.PDF && fmt != BookFormat.CBZ && fmt != BookFormat.CBR) {
                 try {
                     TxtContainer(actualPath, false, enc, cleanTitle)
                 } catch (_: Throwable) {
@@ -877,7 +877,7 @@ class EpubContainer(path: String, customTitle: String? = null) : BookContainer {
             if (boundsOpt.outWidth <= 0 || boundsOpt.outHeight <= 0) return null
 
             var sample = 1
-            val maxDim = 1080
+            val maxDim = 2800 // High-resolution allowance for Galaxy Z Fold / Ultra and high-DPI tablets
             while (boundsOpt.outWidth / sample > maxDim || boundsOpt.outHeight / sample > maxDim) {
                 sample *= 2
             }
@@ -1128,7 +1128,10 @@ class EpubContainer(path: String, customTitle: String? = null) : BookContainer {
         getZipEntry(n)?.let { e -> try { zip.getInputStream(e).use { it.readBytes() } } catch (_: Throwable) { null } }
     }
 
-    override fun close() { try { zip.close() } catch (_: Exception) { } }
+    override fun close() {
+        try { imageCache.evictAll() } catch (_: Throwable) {}
+        try { zip.close() } catch (_: Exception) { }
+    }
 }
 
 /**

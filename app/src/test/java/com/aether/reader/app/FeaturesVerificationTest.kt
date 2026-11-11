@@ -1803,4 +1803,51 @@ class FeaturesVerificationTest {
         assertFalse(disabledItems.contains("Gemini AI"))
         assertEquals(5, disabledItems.size)
     }
+
+    @Test
+    fun testGalaxyFoldAndUltraResolutionAspectSupport() {
+        // 1. Galaxy Z Fold 3/4/5/6 and Fold Ultra/SE Main Screens (Unfolded)
+        val fold4MainRatio = 2176f / 1812f // 1.201f
+        val fold6MainRatio = 2156f / 1856f // 1.161f
+        val foldUltraMainRatio = 2184f / 1968f // 1.109f
+        assertEquals(com.aether.reader.domain.display.AspectClass.SQUARE_FOLD, com.aether.reader.domain.display.AspectClass.classify(fold4MainRatio))
+        assertEquals(com.aether.reader.domain.display.AspectClass.SQUARE_FOLD, com.aether.reader.domain.display.AspectClass.classify(fold6MainRatio))
+        assertEquals(com.aether.reader.domain.display.AspectClass.SQUARE_FOLD, com.aether.reader.domain.display.AspectClass.classify(foldUltraMainRatio))
+
+        // 2. Galaxy Z Fold Cover Screens (Folded)
+        val fold4CoverRatio = 2316f / 904f // 2.561f
+        val fold6CoverRatio = 2376f / 968f // 2.454f
+        val foldUltraCoverRatio = 2520f / 1080f // 2.333f
+        assertEquals(com.aether.reader.domain.display.AspectClass.EXTREME_TALL, com.aether.reader.domain.display.AspectClass.classify(fold4CoverRatio))
+        assertEquals(com.aether.reader.domain.display.AspectClass.EXTREME_TALL, com.aether.reader.domain.display.AspectClass.classify(fold6CoverRatio))
+        assertEquals(com.aether.reader.domain.display.AspectClass.EXTREME_TALL, com.aether.reader.domain.display.AspectClass.classify(foldUltraCoverRatio))
+
+        // 3. Layout specs verification for Fold Main & Cover
+        val mainMetrics = com.aether.reader.domain.display.DisplayMetricsInfo(
+            widthPx = 2176, heightPx = 1812, ppi = 374f,
+            refreshRatesHz = listOf(120f), isLandscape = true,
+            isOled = true, isEinkHint = false, isColorEinkHint = false
+        )
+        val mainLayout = com.aether.reader.platform.display.layoutFor(mainMetrics, allowDarkMode = true, trueBlack = true)
+        assertEquals(2, mainLayout.columns) // Large landscape unfolded provides comfortable 2-column spread
+        assertTrue(mainLayout.trueBlackBackground)
+
+        val coverMetrics = com.aether.reader.domain.display.DisplayMetricsInfo(
+            widthPx = 904, heightPx = 2316, ppi = 402f,
+            refreshRatesHz = listOf(120f), isLandscape = false,
+            isOled = true, isEinkHint = false, isColorEinkHint = false
+        )
+        val coverLayout = com.aether.reader.platform.display.layoutFor(coverMetrics, allowDarkMode = true, trueBlack = true)
+        assertEquals(1, coverLayout.columns)
+        assertEquals(0.85f, coverLayout.marginScale, 0.001f) // Narrow margin scale to avoid suffocating text on tall cover screen
+    }
+
+    @Test
+    fun testCbrFormatSniffingAndSupport() {
+        val cbrFmt = com.aether.reader.engine.Containers.formatOf("/storage/emulated/0/Books/manga.cbr", null)
+        assertEquals(com.aether.reader.engine.BookFormat.CBZ, cbrFmt)
+
+        val cbzFmt = com.aether.reader.engine.Containers.formatOf("/storage/emulated/0/Books/comic.CBZ", null)
+        assertEquals(com.aether.reader.engine.BookFormat.CBZ, cbzFmt)
+    }
 }

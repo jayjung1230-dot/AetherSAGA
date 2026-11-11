@@ -41,7 +41,7 @@ class DisplayProfileManagerImpl(
         c.getMethod("get", String::class.java, String::class.java).invoke(null, key, "") as String
     } catch (_: Throwable) { "" }
 
-    override fun metrics(): DisplayMetricsInfo {
+    override fun metrics(widthPx: Int?, heightPx: Int?): DisplayMetricsInfo {
         val dm = DisplayMetrics()
         val display: Display = (context.getSystemService(Context.DISPLAY_SERVICE) as android.hardware.display.DisplayManager).getDisplay(Display.DEFAULT_DISPLAY)
         @Suppress("DEPRECATION") display.getRealMetrics(dm)
@@ -52,6 +52,11 @@ class DisplayProfileManagerImpl(
             sysProp("ro.product.board") + " " + sysProp("ro.hardware.eink") + " " +
             sysProp("ro.board.platform") + " " + sysProp("ro.boot.hardware")).lowercase()
 
+        val isFoldFamily = id.contains("sm-f9") || id.contains("sm-f7") || id.contains("sm-w202") ||
+            id.contains("sm-w9") || id.contains("q2q") || id.contains("q4") || id.contains("q5") ||
+            id.contains("q6") || id.contains("b4") || id.contains("b5") || id.contains("b6") ||
+            (id.contains("samsung") && id.contains("fold"))
+
         val hasEinkSysProp = sysProp("ro.vendor.eink").isNotEmpty() ||
             sysProp("ro.hardware.eink").isNotEmpty() ||
             sysProp("ro.epd.present").isNotEmpty() ||
@@ -59,10 +64,12 @@ class DisplayProfileManagerImpl(
             sysProp("sys.eink.app.name").isNotEmpty() ||
             sysProp("persist.sys.eink").isNotEmpty()
 
-        val maxDim = maxOf(dm.widthPixels, dm.heightPixels)
-        val minDim = minOf(dm.widthPixels, dm.heightPixels)
+        val rawW = if (widthPx != null && widthPx > 0) widthPx else dm.widthPixels
+        val rawH = if (heightPx != null && heightPx > 0) heightPx else dm.heightPixels
+        val maxDim = maxOf(rawW, rawH)
+        val minDim = minOf(rawW, rawH)
         // Check standard E-Ink resolutions (Carta 1200/1300/Pearl/Carta HD):
-        val isStandardEinkResolution = (
+        val isStandardEinkResolution = !isFoldFamily && (
             (maxDim in 1420..1480 && minDim in 1050..1100) || // 6.0" 1448x1072 (Luna X, Poke 3/4/5, Clara 2E)
             (maxDim in 1650..1710 && minDim in 1230..1290) || // 7.0" 1680x1264 (Leaf, Page, Motive, Libra 2)
             (maxDim in 1840..1900 && minDim in 1380..1430) || // 7.8" & 10.3" 1872x1404 (Expert, Nova, Note)
@@ -73,24 +80,26 @@ class DisplayProfileManagerImpl(
             (maxDim in 780..820 && minDim in 580..620)        // 800x600 (Legacy E-Ink)
         )
 
-        val einkHint = einkVendors.any { id.contains(it) } || hasEinkSysProp || isStandardEinkResolution
+        val einkHint = !isFoldFamily && (einkVendors.any { id.contains(it) } || hasEinkSysProp || isStandardEinkResolution)
         if (isStandardEinkResolution && (ppi < 200f || ppi > 450f)) {
             ppi = if (maxDim in 1000..1050) 212f else 300f
         }
         val colorHint = einkHint && colorHints.any { id.contains(it) }
-        val diag = hypot(dm.widthPixels / dm.xdpi, dm.heightPixels / dm.ydpi)
-        // OLED has no public API; `isWideColorGamut` + known models only. Users can force via settings.
-        val oled = !einkHint && diag < 14f && display.isWideColorGamut
+        val diag = hypot(rawW / dm.xdpi.coerceAtLeast(160f), rawH / dm.ydpi.coerceAtLeast(160f))
+        val oled = isFoldFamily || (!einkHint && diag < 14f && display.isWideColorGamut)
+        if (isFoldFamily && (ppi < 200f || ppi > 600f)) {
+            ppi = if (maxDim.toFloat() / minDim.toFloat() < 1.35f) 374f else 402f
+        }
         return DisplayMetricsInfo(
-            widthPx = dm.widthPixels, heightPx = dm.heightPixels, ppi = ppi,
-            refreshRatesHz = rates, isLandscape = dm.widthPixels > dm.heightPixels,
+            widthPx = rawW, heightPx = rawH, ppi = ppi,
+            refreshRatesHz = rates, isLandscape = rawW > rawH,
             isOled = oled, isEinkHint = einkHint, isColorEinkHint = colorHint
         )
     }
 
-    override fun detect(settings: DisplaySettings): DisplayStrategy {
+    override fun detect(settings: DisplaySettings, widthPx: Int?, heightPx: Int?): DisplayStrategy {
         lastSettings = settings
-        val m = metrics()
+        val m = metrics(widthPx, heightPx)
 
         // Apply hardware display resolution profile overrides (Recommended devices sorted by size)
         val effectiveMetrics = when (settings.devicePreset) {
@@ -143,6 +152,30 @@ class DisplayProfileManagerImpl(
                 isEinkHint = true,
                 isColorEinkHint = false
             )
+            "GALAXY_FOLD_MAIN" -> m.copy(
+                widthPx = if (m.isLandscape) 2176 else 1812,
+                heightPx = if (m.isLandscape) 1812 else 2176,
+                ppi = 374f,
+                isOled = true,
+                isEinkHint = false,
+                isColorEinkHint = false
+            )
+            "GALAXY_FOLD_COVER" -> m.copy(
+                widthPx = if (m.isLandscape) 2316 else 904,
+                heightPx = if (m.isLandscape) 904 else 2316,
+                ppi = 402f,
+                isOled = true,
+                isEinkHint = false,
+                isColorEinkHint = false
+            )
+            "GALAXY_FOLD_ULTRA" -> m.copy(
+                widthPx = if (m.isLandscape) 2184 else 1968,
+                heightPx = if (m.isLandscape) 1968 else 2184,
+                ppi = 372f,
+                isOled = true,
+                isEinkHint = false,
+                isColorEinkHint = false
+            )
             "GENERIC_TABLET" -> m.copy(
                 isEinkHint = false,
                 isColorEinkHint = false
@@ -151,13 +184,13 @@ class DisplayProfileManagerImpl(
                 // AUTO: Detect E-Ink hardware automatically
                 val maxDim = maxOf(m.widthPx, m.heightPx)
                 val minDim = minOf(m.widthPx, m.heightPx)
-                val isStandardResolution = (
+                val isStandardResolution = !m.isOled && (
                     (maxDim in 1420..1480 && minDim in 1050..1100) ||
                     (maxDim in 1600..1710 && minDim in 1200..1300) ||
                     (maxDim in 1840..1900 && minDim in 1380..1430) ||
                     (maxDim in 1000..1050 && minDim in 740..780)
                 )
-                if (m.isEinkHint || isStandardResolution) {
+                if ((m.isEinkHint || isStandardResolution) && !m.isOled) {
                     m.copy(ppi = if (m.ppi < 200f) 300f else m.ppi, isEinkHint = true)
                 } else {
                     m
@@ -168,7 +201,7 @@ class DisplayProfileManagerImpl(
         val kind = settings.forcedKind ?: when (settings.devicePreset) {
             "LUNA_X_60", "LUNA_X_78", "STANDARD_6", "EINK_60_HD", "KINDLE_PW_68",
             "ONYX_LEAF_70", "ONYX_LEAF_7", "NOVA_78", "LARGE_103", "MAX_133" -> DisplayKind.MONO_EINK
-            "GENERIC_TABLET" -> DisplayKind.LCD_OLED
+            "GENERIC_TABLET", "GALAXY_FOLD_MAIN", "GALAXY_FOLD_COVER", "GALAXY_FOLD_ULTRA" -> DisplayKind.LCD_OLED
             else -> when {
                 effectiveMetrics.isColorEinkHint -> DisplayKind.COLOR_EINK
                 effectiveMetrics.isEinkHint -> DisplayKind.MONO_EINK

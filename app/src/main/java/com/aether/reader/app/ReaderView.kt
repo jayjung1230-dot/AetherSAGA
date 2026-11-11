@@ -77,6 +77,7 @@ class ReaderView(ctx: Context) : View(ctx) {
     private val progressFillPaint = Paint()
     private val rulerPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val selectionPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val reusableScalePaint = Paint(Paint.FILTER_BITMAP_FLAG)
     private val shadow = Paint()
     private val handler = Handler(Looper.getMainLooper())
 
@@ -126,8 +127,18 @@ class ReaderView(ctx: Context) : View(ctx) {
         val h = height.toFloat()
         val dens = resources.displayMetrics.density
 
-        // Instant clean presentation (zero curl/slide latency)
-        c.drawBitmap(cur, 0f, 0f, null)
+        // Instant clean presentation: 1:1 pixel match or proportional center-fit during fold/unfold transitions
+        if (cur.width == width && cur.height == height) {
+            c.drawBitmap(cur, 0f, 0f, null)
+        } else if (cur.width > 0 && cur.height > 0) {
+            val scale = minOf(w / cur.width.toFloat(), h / cur.height.toFloat())
+            val dw = cur.width * scale
+            val dh = cur.height * scale
+            val dx = (w - dw) / 2f
+            val dy = (h - dh) / 2f
+            val dst = RectF(dx, dy, dx + dw, dy + dh)
+            c.drawBitmap(cur, null, dst, reusableScalePaint)
+        }
 
         // Drag-to-select visual selection overlay (real-time feedback)
         val selRects = selectionRects
