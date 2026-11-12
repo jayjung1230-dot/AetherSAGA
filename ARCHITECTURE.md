@@ -1,6 +1,6 @@
 # Aether SAGA – Architecture Overview
 
-> **Version:** `Ver. 2.5` (Official Release • 2026-11-12)  
+> **Version:** `Ver. 2.5.1` (Official Release • 2026-11-12)  
 > *"Aether SAGA, journeys through endless stories"*  
 > **Release Notes:** [RELEASE_NOTES.md](./RELEASE_NOTES.md)
 
@@ -130,6 +130,32 @@ H/W 특성에 맞춘 이원화 UX 설계를 통해 극단적인 반응성과 시
    - 글자 스타일, 화면/조명, 독서 보조도구, 메인 환경설정 카드 내부의 모든 행 구분선에 `DottedDividerView`(`0xFF888888`, 1dp 스트로크, 3dp 대시/3dp 갭)를 적용하여 시각적 답답함을 해소하고 부드러운 계층감 완성.
    - `ReaderTheme.kt` 내 디자인 토큰 및 헬퍼 함수(`einkBtnBg`, `einkBtnBorder`, `einkStrokePx`)를 통한 100% UI 일관성 확보.
    - `PagingEngineImpl` 4구간 LRU 캐시(`layoutCache`) 및 비트맵 즉시 회수(`bitmap.recycle()`) 파이프라인으로 0ms 챕터 전환 및 1GB RAM 저사양 기기 메모리 안정성 달성.
+28. **독서 통계 리포트 공유 & 읽고 있는 책 인포그래픽 렌더링 파이프라인 (Stats Sharing & Currently Reading Card Pipeline)**:
+   - `StatsCardRenderer.kt`: 1:1 Feed (`1080×1080`) 및 9:16 Story (`1080×1920`) Canvas 기반 인포그래픽 렌더러.
+   - **읽고 있는 책(Currently Reading) 카드**: 현재 독서 중인 대표 도서의 미니 커버 비트맵(8px 라운드 코너), 도서명/저자명, 포맷 배지(EPUB/PDF/CBZ/TXT), 최근 열람 일시 및 페이지 번호, 직관적 프로그레스 바(진행률 %), 함께 읽고 있는 책(`+ N권 함께 읽는 중: 《도서명》`)을 일체형 카드로 렌더링.
+   - `AndroidShareHelper.shareStatsToSns`: SNS 및 메신저 공유 클립보드/인텐트 텍스트에 읽고 있는 책 정보(`📖 읽고 있는 책: 《도서명》 (68%)`)를 자동 포함.
+29. **기능별 독립 모듈화 아키텍처 (Feature-Based Modular Architecture, `com.aether.reader.features.*`)**:
+   - 기존 대형 모놀리식 파일(`Services.kt`, `Hardware.kt`)에 집중되어 있던 비즈니스 로직 및 렌더러를 도메인/기능별 독립 패키지로 격리:
+     - `features/stats/StatsCardRenderer.kt`: 1:1 / 9:16 통계 리포트 렌더러
+     - `features/share/QuoteCardRenderer.kt`: 명언/인용구 카드 Canvas 렌더러
+     - `features/share/HighlightsZipExporter.kt`: 하이라이트/메모 TXT·MD 통합 ZIP 압축 엔진
+     - `features/share/DirectEmailSender.kt`: ShareFileProvider 기반 다이렉트 이메일 전송기
+     - `features/sync/WebDavSyncManager.kt`: WebDAV 동기화 및 큐 관리자
+     - `features/tts/TtsEngineController.kt`: 스마트 TTS 엔진 및 세션 관리자
+     - `features/gemini/`: Gemini AI 독서 어시스턴트 컨텍스트 분석 및 토론 엔진
+   - `Services.kt` 및 `Hardware.kt`에 `typealias`를 두어 기존 호출 코드의 변경 없이 100% 무손실 하위 호환성 유지.
+30. **속도 및 메모리 안정성 최적화 아키텍처 (Speed & Stability Optimization Architecture)**:
+   - **UI 스레드 디스크 I/O 완전 제거 & 0ms 탭 전환 (Zero-I/O Tab Switching)**:
+     - `StatsDashboardDialog` 오픈 시 `Dispatchers.IO` 백그라운드 코루틴을 통해 서재 내 전체 도서의 페이지 수를 비동기 사전 계산.
+     - `pageEstimateCache: ConcurrentHashMap<String, Pair<Int, Int>>`에 캐싱하여 주간/월간/연간 탭 전환 시 UI 스레드 동기 파일 파싱을 0건으로 단축 (0ms 즉시 응답, ANR 원천 방지).
+   - **PagingEngine 6개 챕터 LRU 캐시 상한선 설정 (OOM 차단)**:
+     - 장시간 독서 시 메모리 누수를 방지하기 위해 `layoutCache`를 `removeEldestEntry { size > 6 }`로 제한하여 메모리 사용량을 예측 가능한 상한선 내로 엄격히 통제.
+   - **BitmapPool 멀티스레드 안전성 보장 (Thread-Safe Buffer Management)**:
+     - 뷰어 비트맵 할당, 회전(`swap()`), 반환(`recycle()`) 루틴에 `@Synchronized` 및 방어적 널/재활용 검사를 전면 적용하여 고속 페이지 넘김 시 네이티브 크래시 완벽 차단.
+   - **CoverCache 단일 패스 직접 스케일링 & RGB_565 최적화**:
+     - 불필요한 중간 비트맵 할당 단계를 제거하고, `Bitmap.Config.RGB_565` 및 `Canvas.drawBitmap` 1회 스케일링으로 메모리 할당량을 절반 이하로 줄이고 가비지 컬렉터(GC) 부하 최소화.
+   - **Room DB SQLite 복합 인덱스 탑재**:
+     - 앱 초기 기동 시 `index_books_lastRead`, `index_books_title`, `index_highlights_bookPath_chapter` 인덱스를 비파괴적으로 생성(`CREATE INDEX IF NOT EXISTS`)하여 수천 권의 서재 정렬 및 검색, 하이라이트 로딩 쿼리 속도를 가속.
 
 ## Memory & Performance Budget (2 GB device, ~600–800 MB free)
 | Item | Budget |

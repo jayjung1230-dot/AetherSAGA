@@ -1,6 +1,6 @@
 # Aether SAGA (에테르 사가) - 기능 명세 및 법적·마켓 컴플라이언스 분석서 (FUNCTION.md)
 
-> **앱 버전:** `Ver. 2.5` (공식 릴리즈) | **문서 버전:** v2.5.0  
+> **앱 버전:** `Ver. 2.5.1` (공식 릴리즈) | **문서 버전:** v2.5.1  
 > **기준 일자:** 2026년 11월 12일  
 > **대상 애플리케이션:** Aether SAGA (*journeys through endless stories*)  
 > **관련 문서:** [RELEASE_NOTES.md](./RELEASE_NOTES.md), [README.md](./README.md), [ARCHITECTURE.md](./ARCHITECTURE.md)  
@@ -63,6 +63,9 @@
    - 3.31. 도서 정보 및 독서 노트 공유 통합 창 & 인스타그램 스토리 오토핏 (Unified Share & Story Auto-Fit Engine)
    - 3.32. 도서 하이라이트 ZIP 압축파일 도서 메타데이터 통합 (Rich Metadata Highlight ZIP Export)
    - 3.33. 공식 기본 전자책 《Aether SAGA 사용 설명서》(EPUB) 번들링 및 자동 시딩 (Bundled Official User Guide & Auto-Seeding)
+   - 3.34. 독서 통계 리포트 "현재 읽고 있는 책" 인포그래픽 수록 시스템 (Currently Reading Books Stats Infographic)
+   - 3.35. 기능 모듈화 아키텍처 (Feature-Based Modular Architecture: com.aether.reader.features.*)
+   - 3.36. 속도 및 메모리 안정성 최적화 시스템 (Zero-I/O Tab Switching, Bounded LRU & Thread-Safe Engine)
 4. [특허권(Patent) 침해 여부 분석](#4-특허권patent-침해-여부-분석)
 5. [상표권(Trademark) 및 부정경쟁방지법 검토](#5-상표권trademark-및-부정경쟁방지법-검토)
 6. [타사 앱 복제 논쟁(Copycat Dispute) 회피 근거](#6-타사-앱-복제-논쟁copycat-dispute-회피-근거)
@@ -657,6 +660,101 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
     - 외부 다국어 프레임워크나 무거운 번들 라이브러리 없이, 인라인 최적화된 `L10n.t()` 헬퍼를 활용하여 APK 용량 증가(0KB급) 없이 즉시 반응형 렌더링을 구현합니다.
 - **법적 및 마켓 분석:**
   Google Play 및 Apple App Store의 글로벌 로컬라이제이션 가이드라인을 완전 충족하며, 시스템 언어 폴백을 통해 전 세계 사용자가 진입 장벽 없이 바로 사용할 수 있습니다.
+
+---
+
+### 3.31. 도서 정보 및 독서 노트 공유 통합 창 & 인스타그램 스토리 오토핏 (Unified Share & Story Auto-Fit Engine)
+
+- **개요 및 목적:**
+  서재 툴바의 단일 [📢 독서 기록 공유] 버튼 및 뷰어 메뉴를 통해 도서 기본 정보/진행률과 하이라이트/메모를 단일 대화상자에서 통합 조합하고, 인스타그램 스토리 규격(9:16)에 맞추어 텍스트 길이에 따라 유동적으로 폰트 크기 및 높이를 비례 배분하여 말줄임표(...) 잘림 현상을 100% 원천 방지하는 지능형 공유 엔진입니다.
+- **구현 파일 및 주요 심볼:**
+  - [QuoteCardRenderer.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/features/share/QuoteCardRenderer.kt)
+  - [Services.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/data/Services.kt) (`AndroidShareHelper.showUnifiedBookShareDialog`, `renderStoryQuotesCard`)
+  - [LibraryActivity.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/LibraryActivity.kt)
+- **기술적 세부사항:**
+  - **인스타그램 스토리 600자 유동 예산제**: 고정 줄 수 제한 대신 600자 예산을 기반으로 각 노트 길이에 비례해 수직 영역을 동적 배분.
+  - **표지 원본 비율 100% 보존**: 표지 비트맵의 가로세로 비율을 유지하여 우측 상단에 정밀 배치.
+  - **양방향 [✓] 전체 선택 동기화**: 단일 체크박스로 전체 선택/해제 및 개별 선택 상태 실시간 동기화.
+
+---
+
+### 3.32. 도서 하이라이트 ZIP 압축파일 도서 메타데이터 통합 (Rich Metadata Highlight ZIP Export)
+
+- **개요 및 목적:**
+  하이라이트 내보내기 시 도서 제목 및 저자 정보를 텍스트(.txt) 및 마크다운(.md) 파일 내에 명시적 헤더로 통합하고, 여러 권을 선택할 경우 도서별로 섹션을 자동 그룹화하여 노션(Notion), 옵시디언(Obsidian) 등 외부 지식 관리 툴과의 호환성을 극대화합니다.
+- **구현 파일 및 주요 심볼:**
+  - [HighlightsZipExporter.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/features/share/HighlightsZipExporter.kt)
+  - [DirectEmailSender.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/features/share/DirectEmailSender.kt)
+- **기술적 세부사항:**
+  - `java.util.zip.ZipOutputStream` 기반 UTF-8 스트리밍 압축.
+  - `Highlights.txt` 및 `Highlights.md` 내에 `## 📖 《도서명》 - 저자` 구조화 헤더 자동 생성.
+  - Android `ShareFileProvider` 및 `application/zip` MIME 타입 인텐트 다이렉트 디스패치.
+
+---
+
+### 3.33. 공식 기본 전자책 《Aether SAGA 사용 설명서》(EPUB) 번들링 및 자동 시딩 (Bundled Official User Guide & Auto-Seeding)
+
+- **개요 및 목적:**
+  사용자가 별도의 도서 파일 없이도 즉시 앱의 모든 기능을 학습하고 체험할 수 있도록 21종의 맞춤형 인포그래픽 다이어그램이 수록된 공식 사용 설명서 EPUB을 내부 자산으로 번들링하고 최초 실행 시 자동 시딩합니다.
+- **구현 파일 및 주요 심볼:**
+  - [App.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/App.kt) (`seedSampleBookIfNeeded`, `AetherSAGA_User_Guide.epub`)
+  - [LibraryActivity.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/LibraryActivity.kt)
+- **기술적 세부사항:**
+  - 앱 `assets` 디렉토리의 가이드를 내부 전용 디렉토리로 안전 복사.
+  - Room DB에 도서 메타데이터 자동 색인 및 표지 캐싱 즉각 완료.
+
+---
+
+### 3.34. 독서 통계 리포트 "현재 읽고 있는 책" 인포그래픽 수록 시스템 (Currently Reading Books Stats Infographic)
+
+- **개요 및 목적:**
+  독서 통계 대시보드에서 생성되는 1:1 정사각형 피드 및 9:16 인스타 스토리 카드에 기존의 통계 지표와 더불어 **현재 실제로 읽고 있는 대표 도서의 상세 현황(표지, 도서명, 저자, 포맷, 진도율 바, 함께 읽는 도서)**을 인포그래픽 형태로 일체화하여 제공함으로써 소셜 공유의 실용성과 감성을 대폭 증대합니다.
+- **구현 파일 및 주요 심볼:**
+  - [StatsCardRenderer.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/features/stats/StatsCardRenderer.kt)
+  - [StatsDashboardDialog.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/StatsDashboardDialog.kt) (`StatsSharePayload.currentlyReadingBooks`)
+  - [AndroidShareHelper.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/data/Services.kt) (`shareStatsToSns`)
+- **기술적 세부사항:**
+  - **도서 미니 표지 렌더링**: 책의 고유 커버 아트를 캐시에서 가져와 8px 라운드 코너 카드로 렌더링.
+  - **포맷 알약 배지 & 메타데이터**: EPUB/PDF/CBZ/TXT 등 포맷을 캡슐 배지로 표시하고 제목/저자 표기.
+  - **프로그레스 바 & %**: 현재 페이지 수, 최근 열람 일시, 독서 진행률 바 및 % 수치 정밀 렌더링.
+  - **보조 도서 목록**: 동시에 여러 권을 읽는 경우 `+ N권 함께 읽는 중: 《도서명》` 보조 행 병기.
+  - **텍스트/클립보드 연동**: 공유 시 `📖 읽고 있는 책: 《도서명》 (진행률%)` 본문 자동 첨부.
+
+---
+
+### 3.35. 기능 모듈화 아키텍처 (Feature-Based Modular Architecture: `com.aether.reader.features.*`)
+
+- **개요 및 목적:**
+  수천 줄에 달하던 거대 단일 파일(`Services.kt`, `Hardware.kt`)을 기능 및 도메인 단위의 독립 패키지로 분리하여 코드 가독성, 유지보수성, 테스트 용이성을 극대화하고, `typealias` 브릿지를 통해 기존 코드베이스와의 무손실 100% 하위 호환성을 보장합니다.
+- **구현 파일 및 주요 심볼:**
+  - `features/stats/StatsCardRenderer.kt`: 1:1 Feed & 9:16 Story 통계 리포트 Canvas 렌더러
+  - `features/share/QuoteCardRenderer.kt`: 명언/인용구 카드 Canvas 렌더러
+  - `features/share/HighlightsZipExporter.kt`: 하이라이트/메모 TXT·MD 통합 ZIP 압축 엔진
+  - `features/share/DirectEmailSender.kt`: ShareFileProvider 기반 다이렉트 이메일 전송기
+  - `features/sync/WebDavSyncManager.kt`: WebDAV 동기화 및 큐 관리자
+  - `features/tts/TtsEngineController.kt`: 스마트 TTS 엔진 및 세션 관리자
+  - `features/gemini/`: Gemini AI 독서 어시스턴트 컨텍스트 분석 및 토론 엔진
+- **기술적 세부사항:**
+  - 단일 책임 원칙(SRP) 완벽 준수.
+  - `Services.kt` 및 `Hardware.kt` 내에 `typealias`를 선언하여 기존 `Services.AndroidShareHelper` 등 레거시 호출부에 대한 리팩토링 영향도 제로 달성.
+
+---
+
+### 3.36. 속도 및 메모리 안정성 최적화 시스템 (Zero-I/O Tab Switching, Bounded LRU & Thread-Safe Engine)
+
+- **개요 및 목적:**
+  저사양 전자잉크 단말기(Carta 1200/1300, 1~2GB RAM)부터 고주사율 플래그십 폴더블 기기까지 일체의 버벅임이나 메모리 누수, 크래시 없이 극도의 쾌적함을 보장하기 위한 전방위 성능 및 안정화 파이프라인입니다.
+- **구현 파일 및 주요 심볼:**
+  - [StatsDashboardDialog.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/StatsDashboardDialog.kt) (`pageEstimateCache: ConcurrentHashMap<String, Pair<Int, Int>>`)
+  - [PagingEngineImpl.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/engine/PagingEngineImpl.kt) (`layoutCache.removeEldestEntry { size > 6 }`, `BitmapPoolImpl`)
+  - [Services.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/data/Services.kt) (`CoverCache.getOrLoadCoverBitmap` RGB_565 직접 스케일링)
+  - [App.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/App.kt) (Room DB 오픈 콜백 내 비파괴적 SQLite 복합 인덱스 생성)
+- **기술적 세부사항:**
+  - **UI 스레드 디스크 I/O 제로화 (0ms 탭 전환)**: 통계 대시보드 탭 전환 시 파일 파싱을 방지하기 위해 다이얼로그 오픈 시 `Dispatchers.IO`에서 페이지 수를 사전 일괄 계산하고 `ConcurrentHashMap`에 캐싱. 탭 전환 지연 0ms 달성 및 ANR 원천 차단.
+  - **PagingEngine 6개 챕터 상한 LRU 캐시**: 수시간 연속 독서 시 발생할 수 있는 힙 메모리 팽창을 방지하기 위해 레이아웃 캐시 엔트리를 최대 6개로 제한하여 메모리 풋프린트 상한 엄격 통제.
+  - **BitmapPool 멀티스레드 안전성 보장**: 비트맵 할당, 회전(`swap()`), 반환(`recycle()`) 루틴에 `@Synchronized` 및 방어적 널/재활용 검사를 전면 적용하여 고속 페이지 넘김 시 네이티브 크래시 완벽 차단.
+  - **CoverCache 단일 패스 직접 스케일링 & RGB_565 최적화**: 중간 단계 불필요한 비트맵 생성을 제거하고 `RGB_565` 포맷 및 `Canvas.drawBitmap` 1회 스케일링으로 메모리 할당량을 절반 이하로 줄이고 GC 부하 최소화.
+  - **Room DB SQLite 복합 인덱스 탑재**: `index_books_lastRead`, `index_books_title`, `index_highlights_bookPath_chapter` 인덱스를 앱 기동 시 비파괴적으로 생성하여 수천 권의 서재 정렬 및 검색, 하이라이트 로딩 쿼리 속도를 가속.
 
 ---
 

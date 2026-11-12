@@ -1,6 +1,6 @@
 # Aether SAGA (에테르 사가) - journeys through endless stories
 
-> 🌐 **[English Documentation (README.md)](./README.md)** | **현재 버전:** `Ver. 2.5` (2026. 11. 12 정식 릴리즈) | [릴리즈 노트 전문 (RELEASE_NOTES.md)](./RELEASE_NOTES.md)  
+> 🌐 **[English Documentation (README.md)](./README.md)** | **현재 버전:** `Ver. 2.5.1` (2026. 11. 12 정식 릴리즈) | [릴리즈 노트 전문 (RELEASE_NOTES.md)](./RELEASE_NOTES.md)  
 > 🏷️ **키워드 / 검색 태그:** `ebook` • `e book` • `e-book` • `e-ink` • `reader` • `viewer` • `전자책` • `리더기` • `뷰어`  
 > **E-Ink 전자책 단말기 및 안드로이드 스마트폰·태블릿·폴더블(LCD/OLED) 기기를 위한 초경량·고성능 전자책/만화 뷰어**  
 > *"Aether SAGA, journeys through endless stories"*
@@ -71,8 +71,16 @@ Aether SAGA는 기기의 디스플레이 패널(반사형 전자잉크 vs 발광
    - **도서 메타데이터 영구 보존 이메일 ZIP 전송**: 각 도서별 메모 및 하이라이트 파일(`TXT`/`MD`)에 `《책 제목》(저자)` 출처를 체계적으로 기록하여 단일 ZIP 압축 패키지로 이메일 즉시 전송
 
 8. **🏛️ 기능별 모듈화 아키텍처 (`features/`) & 스토어 심사 상표권 클린업**
-   - `features/gemini/`, `features/share/`, `features/export/`, `features/search/`, `features/tts/`, `features/settings/`, `features/library/` 독립 패키지 격리
+   - `features/stats/` (독서 통계 인포그래픽 Canvas 렌더러), `features/share/` (명언 카드 렌더러, ZIP 익스포터, 다이렉트 이메일 전송), `features/sync/` (WebDAV 동기화), `features/tts/` (스마트 TTS 엔진 컨트롤러), `features/gemini/` (AI 어시스턴트) 완전 독립 패키지 격리
+   - `Services.kt` 및 `Hardware.kt`와 `typealias` 연동으로 기존 코드 100% 무손실 하위 호환성 유지
    - 타사 특정 상표명을 중립적 기술 표준 용어로 전면 정비하여 글로벌 마켓(구글 플레이/애플 앱스토어) 심사 무결성 확보
+
+9. **⚡ 극도의 속도와 안정성 최적화 (Speed & Stability Optimization)**
+   - **UI 스레드 디스크 I/O 완전 제거 & 0ms 탭 전환**: 통계 대시보드 페이지 수 비동기(`Dispatchers.IO`) 사전 계산 및 `ConcurrentHashMap` 캐싱으로 탭 전환 시 UI 프리징/ANR 원천 차단
+   - **6개 챕터 LRU 캐시 상한선 설정**: `PagingEngineImpl`의 레이아웃 캐시를 6개로 제한(`removeEldestEntry { size > 6 }`)하여 장시간 연속 독서 시 OOM 방지
+   - **BitmapPool 스레드 안전성 보장**: 비트맵 할당/회전/반환 전 과정 동기화(`@Synchronized`)로 고속 넘김 시 네이티브 크래시 차단
+   - **CoverCache 단일 패스 직접 스케일링 & RGB_565**: 중간 비트맵 할당 제거 및 1회 직접 렌더링으로 GC 부하 및 힙 메모리 절감
+   - **Room DB SQLite 복합 인덱스 탑재**: `index_books_lastRead`, `index_books_title`, `index_highlights_bookPath_chapter`로 서재 정렬 및 검색, 하이라이트 조회 가속
 
 ---
 
@@ -139,8 +147,12 @@ Aether SAGA는 기기의 디스플레이 패널(반사형 전자잉크 vs 발광
     - **Zero-Library 순수 Canvas 라인(Line) 차트 엔진**: MPAndroidChart 등 외부 라이브러리 없이 직접 조판한 초경량 고대비 라인 그래프 탑재 (E-Ink 3px 고대비 실선/도트, LCD 부드러운 스플라인/그라데이션)
     - 독서 시간(분) ↔ 읽은 페이지(p) 지표 전환 및 연속 독서일(Streak 🔥) 집계
     - **월별/연간 완독 도서 기록 영구 보존**: 도서 파일 삭제 후에도 월별 완독 권수와 완독 도서 목록 영구 보존
-    - **독서 통계 리포트 SNS 공유 및 이미지 저장 (실시간 차트 그래픽 포함, 전 기기 지원)**:
+    - **독서 통계 리포트 SNS 공유 및 이미지 저장 (실시간 차트 그래픽 & 읽고 있는 책 수록, 전 기기 지원)**:
       - 독서통계 대시보드에서 현재 보고 있는 기간/지표의 **실시간 추이 그래프(막대 및 라인 차트)**, 핵심 독서 지표, 연속 독서일(Streak), 맞춤 독서 인사이트, 완독 도서 목록을 온전히 담아낸 고해상도 인포그래픽 리포트 생성
+      - **"현재 읽고 있는 책(Currently Reading Books)" 인포그래픽 카드 통합**:
+        - 1:1 피드 및 9:16 인스타 스토리 카드에 현재 읽고 있는 도서의 **미니 표지 아트(8px 라운드 코너), 도서명, 저자, 포맷 알약 배지(EPUB/PDF/CBZ/TXT), 최근 열람 일시 및 페이지 번호, 프로그레스 바(진행률 %)**를 체계적으로 렌더링
+        - 여러 권을 동시에 읽고 있을 경우 `+ N권 함께 읽는 중: 《도서명》` 목록까지 자동 병기
+        - SNS 공유 텍스트 및 인텐트에 `📖 읽고 있는 책: 《도서명》 (68%)` 정보 자동 포함
       - **인스타그램 공유 시 피드(1:1 카드) vs 스토리(9:16 인포그래픽 리포트) 맞춤 선택기 탑재**: 피드 선택 시 시스템 선택창 없이 즉시 피드 작성기로 직행하며, 스토리 선택 시 깔끔한 단일 배경 에셋 전송 지원
       - 갤러리(Pictures/AetherSAGA) 저장 및 Twitter/X, Threads, Facebook, 카카오톡(LCD 전용) 공유 지원
 - **메인 서재 '최근 읽던 책 이어보기' 100% 전폭 배경 트랙 진행바**: 0%부터 100% 완독까지 전폭에 옅은 배경색(E-Ink 고대비 스트로크 포함)을 배치하여 전자잉크 및 LCD에서 진행률을 한눈에 식별 (`진행률 %` 수치 및 기능 100% 보존). 기존 직선 라인을 배경 트랙과 진행 필이 분리된 라운드형 실제 진행바로 개편 (`진행률 %` 수치 및 기능 100% 보존).

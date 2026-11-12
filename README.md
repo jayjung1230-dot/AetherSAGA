@@ -11,13 +11,13 @@
 
 <p align="center">
   <a href="./README_ko.md">🇰🇷 한국어 설명서 (Korean)</a> •
-  <a href="./RELEASE_NOTES.md">Release Notes (v2.5)</a> •
+  <a href="./RELEASE_NOTES.md">Release Notes (v2.5.1)</a> •
   <a href="./ARCHITECTURE.md">Architecture Spec</a> •
   <a href="./FUNCTION.md">Functional Spec</a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.5.0-blue.svg" alt="Version 2.5.0" />
+  <img src="https://img.shields.io/badge/version-2.5.1-blue.svg" alt="Version 2.5.1" />
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B%20(API%2026%2B)-green.svg" alt="Platform" />
   <img src="https://img.shields.io/badge/APK%20Size-~1.9%20MB%20(with%2021--Diagram%20Guide)-success.svg" alt="APK Size" />
   <img src="https://img.shields.io/badge/Dependencies-Zero%20Heavy%20Libs-orange.svg" alt="Dependencies" />
@@ -83,7 +83,11 @@ Transform your favorite reading moments into beautifully styled, high-resolution
 * **Smart Multi-Quote Social Dispatch (Story vs. Feed)**:
   * **Story Mode (Dynamic Proportional Layout, Modular Typography & Progress Auto-Fit)**: Automatically bundles selected highlights within a 600-character budget into a 9:16 vertical story card (1080×1920) for Instagram Stories, dynamically distributing vertical space in exact proportion to each note's length, featuring unified tag badges (`26~30px`) and proportional quotation marks (`48~80px`), hero progress typography (`36~58px`) with an infographic progress bar, and original book cover aspect ratios 100% preserved.
   * **Feed / Social Carousel**: Automatically generates individual 1:1 quote cards and dispatches multi-image carousels tailored to each platform's limit (up to 10 for Instagram/Facebook/Threads, up to 4 for X/Twitter) or saves all cards to your local gallery.
-* **Rich Reading Milestone & Stats Sharing**: Share comprehensive infographics reflecting your real-time reading stats and live interactive trend charts/graphs. Choose between **Instagram Story (9:16 vertical infographic report)** or **Instagram Feed (1:1 square card)**, or export to Twitter/X, social messengers, or local gallery with direct feed-launch and clean single-asset story support.
+* **Rich Reading Milestone & Stats Sharing with "Currently Reading Books"**:
+  * Share comprehensive infographics reflecting your real-time reading stats and live interactive trend charts/graphs.
+  * **Integrated "Currently Reading Books" Card**: 1:1 square feed and 9:16 vertical story cards now cleanly embed your active book with rounded mini cover artwork (8px), book title, author, format pill badge (EPUB/PDF/CBZ/TXT), current page & recency info, an infographic progress bar with `%` badge, and companion reading books (`+ N more reading`).
+  * Text and intent sharing automatically append `📖 Currently Reading: 《Title》(Author) (XX%)`.
+  * Choose between **Instagram Story (9:16 vertical infographic report)** or **Instagram Feed (1:1 square card)**, or export to Twitter/X, social messengers, or local gallery with direct feed-launch and clean single-asset story support.
 
 ### 🔊 3. Smart TTS Read Aloud System with Live Sentence Highlighting (Ver. 2.1)
 Transform books into seamless audiobooks with real-time visual tracking:
@@ -117,9 +121,17 @@ A dual-rendering pipeline that adapts precisely to your display hardware:
 * Background text-to-speech engine with synchronized sentence auto-scrolling.
 * Full **Bluetooth earphone & headset media key integration** (play, pause, next/previous sentence) for comfortable hands-free listening.
 
-### 🎴 6. Highlight Flashcards & Custom Bionic Reading
+### 🎴 6. Highlight Flashcards & Export Tools
 * **Flashcard Spaced Repetition**: Turn highlights and notes into study flashcards with interactive flip animations.
-* **Proprietary Bionic Reading**: In-house fixation enhancer that bolds initial syllables without external third-party intellectual property constraints.
+* **ZIP & Email Export**: Export quotes and bookmarks into standard Markdown and TXT archives with full book metadata headers.
+
+### 🏛️ 7. Feature Modularization & Extreme Speed/Stability Optimizations (Ver. 2.5.1)
+* **Clean Feature Packages (`com.aether.reader.features.*`)**: Isolated modules for `features.stats` (StatsCardRenderer), `features.share` (QuoteCardRenderer, HighlightsZipExporter, DirectEmailSender), `features.sync` (WebDavSyncManager), and `features.tts` (TtsEngineController) with `typealias` backward compatibility.
+* **0ms UI Thread Tab Switching**: Pre-computes page estimates on `Dispatchers.IO` and caches them in a `ConcurrentHashMap`, completely eliminating synchronous disk I/O on UI thread during stats tab switching.
+* **6-Chapter Bounded LRU Cache**: Constrains `layoutCache` with `removeEldestEntry { size > 6 }` preventing OOM in multi-hour reading sessions.
+* **Thread-Safe Bitmap Pools**: Guarded bitmap allocation, recycling, and swap routines preventing native crashes under rapid page flipping.
+* **Single-Pass RGB_565 CoverCache**: Cuts bitmap allocation overhead in half by drawing scaled covers in a single canvas pass.
+* **Composite SQLite Indexing**: Non-destructive indices (`index_books_lastRead`, `index_books_title`, `index_highlights_bookPath_chapter`) accelerate shelf sorting and highlight retrieval.
 
 ---
 
@@ -128,7 +140,7 @@ A dual-rendering pipeline that adapts precisely to your display hardware:
 | Feature | Capabilities |
 | :--- | :--- |
 | **Supported Formats** | **EPUB (v2/v3)** with TOC & CSS • **TXT** (streaming for 100MB+ files) • **PDF** (hardware-accelerated, dual-page mode) • **CBZ/ZIP** (manga right-to-left) |
-| **Paging Engine** | Mathematical line breaking via native `StaticLayout` • **4-Chapter LRU cache** for instant page turns • Zero memory leaks with aggressive bitmap recycling |
+| **Paging Engine** | Mathematical line breaking via native `StaticLayout` • **6-Chapter bounded LRU cache** for instant page turns • Zero memory leaks with aggressive bitmap recycling |
 | **Typography & UI** | 8pt–32pt font scaling, custom TTF/OTF font loader, margin/line-spacing tuning, 3×3 customizable touch zones, and physical volume key page flipping |
 | **Annotation Tools** | Multi-color highlights, inline footnote popovers, quick bookmarks, and exportable reading journals |
 
