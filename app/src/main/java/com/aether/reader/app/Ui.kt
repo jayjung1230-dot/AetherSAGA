@@ -443,14 +443,21 @@ fun Activity.showReadingNotesShareDialog(
         cachedCoverPath = book.coverPath
     )
 
+    val dialogRoot = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(16), dp(12), dp(16), dp(12))
+    }
+
     val outerScroll = ScrollView(this).apply {
         enableVisibleScrollbar()
+        isFillViewport = true
     }
     val root = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(16), dp(12), dp(16), dp(8))
+        setPadding(0, 0, 0, dp(4))
     }
-    outerScroll.addView(root)
+    outerScroll.addView(root, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    dialogRoot.addView(outerScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
     val noteBorderCol = if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.EINK_BORDER_CONTRAST
     val noteStrokePx = if (isLcd) dp(1) else dp(2)
@@ -590,36 +597,11 @@ fun Activity.showReadingNotesShareDialog(
     listHeaderRow.addView(selectAllCb)
     root.addView(listHeaderRow)
 
-    // 4. Scrollable Checklist (with touch disallow intercept so outer ScrollView does not block scrolling)
-    val listScroll = object : ScrollView(this) {
-        override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
-            when (ev.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    parent?.requestDisallowInterceptTouchEvent(true)
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    parent?.requestDisallowInterceptTouchEvent(false)
-                }
-            }
-            return super.onInterceptTouchEvent(ev)
-        }
-
-        override fun onTouchEvent(ev: MotionEvent): Boolean {
-            when (ev.actionMasked) {
-                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                    parent?.requestDisallowInterceptTouchEvent(true)
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    parent?.requestDisallowInterceptTouchEvent(false)
-                }
-            }
-            return super.onTouchEvent(ev)
-        }
-    }.apply {
+    // 4. Checklist Container
+    val listContainer = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
         background = cardDrawable(ReaderTheme.EINK_CARD_BG, 6, noteBorderCol, noteStrokePx)
         setPadding(dp(8), dp(6), dp(10), dp(6))
-        enableVisibleScrollbar()
-        isNestedScrollingEnabled = true
     }
     val listCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
     listCol.addView(progressCb)
@@ -667,11 +649,8 @@ fun Activity.showReadingNotesShareDialog(
         }
         syncSelectAllState()
     }
-    listScroll.addView(listCol)
-    val maxScrollH = (resources.displayMetrics.heightPixels * 0.30f).toInt().coerceAtLeast(dp(140))
-    root.addView(listScroll, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-        if (candidateItems.size > 2) height = maxScrollH
-    })
+    listContainer.addView(listCol)
+    root.addView(listContainer, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
 
     lateinit var dlg: AlertDialog
     val executeSend = {
@@ -792,36 +771,58 @@ fun Activity.showReadingNotesShareDialog(
 
     val actionBtnRow = LinearLayout(this).apply {
         orientation = LinearLayout.HORIZONTAL
-        setPadding(0, dp(6), 0, 0)
+        gravity = Gravity.CENTER_VERTICAL
+        setPadding(0, 0, 0, 0)
     }
-    val sendBtn = pillButton(L10n.t("📨 이메일 전송하기", "📨 Send Email"), Color.WHITE, ReaderTheme.ACCENT_PRIMARY_BLUE, ReaderTheme.ACCENT_PRIMARY_BLUE) {
+    val sendBg = if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.ACCENT_CHARCOAL
+    val sendStroke = if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.EINK_INK
+    val sendBtn = pillButton(
+        L10n.t("📨 이메일 전송하기", "📨 Send Email"),
+        Color.WHITE,
+        sendBg,
+        sendStroke
+    ) {
         executeSend()
     }.apply {
-        setPtSize(9f)
+        setPtSize(8.8f)
         typeface = ReaderTheme.uiFontBold
-        setPadding(dp(12), dp(10), dp(12), dp(10))
+        setPadding(dp(10), dp(10), dp(10), dp(10))
     }
-    val snsBtn = pillButton(L10n.t("📱 SNS 독서카드 공유", "📱 Share to SNS"), Color.WHITE, ReaderTheme.ACCENT_CHARCOAL, ReaderTheme.ACCENT_CHARCOAL) {
+    val snsBg = if (isLcd) ReaderTheme.ACCENT_CHARCOAL else Color.WHITE
+    val snsFg = if (isLcd) Color.WHITE else ReaderTheme.EINK_INK
+    val snsStroke = if (isLcd) ReaderTheme.ACCENT_CHARCOAL else ReaderTheme.EINK_INK
+    val snsBtn = pillButton(
+        L10n.t("📱 SNS 독서카드 공유", "📱 Share to SNS"),
+        snsFg,
+        snsBg,
+        snsStroke
+    ) {
         executeSns()
     }.apply {
-        setPtSize(9f)
+        setPtSize(8.8f)
         typeface = ReaderTheme.uiFontBold
-        setPadding(dp(12), dp(10), dp(12), dp(10))
+        setPadding(dp(10), dp(10), dp(10), dp(10))
     }
     actionBtnRow.addView(sendBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.15f).apply { rightMargin = dp(6) })
     actionBtnRow.addView(snsBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
 
-    root.addView(View(this), LinearLayout.LayoutParams(1, dp(8)))
-    root.addView(actionBtnRow, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
+    // Divider separating scrollable reading content from pinned bottom action buttons
+    val actionDivider = View(this).apply {
+        setBackgroundColor(noteBorderCol)
+    }
+    dialogRoot.addView(actionDivider, LinearLayout.LayoutParams(-1, dp(1)).apply {
+        setMargins(0, dp(8), 0, dp(8))
+    })
+    dialogRoot.addView(actionBtnRow, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
 
     val dm = resources.displayMetrics
     val isLandscape = dm.widthPixels > dm.heightPixels
     val emailDlgH = if (isLandscape) (dm.heightPixels * 0.90f).toInt().coerceAtMost(dp(560))
-                    else (dm.heightPixels * 0.80f).toInt().coerceAtMost(dp(680))
+                    else (dm.heightPixels * 0.82f).toInt().coerceAtMost(dp(680))
 
     dlg = AlertDialog.Builder(this)
         .setTitle(L10n.t("도서 정보 및 독서 노트 공유", "Share Book Info & Reading Notes"))
-        .setView(outerScroll)
+        .setView(dialogRoot)
         .create()
     dlg.showWithOptimalWidth(this, customHeight = emailDlgH, onBack = onBack)
 }
