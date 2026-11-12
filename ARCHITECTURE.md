@@ -1,8 +1,18 @@
 # Aether SAGA – Architecture Overview
 
-> **Version:** `Ver. 2.1` (Official Release • 2026-11-01)  
+> **Version:** `Ver. 2.5` (Official Release • 2026-11-12)  
 > *"Aether SAGA, journeys through endless stories"*  
 > **Release Notes:** [RELEASE_NOTES.md](./RELEASE_NOTES.md)
+
+## E-Ink vs. LCD/OLED Feature Bifurcation Summary (Ver. 2.5)
+
+| Dimension | E-Ink Devices (`MONO_EINK` / `COLOR_EINK`) | LCD / OLED Devices (`LCD_OLED` incl. Fold & Flip) |
+| :--- | :--- | :--- |
+| **Display & Foldable Profiles** | 6"~13.3" E-Ink (Carta 1200/1300 & Kaleido 3) | Smartphones, Tablets, **Galaxy Z Fold/Ultra** (`2176×1812`, `2184×1968`), **Galaxy Z Flip** (`2640×1080` Main & `748×720` / `512×260` Cover) |
+| **Themes & Lighting** | Pure Paper/Ink high contrast + Hardware Frontlight (CTM) | 4 Eye-Care Themes (White, Sepia, Charcoal, OLED Black) + In-app Brightness & Warm Amber Filter |
+| **Refresh & Borders** | 1–30 page Full Refresh cycle, 2px charcoal outlines, dotted dividers, 7dp `EinkScrollBarView` | Refresh UI hidden, soft dim (`0.35f`), elevation shadows, slim scrollbars |
+| **Gemini AI (Beta)** | Hidden automatically for offline focus & battery longevity | 3-genre auto-detection, in-app 1:1 multi-turn chat popup, Settings On/Off switches |
+| **Smart TTS & Share** | BT/Headset safety gate + 3-step offline pitch; SNS Share (Gallery, KakaoTalk, IG, Threads, X, FB; hides SMS) | Built-in speaker + Voice Studio (multi-speaker dialogue split); Full SNS Share including KakaoTalk & SMS |
 
 ## Layers (Clean Architecture + MVVM)
 

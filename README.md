@@ -11,35 +11,60 @@
 
 <p align="center">
   <a href="./README_ko.md">🇰🇷 한국어 설명서 (Korean)</a> •
-  <a href="./RELEASE_NOTES.md">Release Notes (v2.2)</a> •
+  <a href="./RELEASE_NOTES.md">Release Notes (v2.5)</a> •
   <a href="./ARCHITECTURE.md">Architecture Spec</a> •
   <a href="./FUNCTION.md">Functional Spec</a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.2.0-blue.svg" alt="Version 2.2.0" />
+  <img src="https://img.shields.io/badge/version-2.5.0-blue.svg" alt="Version 2.5.0" />
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B%20(API%2026%2B)-green.svg" alt="Platform" />
-  <img src="https://img.shields.io/badge/APK%20Size-~640%20KB-success.svg" alt="APK Size" />
+  <img src="https://img.shields.io/badge/APK%20Size-~1.9%20MB%20(with%2021--Diagram%20Guide)-success.svg" alt="APK Size" />
   <img src="https://img.shields.io/badge/Dependencies-Zero%20Heavy%20Libs-orange.svg" alt="Dependencies" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-lightgrey.svg" alt="License" />
 </p>
 
 <p align="center">
   🏷️ <strong>Topics & Keywords:</strong>
-  <code>ebook</code> • <code>e book</code> • <code>e-book</code> • <code>e-ink</code> • <code>reader</code> • <code>viewer</code> • <code>epub</code>
+  <code>ebook</code> • <code>e book</code> • <code>e-book</code> • <code>e-ink</code> • <code>reader</code> • <code>viewer</code> • <code>epub</code> • <code>foldable</code>
 </p>
 
 ---
 
 ## 📖 Overview
 
-**Aether SAGA** is an ultra-lightweight, battery-efficient Android reader engineered specifically for **E-Ink devices** (Crema Luna X 6.0", Onyx Boox series) as well as modern **Android tablets and smartphones**.
+**Aether SAGA** is an ultra-lightweight, battery-efficient Android reader engineered specifically for **E-Ink devices** (Carta 1200/1300 & Kaleido 3 color e-paper) as well as modern **Android smartphones, tablets, and foldables** (**Galaxy Z Fold / Fold Ultra / Galaxy Z Flip**).
 
-Adhering to a strict **Zero Heavy Library Policy** (no Jetpack Compose, no Glide/Coil, no Retrofit/OkHttp, no AppCompat), Aether SAGA delivers lightning-fast cold startups and butter-smooth page turns within a release APK of just **~640 KB**.
+Adhering to a strict **Zero Heavy Library Policy** (no Jetpack Compose, no Glide/Coil, no Retrofit/OkHttp, no AppCompat), Aether SAGA delivers lightning-fast cold startups, live fold/unfold responsive repagination, and butter-smooth page turns.
+
+---
+
+## 📊 E-Ink vs. LCD/OLED Feature Bifurcation Matrix
+
+Aether SAGA automatically detects display panel physics (reflective e-paper vs. emissive LCD/OLED) and dynamically bifurcates features and UI:
+
+| Feature Category | E-Ink Devices (Monochrome & Kaleido 3 Color) | Smartphones · Tablets · Foldables (LCD / OLED) |
+| :--- | :--- | :--- |
+| **Target Hardware & Profiles** | 6"~13.3" E-Ink readers (Carta 1200/1300 monochrome & Kaleido 3 4096-color optimized) | Standard Android phones/tablets, **Galaxy Z Fold / Fold Ultra**, **Galaxy Z Flip (Main 22:9 & Flex Window Cover)** |
+| **Reading Color Themes** | **Pure Paper/Ink High-Contrast Locked** (blocks software color tints that degrade reflective contrast) | **4 Eye-Care Themes Supported** (`Natural White` / `Warm Sepia` / `Night Charcoal` / `OLED True Black`) |
+| **Brightness & Lighting** | **Direct Hardware Frontlight (CTM) Integration** (eliminates muddy software dim overlays) | **0–100% In-App Brightness Slider** + **Warm Amber (Blue-Light Filter)** eye-protection overlay |
+| **Anti-Ghosting & Refresh** | **1–30 Page Full-Screen Refresh Cycle** setting exposed + hardware key forced refresh | Refresh menu automatically hidden for zero-ghosting 60–120Hz LCD/OLED panels |
+| **Typography Enhancement** | **10-Step Edge Stroke Booster & `ALPHA_8` Buffer** (razor-sharp ink outlines on e-paper) | **Subpixel Anti-Aliasing & OpenType Variable Weight** (smooth glyph rendering on high-DPI color screens) |
+| **UI Borders & Scrollbars** | **2px High-Contrast Charcoal Outlines**, dotted dividers, persistent **7dp `EinkScrollBarView`** | Soft backdrop dim (`0.35f`), card elevation shadows, rounded bottom sheets & slim scrollbars |
+| **Gemini AI Assistant (Beta)** | **Automatically Hidden on E-Ink** to preserve offline immersion and ultra-low battery consumption | **Dedicated Support**: 3-genre auto-detection (Literature, Tech Tutor, History), **in-app 1:1 multi-turn chat popup**, and Settings On/Off toggle |
+| **Smart TTS Read-Aloud** | **Bluetooth/Headset Safety Gate** (prevents accidental speaker noise) + 3-step offline pitch (`0.8x/1.0x/1.2x`) | **Immediate Speaker/Earphone Playback** + **Voice Studio** (multi-speaker dialogue/narrator split & persona presets) |
+| **SNS Card Sharing Channels** | **Gallery Save, KakaoTalk, Instagram, Threads, X, Facebook** (hides cellular SMS on Wi-Fi-only readers) | **Gallery Save, KakaoTalk, Instagram (1:1 Feed / 9:16 Story), Threads, X, Facebook, and SMS** |
+| **Sync Notification UI** | Flicker-free **Instant High-Contrast Modal Dialog** for remote reading position jumps | Smooth top-down **Floating Snackbar Banner** (8-second auto-dismiss with 1-click jump action) |
 
 ---
 
 ## 🌟 Highlighted Special Features
+
+### 📱 0. Foldable (Galaxy Z Fold / Ultra / Z Flip) Live Responsive Engine & 21-Diagram Official User Guide (Ver. 2.5)
+* **Galaxy Z Fold (`2176×1812`), Fold Ultra (`2184×1968`) & Galaxy Z Flip (`2640×1080` Main & `748×720` / `512×260` Cover)**: Dedicated resolution profiles automatically adjust margins (`0.85x` compact on narrow cover/Flex Window screens, `1.1x` balanced on wide screens) and enable **2-Column (Dual-Page)** spread views on unfolded tablets.
+* **Seamless Fold↔Unfold Live Repagination**: Folding or unfolding your device preserves 100% of your exact character offset (`currentRawOffset`) while dynamically reflowing text, high-res inline EPUB images (up to `2800px`), and CBZ/ZIP comic viewports without restarting the activity.
+* **21-Diagram Bundled Official User Guide (`AetherSAGA_User_Guide.epub`)**: Every chapter and subsection (`<h2>`) of the built-in user guide includes a custom high-resolution infographic diagram (21 diagrams total + cover) explaining every feature visually.
+* **Gemini AI Reading Assistant (Beta) In-App 1:1 Multi-Turn Chat**: Discuss books right inside the reader popup with 3-genre context detection (Literature, Tech Tutor, History) and toggle the feature On/Off anytime from both **Main Settings** and **In-Reader Settings**.
 
 ### 📚 1. Direct Main-Screen Bookshelf Workflows & Unified Share (Ver. 2.1)
 Access core reading assets directly from your library shelf without having to open the reader:

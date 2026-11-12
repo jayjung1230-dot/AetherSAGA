@@ -29,7 +29,7 @@ class DisplayProfileManagerImpl(
     private val einkVendors = listOf(
         "innospace", "onyx", "boox", "meebook", "bigme", "hisense", "supernote",
         "ireader", "dasung", "likebook", "moaan", "xiaomi_ink", "remarkable", "pocketbook",
-        "kobo", "rakuten", "crema", "luna", "aladdin", "aladin", "yes24", "kyobo", "sam",
+        "kobo", "rakuten", "crema", "luna", "aladdin", "aladin", "yes24", "kyobo", "kyobo_sam", "sam78", "sam10",
         "ridi", "ridibooks", "paper", "boyue", "tolino", "kindle", "amazon", "lab126",
         "fload", "linktop", "epdc", "epd", "e-ink", "eink", "carta", "ed060", "ed078",
         "rk3566", "rk3326", "rk3026", "rk3188", "sun8iw10p1"
@@ -52,10 +52,30 @@ class DisplayProfileManagerImpl(
             sysProp("ro.product.board") + " " + sysProp("ro.hardware.eink") + " " +
             sysProp("ro.board.platform") + " " + sysProp("ro.boot.hardware")).lowercase()
 
+        val rawW = if (widthPx != null && widthPx > 0) widthPx else dm.widthPixels
+        val rawH = if (heightPx != null && heightPx > 0) heightPx else dm.heightPixels
+        val maxDim = maxOf(rawW, rawH)
+        val minDim = minOf(rawW, rawH)
+
+        val isFlipResolution =
+            (maxDim in 2600..2680 && minDim in 1050..1120) || // Galaxy Z Flip 3/4/5/6 Main (2640x1080, 22:9)
+            (maxDim in 730..760 && minDim in 700..735) ||     // Galaxy Z Flip 5/6 Flex Window Cover (748x720)
+            (maxDim in 500..525 && minDim in 250..270)        // Galaxy Z Flip 3/4 Cover (512x260)
+
+        val isFoldResolution =
+            (maxDim in 2140..2220 && minDim in 1780..1990) || // Galaxy Z Fold 3/4/5/6 & Fold Ultra Main (2176x1812, 2156x1856, 2184x1968)
+            (maxDim in 2250..2550 && minDim in 820..1090)     // Galaxy Z Fold 3/4/5/6 & Fold Ultra Cover (2316x904, 2376x968, 2520x1080)
+
         val isFoldFamily = id.contains("sm-f9") || id.contains("sm-f7") || id.contains("sm-w202") ||
-            id.contains("sm-w9") || id.contains("q2q") || id.contains("q4") || id.contains("q5") ||
-            id.contains("q6") || id.contains("b4") || id.contains("b5") || id.contains("b6") ||
-            (id.contains("samsung") && id.contains("fold"))
+            id.contains("sm-w9") || id.contains("sm-w7") || id.contains("q2q") || id.contains("q4") ||
+            id.contains("q5") || id.contains("q6") || id.contains("b2q") || id.contains("b4") ||
+            id.contains("b5") || id.contains("b6") || id.contains("bloomq") ||
+            (id.contains("samsung") && (id.contains("fold") || id.contains("flip"))) ||
+            isFlipResolution || isFoldResolution
+
+        val isKnownLcdOledBrand = isFoldFamily || id.contains("samsung") || id.contains("sm-") ||
+            id.contains("pixel") || id.contains("bluestacks") || id.contains("sdk_gphone") ||
+            id.contains("emulator")
 
         val hasEinkSysProp = sysProp("ro.vendor.eink").isNotEmpty() ||
             sysProp("ro.hardware.eink").isNotEmpty() ||
@@ -64,12 +84,8 @@ class DisplayProfileManagerImpl(
             sysProp("sys.eink.app.name").isNotEmpty() ||
             sysProp("persist.sys.eink").isNotEmpty()
 
-        val rawW = if (widthPx != null && widthPx > 0) widthPx else dm.widthPixels
-        val rawH = if (heightPx != null && heightPx > 0) heightPx else dm.heightPixels
-        val maxDim = maxOf(rawW, rawH)
-        val minDim = minOf(rawW, rawH)
         // Check standard E-Ink resolutions (Carta 1200/1300/Pearl/Carta HD):
-        val isStandardEinkResolution = !isFoldFamily && (
+        val isStandardEinkResolution = !isKnownLcdOledBrand && (
             (maxDim in 1420..1480 && minDim in 1050..1100) || // 6.0" 1448x1072 (Luna X, Poke 3/4/5, Clara 2E)
             (maxDim in 1650..1710 && minDim in 1230..1290) || // 7.0" 1680x1264 (Leaf, Page, Motive, Libra 2)
             (maxDim in 1840..1900 && minDim in 1380..1430) || // 7.8" & 10.3" 1872x1404 (Expert, Nova, Note)
@@ -80,7 +96,7 @@ class DisplayProfileManagerImpl(
             (maxDim in 780..820 && minDim in 580..620)        // 800x600 (Legacy E-Ink)
         )
 
-        val einkHint = !isFoldFamily && (einkVendors.any { id.contains(it) } || hasEinkSysProp || isStandardEinkResolution)
+        val einkHint = !isKnownLcdOledBrand && (einkVendors.any { id.contains(it) } || hasEinkSysProp || isStandardEinkResolution)
         if (isStandardEinkResolution && (ppi < 200f || ppi > 450f)) {
             ppi = if (maxDim in 1000..1050) 212f else 300f
         }
@@ -88,7 +104,12 @@ class DisplayProfileManagerImpl(
         val diag = hypot(rawW / dm.xdpi.coerceAtLeast(160f), rawH / dm.ydpi.coerceAtLeast(160f))
         val oled = isFoldFamily || (!einkHint && diag < 14f && display.isWideColorGamut)
         if (isFoldFamily && (ppi < 200f || ppi > 600f)) {
-            ppi = if (maxDim.toFloat() / minDim.toFloat() < 1.35f) 374f else 402f
+            ppi = when {
+                maxDim in 730..760 && minDim in 700..735 -> 306f // Galaxy Z Flip 5/6 Cover
+                id.contains("sm-f7") || id.contains("flip") || isFlipResolution -> 425f // Galaxy Z Flip Main
+                maxDim.toFloat() / minDim.toFloat() < 1.35f -> 374f // Galaxy Z Fold Main
+                else -> 402f // Galaxy Z Fold Cover
+            }
         }
         return DisplayMetricsInfo(
             widthPx = rawW, heightPx = rawH, ppi = ppi,
@@ -176,6 +197,22 @@ class DisplayProfileManagerImpl(
                 isEinkHint = false,
                 isColorEinkHint = false
             )
+            "GALAXY_FLIP_MAIN" -> m.copy(
+                widthPx = if (m.isLandscape) 2640 else 1080,
+                heightPx = if (m.isLandscape) 1080 else 2640,
+                ppi = 425f,
+                isOled = true,
+                isEinkHint = false,
+                isColorEinkHint = false
+            )
+            "GALAXY_FLIP_COVER" -> m.copy(
+                widthPx = if (m.isLandscape) 748 else 720,
+                heightPx = if (m.isLandscape) 720 else 748,
+                ppi = 306f,
+                isOled = true,
+                isEinkHint = false,
+                isColorEinkHint = false
+            )
             "GENERIC_TABLET" -> m.copy(
                 isEinkHint = false,
                 isColorEinkHint = false
@@ -184,13 +221,16 @@ class DisplayProfileManagerImpl(
                 // AUTO: Detect E-Ink hardware automatically
                 val maxDim = maxOf(m.widthPx, m.heightPx)
                 val minDim = minOf(m.widthPx, m.heightPx)
-                val isStandardResolution = !m.isOled && (
+                val id = (Build.MANUFACTURER + " " + Build.MODEL + " " + Build.BRAND + " " + Build.DEVICE).lowercase()
+                val isKnownLcdOled = m.isOled || id.contains("samsung") || id.contains("sm-") ||
+                    id.contains("pixel") || id.contains("bluestacks") || id.contains("sdk_gphone") || id.contains("emulator")
+                val isStandardResolution = !isKnownLcdOled && (
                     (maxDim in 1420..1480 && minDim in 1050..1100) ||
                     (maxDim in 1600..1710 && minDim in 1200..1300) ||
                     (maxDim in 1840..1900 && minDim in 1380..1430) ||
                     (maxDim in 1000..1050 && minDim in 740..780)
                 )
-                if ((m.isEinkHint || isStandardResolution) && !m.isOled) {
+                if ((m.isEinkHint || isStandardResolution) && !isKnownLcdOled) {
                     m.copy(ppi = if (m.ppi < 200f) 300f else m.ppi, isEinkHint = true)
                 } else {
                     m
@@ -201,7 +241,8 @@ class DisplayProfileManagerImpl(
         val kind = settings.forcedKind ?: when (settings.devicePreset) {
             "LUNA_X_60", "LUNA_X_78", "STANDARD_6", "EINK_60_HD", "KINDLE_PW_68",
             "ONYX_LEAF_70", "ONYX_LEAF_7", "NOVA_78", "LARGE_103", "MAX_133" -> DisplayKind.MONO_EINK
-            "GENERIC_TABLET", "GALAXY_FOLD_MAIN", "GALAXY_FOLD_COVER", "GALAXY_FOLD_ULTRA" -> DisplayKind.LCD_OLED
+            "GENERIC_TABLET", "GALAXY_FOLD_MAIN", "GALAXY_FOLD_COVER", "GALAXY_FOLD_ULTRA",
+            "GALAXY_FLIP_MAIN", "GALAXY_FLIP_COVER" -> DisplayKind.LCD_OLED
             else -> when {
                 effectiveMetrics.isColorEinkHint -> DisplayKind.COLOR_EINK
                 effectiveMetrics.isEinkHint -> DisplayKind.MONO_EINK

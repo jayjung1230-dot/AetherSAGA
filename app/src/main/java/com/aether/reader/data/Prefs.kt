@@ -78,7 +78,7 @@ class Prefs(ctx: Context) {
 
     // Typography & Viewer Baseline Defaults (8pt, 2.0x line height, 2dp paragraph gap, 20dp margin, boldness 1)
     var useDocumentDefaults by bool("useDocumentDefaults", false)
-    var isDefaultGuideInstalled by bool("default_guide_installed_v1", false)
+    var isDefaultGuideInstalled by bool("default_guide_installed_v25", false)
     var fontSizePt by int("fontSizePt", 8)
     var lineHeight by float("lineHeight", 2.0f)
     var paraSpacingDp by int("paraSpacingDp", 2)

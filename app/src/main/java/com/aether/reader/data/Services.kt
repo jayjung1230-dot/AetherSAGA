@@ -3515,10 +3515,8 @@ object AndroidShareHelper {
         // 1. 이미지 저장 (e-ink와 LCD/OLED 기기 모두 최상단 지원)
         targets.add(SnsTarget.SAVE_IMAGE)
 
-        // 2. 카카오톡 (LCD/OLED 전용, e-ink 기기에서는 은닉)
-        if (!isEink) {
-            targets.add(SnsTarget.KAKAO)
-        }
+        // 2. 카카오톡 (전 기기 및 시뮬레이터 상시 표시)
+        targets.add(SnsTarget.KAKAO)
 
         // 3. 문자 메시지 (기기에 문자 전송 기능이 있는 경우에만 추가, e-ink 기기 미지원)
         if (!isEink && canSendSms(activity)) {

@@ -1850,4 +1850,42 @@ class FeaturesVerificationTest {
         val cbzFmt = com.aether.reader.engine.Containers.formatOf("/storage/emulated/0/Books/comic.CBZ", null)
         assertEquals(com.aether.reader.engine.BookFormat.CBZ, cbzFmt)
     }
+
+    @Test
+    fun testGalaxyFlipResolutionsAndKakaoSnsRestoration() {
+        // 1. Galaxy Z Flip 3/4/5/6 Main Screen (2640 x 1080, 22:9 = 2.444:1, 425 PPI)
+        val flipMainRatio = 2640f / 1080f
+        assertEquals(com.aether.reader.domain.display.AspectClass.EXTREME_TALL, com.aether.reader.domain.display.AspectClass.classify(flipMainRatio))
+
+        val flipMainPortrait = com.aether.reader.domain.display.DisplayMetricsInfo(
+            widthPx = 1080, heightPx = 2640, ppi = 425f,
+            refreshRatesHz = listOf(120f), isLandscape = false,
+            isOled = true, isEinkHint = false, isColorEinkHint = false
+        )
+        val flipMainPortLayout = com.aether.reader.platform.display.layoutFor(flipMainPortrait, allowDarkMode = true, trueBlack = true)
+        assertEquals(1, flipMainPortLayout.columns)
+        assertEquals(0.85f, flipMainPortLayout.marginScale, 0.001f)
+
+        val flipMainLandscape = flipMainPortrait.copy(widthPx = 2640, heightPx = 1080, isLandscape = true)
+        val flipMainLandLayout = com.aether.reader.platform.display.layoutFor(flipMainLandscape, allowDarkMode = true, trueBlack = true)
+        assertEquals(2, flipMainLandLayout.columns)
+
+        // 2. Galaxy Z Flip 5/6 Cover Screen (Flex Window: 748 x 720, 1.039:1, 306 PPI)
+        val flipCoverRatio = 748f / 720f
+        assertEquals(com.aether.reader.domain.display.AspectClass.SQUARE_FOLD, com.aether.reader.domain.display.AspectClass.classify(flipCoverRatio))
+
+        val flipCoverMetrics = com.aether.reader.domain.display.DisplayMetricsInfo(
+            widthPx = 748, heightPx = 720, ppi = 306f,
+            refreshRatesHz = listOf(60f), isLandscape = true,
+            isOled = true, isEinkHint = false, isColorEinkHint = false
+        )
+        val flipCoverLayout = com.aether.reader.platform.display.layoutFor(flipCoverMetrics, allowDarkMode = true, trueBlack = true)
+        assertEquals(1, flipCoverLayout.columns) // Small 3.4" cover screen stays 1-column even when 748 > 720
+        assertEquals(0.85f, flipCoverLayout.marginScale, 0.001f)
+
+        // 3. KakaoTalk SNS Target restoration verification
+        val kakao = com.aether.reader.data.AndroidShareHelper.SnsTarget.KAKAO
+        assertEquals("com.kakao.talk", kakao.androidPackage)
+        assertTrue(kakao.localizedTitle.contains("카카오톡") || kakao.localizedTitle.contains("KakaoTalk"))
+    }
 }

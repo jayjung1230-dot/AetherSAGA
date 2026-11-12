@@ -22,7 +22,7 @@ internal fun layoutFor(m: DisplayMetricsInfo, allowDarkMode: Boolean, trueBlack:
         else -> false
     }
     val (marginScale, measure) = when (m.aspectClass) {
-        AspectClass.SQUARE_FOLD -> 1.0f to 38f
+        AspectClass.SQUARE_FOLD -> if (maxOf(m.widthPx, m.heightPx) < 1000) (0.85f to 32f) else (1.0f to 38f)
         AspectClass.RATIO_4_3 -> 1.1f to 38f
         AspectClass.RATIO_3_2 -> 1.05f to 40f
         AspectClass.RATIO_16_10 -> 1.0f to 42f

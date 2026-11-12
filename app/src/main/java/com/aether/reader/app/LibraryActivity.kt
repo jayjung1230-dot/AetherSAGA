@@ -787,7 +787,7 @@ class LibraryActivity : Activity() {
         try {
             val booksDir = File(filesDir, "books").apply { mkdirs() }
             val guideFile = File(booksDir, "AetherSAGA_User_Guide.epub")
-            if (!guideFile.exists() || guideFile.length() == 0L) {
+            if (!guideFile.exists() || guideFile.length() == 0L || !app.prefs.isDefaultGuideInstalled) {
                 assets.open("books/AetherSAGA_User_Guide.epub").use { input ->
                     guideFile.outputStream().use { output ->
                         input.copyTo(output)
@@ -798,6 +798,12 @@ class LibraryActivity : Activity() {
                 val path = Containers.normalizePath(guideFile.absolutePath)
                 val existing = app.db.books().get(path)
                 if (existing != null) {
+                    if (existing.sizeBytes != guideFile.length()) {
+                        val updated = existing.copy(sizeBytes = guideFile.length())
+                        app.db.books().insertAll(listOf(updated))
+                        app.prefs.isDefaultGuideInstalled = true
+                        return@withContext updated
+                    }
                     app.prefs.isDefaultGuideInstalled = true
                     return@withContext existing
                 }
@@ -2117,7 +2123,7 @@ class LibraryActivity : Activity() {
         }
         releaseCard.addView(guideBtn, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
         releaseCard.addView(makeDivider())
-        val releaseBtn = pillButton(L10n.t("📋 릴리즈 노트 (Release Notes) • Ver. 2.2", "📋 Release Notes • Ver. 2.2"), inkCol, btnBg, btnBorder) {
+        val releaseBtn = pillButton(L10n.t("📋 릴리즈 노트 (Release Notes) • Ver. 2.5", "📋 Release Notes • Ver. 2.5"), inkCol, btnBg, btnBorder) {
             dlg.dismiss()
             showReleaseNotesDialog(onBack = { settingsMenu() })
         }
@@ -2149,7 +2155,7 @@ class LibraryActivity : Activity() {
             typeface = Typeface.create("serif", Typeface.BOLD)
         }
         val releaseDate = TextView(this).apply {
-            text = L10n.t("정식 릴리즈 • 2026. 11. 09", "Official Release • Nov 09, 2026")
+            text = L10n.t("정식 릴리즈 • 2026. 11. 12", "Official Release • Nov 12, 2026")
             setPtSize(7.5f)
             setTextColor(mutedCol)
             setPadding(0, dp(1), 0, dp(8))
@@ -2186,6 +2192,13 @@ class LibraryActivity : Activity() {
         }
 
         if (L10n.isKorean) {
+            addSection("🚀 Ver. 2.5 폴더블·플립 반응형 조판, E-Ink vs LCD 이원화 비교표 & 21종 일러스트 가이드", listOf(
+                "공식 사용 설명서 전 항목 21종 일러스트 다이어그램 탑재: 모든 장·항목마다 직관적인 인포그래픽 도표(총 21장)를 수록하고, E-Ink 단말기와 LCD/OLED 기기의 10대 기능 구분 상세 비교표를 추가",
+                "갤럭시 Z 폴드 / 폴드 울트라 / Z 플립 완벽 대응: 메인 펼침 화면(폴드 2176×1812, 울트라 2184×1968, 플립 2640×1080) 및 플립 커버 플렉스 윈도우(748×720 / 512×260) 해상도 전용 프로파일 탑재",
+                "폴딩↔언폴딩 실시간 무중단 반응형 조판: 기기를 접거나 펼 때 읽던 글자 오프셋을 100% 유지하며 즉시 본문·이미지·만화(CBZ/ZIP) 뷰포트를 재조판",
+                "카카오톡(KakaoTalk) SNS 다이렉트 공유 복구 & 삼성 디스플레이 감지 정밀화: 갤러리 저장, 카카오톡, 인스타(1:1 피드 / 9:16 스토리), 스레드, X, 페이스북, 문자(SMS) 전 채널 완비",
+                "Gemini AI 독서 어시스턴트 (Beta) 고도화: LCD/OLED 전용 3대 장르(문학·기술·역사) 자동 감지, 앱 이탈 없는 인앱 1:1 멀티턴 채팅 팝업, 메인 환경설정 및 독서 중 전체 리더 설정 첫 화면 On/Off 토글 지원"
+            ))
             addSection("📖 Ver. 2.2 공식 사용 설명서(EPUB) 기본 탑재 & 독서 관리 고도화", listOf(
                 "공식 사용 설명서 EPUB 기본 탑재: 앱 신규 설치 및 빈 서재 상태에서 원클릭으로 바로 열람할 수 있는 고품질 《Aether SAGA 사용 설명서》 기본 번들링 제공", 
                 "서재 및 환경설정 연동: 서재 빈 화면 및 [환경설정 > 공식 사용 설명서 열기] 메뉴를 통해 언제든 설명서 열람 가능", 
@@ -2254,6 +2267,13 @@ class LibraryActivity : Activity() {
                 "WebDAV 원격 독서 위치 동기화 및 설정 JSON 백업/복원"
             ))
         } else {
+            addSection("🚀 Ver. 2.5 Foldable/Flip Responsive Layout, E-Ink vs LCD Matrix & 21-Diagram Guide", listOf(
+                "21 High-Res Illustrated Diagrams Across All User Guide Sections: Every chapter & subsection now includes visual infographic diagrams plus a 10-point E-Ink vs. LCD/OLED Feature Comparison Matrix",
+                "Galaxy Z Fold / Fold Ultra / Z Flip Native Support: Dedicated display profiles for unfolded main screens (Fold 2176×1812, Ultra 2184×1968, Flip 2640×1080) and Flip Cover Flex Windows (748×720 / 512×260)",
+                "Seamless Fold↔Unfold Live Repagination: Preserves exact character offset while dynamically reflowing text, inline EPUB images, and CBZ/ZIP comic viewports on the fly",
+                "KakaoTalk Direct SNS Sharing Restored & Refined Display Detection: Full sharing support across Gallery Save, KakaoTalk, Instagram (1:1 Feed / 9:16 Story), Threads, X, Facebook, and SMS",
+                "Gemini AI Reading Assistant (Beta) Enhanced: Auto-detects 3 genres (Literature, Tech Tutor, History) on LCD/OLED devices, features an in-app 1:1 multi-turn chat popup, and provides On/Off toggles in both Main Settings and Reader Settings"
+            ))
             addSection("📖 Ver. 2.2 Official User Guide (EPUB) Bundled & Enhanced Reading Notes", listOf(
                 "Official User Guide EPUB Bundled: Built-in 'Aether SAGA Official User Guide' seamlessly seeded on fresh install and available from empty library or settings menu", 
                 "Library & Settings Integration: One-click access to open or restore the user guide anytime", 

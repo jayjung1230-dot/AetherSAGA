@@ -1073,6 +1073,16 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                         highlight = h,
                         isLcd = isLcd,
                         isDark = isDark,
+                        onSearchInBook = { keyword ->
+                            scope.launch {
+                                val matches = engine.search(keyword, 50)
+                                if (matches.isEmpty()) {
+                                    toast(L10n.t("본문 검색 결과가 없습니다: \"$keyword\"", "No matches found: \"$keyword\""))
+                                } else {
+                                    showSearchResultsDialog(matches, keyword)
+                                }
+                            }
+                        },
                         onSaveMemo = { noteText ->
                             scope.launch {
                                 val newNote = if (h.note.isNotBlank()) "${h.note}\n\n$noteText" else noteText
@@ -1239,6 +1249,16 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                         highlight = null,
                         isLcd = isLcd,
                         isDark = isDark,
+                        onSearchInBook = { keyword ->
+                            scope.launch {
+                                val matches = engine.search(keyword, 50)
+                                if (matches.isEmpty()) {
+                                    toast(L10n.t("본문 검색 결과가 없습니다: \"$keyword\"", "No matches found: \"$keyword\""))
+                                } else {
+                                    showSearchResultsDialog(matches, keyword)
+                                }
+                            }
+                        },
                         onSaveMemo = { noteText ->
                             saveHighlight(r, 0, noteText)
                         },
