@@ -623,6 +623,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   - **독서 진행 창(Scrubber) 2줄 표시 분리:** 화면 중앙 터치 시 호출되는 하단 진행 레이블(`scrubberLabel`)을 2줄로 분리하여 1행에는 페이지 번호 및 백분율 진도(`전체 N / Total 페이지 • P%`), 2행에는 완독까지 남은 예상 시간(`완독까지 M분`)을 여유롭게 표시.
   - **독서 화면 최하단 좌우 상태바 폰트 크기 1PT 확대:** `ReaderView`의 `footerPaintLeft` 및 `footerPaintRight`에 `applyDimension(COMPLEX_UNIT_PT, 1f, ...)`를 가산하여 챕터명과 진행률의 시인성을 한 단계 향상.
   - **상시 노출 고대비 수직 스크롤바 (`enableVisibleScrollbar`):** 서재 메인 도서 그리드(`GridView`) 및 설정/목차/통계 등 위아래 스크롤을 지원하는 모든 뷰에 비페이딩 고대비 스크롤바를 기본 탑재. 연한 배경과 흑백 환경 모두에서 엄지(Thumb, `0xFF333333`)와 트랙이 선명히 대비되어 사용자가 스크롤 위치를 즉각 인지할 수 있도록 보장.
+  - **스크롤 컨테이너 우측 안전 여백(10dp) 표준화 (Scrollbar Gutter Standardization):** 도서 정보 및 독서 노트 공유 창(`showReadingNotesShareDialog`), 하이라이트 ZIP 이메일 전송 창(`showEmailHighlightsZipDialog`), 서재 도서 이메일 전송 창(`showEmailBookDialog`), 독서 통계 리포트(`StatsDashboardDialog`), Gemini AI 창(`GeminiDialogHelper`), 인라인 각주(`showFootnoteSheet`) 등 모든 스크롤 대화상자 컨테이너에 `10dp` 우측 패딩을 표준화 적용하여, 내부 작은 창(카드, 입력 박스, 헤더 버튼)의 우측 테두리가 스크롤바와 겹치는 시각적 간섭 현상을 100% 원천 해결.
 - **법적 및 마켓 분석:**
   순수 프레임워크 뷰 기반 자체 조판으로 외부 라이브러리 및 독점 UI 특허와 무관하며, Android 디자인 가이드라인을 완벽히 충족합니다.
 

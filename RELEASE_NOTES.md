@@ -51,6 +51,20 @@
 - **Room DB SQLite 복합 인덱스 탑재**:
   - 앱 초기 기동 시 `index_books_lastRead`, `index_books_title`, `index_highlights_bookPath_chapter` 인덱스를 비파괴적으로 생성(`CREATE INDEX IF NOT EXISTS`)하여 수천 권의 서재 정렬 및 검색, 하이라이트 로딩 쿼리 속도를 비약적으로 가속.
 
+#### 4. 스크롤 뷰 우측 여백 보정 및 작은 창(카드) 겹침 현상 완전 해소 (Scrollbar Gutter Polish)
+- **도서 정보 및 독서 노트 공유 창 (`showReadingNotesShareDialog`)**:
+  - 스크롤 컨테이너 우측에 `10dp` 안전 여백을 확보하여 도서 메타데이터 카드(`bookCard`), 이메일 입력창(`emailInput`), `[전체 선택]` 체크박스, 문장 선택 리스트 카드(`listContainer`)의 우측 외곽선 및 내용물이 스크롤바와 겹치던 문제를 완벽 해소.
+- **도서 하이라이트 ZIP 이메일 전송 창 (`showEmailHighlightsZipDialog`)**:
+  - 상세 도서 카드, `[전체 선택/해제]` 버튼, 전송 항목 체크리스트 카드, 이메일 입력 박스의 스크롤바 겹침 방지 여백 확보.
+- **서재 전자책 파일 이메일 전송 창 (`showEmailBookDialog`)**:
+  - 파일 정보 카드 및 이메일 입력창의 우측 10dp 여백 보정.
+- **주간/월간/연간 독서 통계 대시보드 (`StatsDashboardDialog`)**:
+  - 실시간 추이 선 그래프 카드, 3단 지표 요약 카드, 독서 인사이트 카드, 완독 도서 목록 카드가 우측 스크롤바와 겹치지 않도록 `10dp` 안쪽으로 정돈.
+- **Gemini AI 독서 어시스턴트 대화창 (`GeminiDialogHelper`)**:
+  - 1단 요약 카드, 2단 검색 바, 3단 토론 카드의 스크롤바 겹침 방지.
+- **인라인 각주 팝업 (`InlineFootnoteResolver`)**:
+  - 긴 각주 스크롤 시 본문 텍스트가 스크롤바 밑으로 파고들지 않도록 우측 안전 여백 부여.
+
 ---
 
 ## [Ver. 2.5] - 2026-11-12

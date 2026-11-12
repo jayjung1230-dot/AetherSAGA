@@ -127,6 +127,7 @@ object InlineFootnoteResolver {
             textSize = 13.5f
             setTextColor(textFg)
             setLineSpacing(context.dp(2).toFloat(), 1.25f)
+            setPadding(0, 0, context.dp(10), context.dp(4))
         }
         scroll.addView(bodyTv)
 

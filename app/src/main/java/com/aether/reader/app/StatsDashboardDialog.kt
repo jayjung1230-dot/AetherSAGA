@@ -141,7 +141,7 @@ object StatsDashboardDialog {
         }
         val rootBox = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, dp(2f), dp(8f))
+            setPadding(0, 0, dp(10f), dp(8f))
             setBackgroundColor(if (isEink) ReaderTheme.EINK_PAPER else 0xFFF8FAFC.toInt())
         }
         scroll.addView(rootBox)

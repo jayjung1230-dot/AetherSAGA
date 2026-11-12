@@ -1358,7 +1358,7 @@ class LibraryActivity : Activity() {
         }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, dp(2), dp(8))
+            setPadding(0, 0, dp(10), dp(8))
         }
         outerScroll.addView(root)
         dialogRoot.addView(outerScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))

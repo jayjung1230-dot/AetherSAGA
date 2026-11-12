@@ -132,6 +132,7 @@ A dual-rendering pipeline that adapts precisely to your display hardware:
 * **Thread-Safe Bitmap Pools**: Guarded bitmap allocation, recycling, and swap routines preventing native crashes under rapid page flipping.
 * **Single-Pass RGB_565 CoverCache**: Cuts bitmap allocation overhead in half by drawing scaled covers in a single canvas pass.
 * **Composite SQLite Indexing**: Non-destructive indices (`index_books_lastRead`, `index_books_title`, `index_highlights_bookPath_chapter`) accelerate shelf sorting and highlight retrieval.
+* **Scrollbar Gutter Standardization (10dp)**: Standardizes a clean 10dp right gutter across all scrollable modal dialogs (reading notes share, zip export, stats dashboard, Gemini AI, email share), completely eliminating scrollbar overlap with inner cards and input boxes.
 
 ---
 

@@ -123,7 +123,7 @@ object GeminiDialogHelper {
         val root = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(bgCol)
-            setPadding(0, 0, dp(2), dp(8))
+            setPadding(0, 0, dp(10), dp(8))
         }
         scroll.addView(root)
 

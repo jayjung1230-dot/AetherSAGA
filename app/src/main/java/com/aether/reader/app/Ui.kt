@@ -177,7 +177,7 @@ fun Context.showEmailHighlightsZipDialog(
     }
     val root = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(0, 0, 0, dp(4))
+        setPadding(0, 0, dp(10), dp(4))
     }
     scroll.addView(root, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     dialogRoot.addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
@@ -479,7 +479,7 @@ fun Activity.showReadingNotesShareDialog(
     }
     val root = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(0, 0, 0, dp(4))
+        setPadding(0, 0, dp(10), dp(4))
     }
     outerScroll.addView(root, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     dialogRoot.addView(outerScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
