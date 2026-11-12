@@ -1347,14 +1347,21 @@ class LibraryActivity : Activity() {
             return
         }
 
+        val isLcd = strategy.kind == DisplayKind.LCD_OLED
+        val dialogRoot = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+        }
         val outerScroll = android.widget.ScrollView(this).apply {
+            isFillViewport = true
             enableVisibleScrollbar(isDark)
         }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(12), dp(16), dp(8))
+            setPadding(0, 0, dp(2), dp(8))
         }
         outerScroll.addView(root)
+        dialogRoot.addView(outerScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
         // 1. Book Card
         val bookCard = LinearLayout(this).apply {
@@ -1565,21 +1572,38 @@ class LibraryActivity : Activity() {
             }
         }
 
-        val sendActionBtn = pillButton("📨 이메일 전송하기", Color.WHITE, ReaderTheme.ACCENT_PRIMARY_BLUE, ReaderTheme.ACCENT_PRIMARY_BLUE) {
+        val sendActionBtn = pillButton(
+            "📨 이메일 전송하기",
+            Color.WHITE,
+            if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.ACCENT_CHARCOAL,
+            if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.EINK_INK
+        ) {
             executeSend()
         }.apply {
             setPtSize(9.5f)
             typeface = ReaderTheme.uiFontBold
             setPadding(dp(16), dp(10), dp(16), dp(10))
+            if (!isLcd) {
+                background = GradientDrawable().apply {
+                    setColor(ReaderTheme.ACCENT_CHARCOAL)
+                    cornerRadius = dp(6).toFloat()
+                    setStroke(dp(2), ReaderTheme.EINK_INK)
+                }
+            }
         }
-        root.addView(View(this), LinearLayout.LayoutParams(1, dp(10)))
-        root.addView(sendActionBtn, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
+        val bottomSep = View(this).apply { setBackgroundColor(borderCol) }
+        dialogRoot.addView(bottomSep, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)).apply {
+            topMargin = dp(8)
+            bottomMargin = dp(8)
+        })
+        dialogRoot.addView(sendActionBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         dlg = AlertDialog.Builder(this)
             .setTitle(if (booksToSend.size == 1) L10n.t("이메일로 도서 파일 전송", "Send Book File via Email") else L10n.t("이메일로 선택 도서 ${booksToSend.size}권 전송", "Send ${booksToSend.size} Selected Books via Email"))
-            .setView(outerScroll)
+            .setView(dialogRoot)
             .create()
-        dlg.showWithOptimalWidth(this)
+        val emailBookDlgH = (resources.displayMetrics.heightPixels * 0.72f).toInt().coerceAtLeast(dp(360))
+        dlg.showWithOptimalWidth(this, customHeight = emailBookDlgH)
     }
 
     private fun settingsMenu() {

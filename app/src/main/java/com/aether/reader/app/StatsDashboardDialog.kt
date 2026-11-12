@@ -48,24 +48,30 @@ object StatsDashboardDialog {
         var cachedCompletedBooks: List<CompletedBookEntity> = emptyList()
         var cachedAllBooks: List<BookEntity> = emptyList()
 
+        val dialogRoot = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16f), dp(12f), dp(16f), dp(12f))
+            setBackgroundColor(if (isEink) ReaderTheme.EINK_PAPER else 0xFFF8FAFC.toInt())
+        }
+
         val scroll = ScrollView(activity).apply {
             isFillViewport = true
             enableVisibleScrollbar(isDark = false)
         }
         val rootBox = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16f), dp(12f), dp(16f), dp(12f))
+            setPadding(0, 0, dp(2f), dp(8f))
             setBackgroundColor(if (isEink) ReaderTheme.EINK_PAPER else 0xFFF8FAFC.toInt())
         }
         scroll.addView(rootBox)
 
         lateinit var dlg: AlertDialog
 
-        // 1. Header with '✕' close button
+        // 1. Header with '✕' close button (Pinned at Top)
         val headerRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, 0, 0, dp(10f))
+            setPadding(0, 0, 0, dp(8f))
         }
         val titleCol = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
@@ -95,12 +101,12 @@ object StatsDashboardDialog {
         }
         headerRow.addView(titleCol)
         headerRow.addView(closeBtn)
-        rootBox.addView(headerRow)
+        dialogRoot.addView(headerRow)
 
-        // 2. Period Tabs: 주간, 월간, 연간
+        // 2. Period Tabs: 주간, 월간, 연간 (Pinned at Top)
         val tabRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, dp(4f), 0, dp(10f))
+            setPadding(0, dp(2f), 0, dp(8f))
         }
         lateinit var tabWeekly: Button
         lateinit var tabMonthly: Button
@@ -686,7 +692,8 @@ object StatsDashboardDialog {
         tabRow.addView(tabWeekly)
         tabRow.addView(tabMonthly)
         tabRow.addView(tabYearly)
-        rootBox.addView(tabRow)
+        dialogRoot.addView(tabRow)
+        dialogRoot.addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
         btnTime = activity.pillButton(L10n.t("독서 시간 (분)", "Time (min)"), inkCol, cardBgCol, borderCol) {
             currentMetric = StatsMetric.TIME
@@ -778,11 +785,15 @@ object StatsDashboardDialog {
             setPtSize(8.5f)
             setPadding(dp(12f), dp(8f), dp(12f), dp(8f))
         }
-        rootBox.addView(View(activity), LinearLayout.LayoutParams(1, dp(12f)))
-        rootBox.addView(snsShareBtn, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
+        val bottomSep = View(activity).apply { setBackgroundColor(borderCol) }
+        dialogRoot.addView(bottomSep, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1f)).apply {
+            topMargin = dp(8f)
+            bottomMargin = dp(8f)
+        })
+        dialogRoot.addView(snsShareBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         dlg = AlertDialog.Builder(activity)
-            .setView(scroll)
+            .setView(dialogRoot)
             .create()
         dlg.showWithOptimalWidth(activity, enforceBalancedMargins = true, onBack = onBack)
 

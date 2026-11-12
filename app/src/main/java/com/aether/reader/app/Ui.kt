@@ -159,15 +159,28 @@ fun Context.showEmailHighlightsZipDialog(
         return
     }
 
+    val isLcd = app.profiles.detect(app.prefs.displaySettings()).kind == com.aether.reader.domain.display.DisplayKind.LCD_OLED
     val inkCol = ReaderTheme.EINK_INK
     val cardBgCol = ReaderTheme.EINK_CARD_BG
-    val borderCol = ReaderTheme.EINK_BORDER
+    val borderCol = if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.EINK_BORDER_CONTRAST
+    val strokePx = if (isLcd) dp(1) else dp(2)
     val mutedCol = ReaderTheme.EINK_MUTED
 
+    val dialogRoot = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(dp(18), dp(12), dp(18), dp(12))
+    }
+
+    val scroll = ScrollView(this).apply {
+        isFillViewport = true
+        enableVisibleScrollbar()
+    }
     val root = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        setPadding(dp(18), dp(14), dp(18), dp(14))
+        setPadding(0, 0, 0, dp(4))
     }
+    scroll.addView(root, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    dialogRoot.addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
     // Friendly introduction banner
     val introTv = TextView(this).apply {
@@ -187,7 +200,7 @@ fun Context.showEmailHighlightsZipDialog(
     // Detailed Book Information Card
     val infoCard = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        background = cardDrawable(cardBgCol, 8, borderCol)
+        background = cardDrawable(cardBgCol, 8, borderCol, strokePx)
         setPadding(dp(14), dp(12), dp(14), dp(12))
     }
     val titleTv = TextView(this).apply {
@@ -270,7 +283,7 @@ fun Context.showEmailHighlightsZipDialog(
         setTextColor(inkCol)
     }
     val checkBoxes = ArrayList<CheckBox>()
-    val toggleAllBtn = pillButton(L10n.t("전체 선택/해제", "Select All / None"), ReaderTheme.EINK_INK, ReaderTheme.EINK_PAPER, ReaderTheme.EINK_BORDER) {
+    val toggleAllBtn = pillButton(L10n.t("전체 선택/해제", "Select All / None"), ReaderTheme.EINK_INK, ReaderTheme.EINK_PAPER, borderCol, strokePx) {
         val allChecked = checkBoxes.all { it.isChecked }
         checkBoxes.forEach { it.isChecked = !allChecked }
     }.apply {
@@ -283,13 +296,13 @@ fun Context.showEmailHighlightsZipDialog(
     listHeaderRow.addView(toggleAllBtn)
     root.addView(listHeaderRow)
 
-    val previewScroll = ScrollView(this).apply {
-        background = cardDrawable(cardBgCol, 6, borderCol)
+    val previewContainer = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        background = cardDrawable(cardBgCol, 6, borderCol, strokePx)
         setPadding(dp(6), dp(4), dp(6), dp(4))
-        enableVisibleScrollbar()
     }
     val previewCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-    for ((idx, h) in highlights.withIndex()) {
+    for (h in highlights) {
         val prefix = if (h.kind == 1) "🔖 " else "🖍 "
         val notePart = if (h.note.isNotBlank()) L10n.t(" (메모: ${h.note.take(30)})", " (Note: ${h.note.take(30)})") else ""
         val chPart = h.chapterTitle.ifBlank { L10n.t("본문", "Body") }
@@ -306,11 +319,8 @@ fun Context.showEmailHighlightsZipDialog(
         checkBoxes.add(cb)
         previewCol.addView(cb)
     }
-    previewScroll.addView(previewCol)
-    val maxScrollH = (resources.displayMetrics.heightPixels * 0.24f).toInt().coerceIn(dp(85), dp(150))
-    root.addView(previewScroll, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-        if (highlights.size > 2) height = maxScrollH
-    })
+    previewContainer.addView(previewCol)
+    root.addView(previewContainer, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
 
     // Book Info in Export Option Checkbox
     val includeBookInfoCb = CheckBox(this).apply {
@@ -338,7 +348,7 @@ fun Context.showEmailHighlightsZipDialog(
         setPtSize(9f)
         setTextColor(inkCol)
         setHintTextColor(mutedCol)
-        background = cardDrawable(cardBgCol, 6, borderCol)
+        background = cardDrawable(cardBgCol, 6, borderCol, strokePx)
         setPadding(dp(12), dp(8), dp(12), dp(8))
         isSingleLine = true
     }
@@ -352,7 +362,7 @@ fun Context.showEmailHighlightsZipDialog(
         )
         setPtSize(7.5f)
         setTextColor(mutedCol)
-        setPadding(0, dp(6), 0, dp(10))
+        setPadding(0, dp(6), 0, dp(4))
     }
     root.addView(guideTv)
 
@@ -385,27 +395,42 @@ fun Context.showEmailHighlightsZipDialog(
         }
     }
 
-    // Unified primary action button (Single Button for share)
-    val sendActionBtn = pillButton(L10n.t("📨 이메일 전송하기", "📨 Send Email"), Color.WHITE, ReaderTheme.ACCENT_PRIMARY_BLUE, ReaderTheme.ACCENT_PRIMARY_BLUE) {
+    // Divider separating scrollable content from pinned bottom action button
+    val actionDivider = View(this).apply {
+        setBackgroundColor(borderCol)
+    }
+    dialogRoot.addView(actionDivider, LinearLayout.LayoutParams(-1, dp(1)).apply {
+        setMargins(0, dp(8), 0, dp(8))
+    })
+
+    // Unified primary action button pinned at bottom
+    val sendBg = if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.ACCENT_CHARCOAL
+    val sendStroke = if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.EINK_INK
+    val sendActionBtn = pillButton(
+        L10n.t("📨 이메일 전송하기", "📨 Send Email"),
+        Color.WHITE,
+        sendBg,
+        sendStroke,
+        strokePx
+    ) {
         executeSend()
     }.apply {
-        setPtSize(9.5f)
+        setPtSize(9.2f)
         typeface = ReaderTheme.uiFontBold
-        setPadding(dp(16), dp(12), dp(16), dp(12))
+        setPadding(dp(16), dp(11), dp(16), dp(11))
     }
-    root.addView(sendActionBtn, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
+    dialogRoot.addView(sendActionBtn, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
 
-    val scroll = ScrollView(this).apply {
-        isFillViewport = true
-        enableVisibleScrollbar()
-    }
-    scroll.addView(root)
+    val dm = resources.displayMetrics
+    val isLandscape = dm.widthPixels > dm.heightPixels
+    val zipDlgH = if (isLandscape) (dm.heightPixels * 0.90f).toInt().coerceAtMost(dp(560))
+                  else (dm.heightPixels * 0.82f).toInt().coerceAtMost(dp(680))
 
     dlg = AlertDialog.Builder(this)
         .setTitle(L10n.t("📦 도서 하이라이트 압축파일(ZIP) 전송", "📦 Export Highlights (ZIP) via Email"))
-        .setView(scroll)
+        .setView(dialogRoot)
         .create()
-    dlg.showWithOptimalWidth(this, onBack = onBack)
+    dlg.showWithOptimalWidth(this, customHeight = zipDlgH, onBack = onBack)
 }
 
 fun Activity.showReadingNotesShareDialog(

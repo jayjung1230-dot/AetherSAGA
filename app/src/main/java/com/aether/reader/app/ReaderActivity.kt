@@ -981,11 +981,12 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         val memoLabel = if (h.note.isNotBlank()) L10n.t("✎ 메모 보기", "✎ View Note") else L10n.t("✎ 메모", "✎ Note")
         val memoBtn = TextView(this).apply {
             text = memoLabel
-            setPtSize(8f)
+            setPtSize(7.8f)
             typeface = ReaderTheme.uiFontBold
             setTextColor(ReaderTheme.EINK_INK)
             gravity = Gravity.CENTER
-            setPadding(dp(8), dp(4), dp(8), dp(4))
+            isSingleLine = true
+            setPadding(dp(6), dp(4), dp(6), dp(4))
             setOnClickListener {
                 dismissHighlightDeleteButton()
                 inputDialog(L10n.t("독서 메모", "Reading Note"), initial = h.note, multiline = true) { newNote ->
@@ -1009,11 +1010,12 @@ class ReaderActivity : Activity(), ReaderView.Listener {
 
         val delBtn = TextView(this).apply {
             text = L10n.t("✕ 삭제", "✕ Delete")
-            setPtSize(8f)
+            setPtSize(7.8f)
             typeface = ReaderTheme.uiFontBold
             setTextColor(ReaderTheme.EINK_INK)
             gravity = Gravity.CENTER
-            setPadding(dp(8), dp(4), dp(8), dp(4))
+            isSingleLine = true
+            setPadding(dp(6), dp(4), dp(6), dp(4))
             setOnClickListener {
                 dismissHighlightDeleteButton()
                 scope.launch {
@@ -1031,11 +1033,12 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         // Universal SNS Share shortcut (available on both LCD/OLED and E-Ink)
         val snsBtn = TextView(this).apply {
             text = L10n.t("📢 SNS 공유", "📢 Share")
-            setPtSize(8f)
+            setPtSize(7.8f)
             typeface = ReaderTheme.uiFontBold
-            setTextColor(ReaderTheme.ACCENT_PRIMARY_BLUE)
+            setTextColor(if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.EINK_INK)
             gravity = Gravity.CENTER
-            setPadding(dp(8), dp(4), dp(8), dp(4))
+            isSingleLine = true
+            setPadding(dp(6), dp(4), dp(6), dp(4))
             setOnClickListener {
                 dismissHighlightDeleteButton()
                 val bTitle = (book?.title?.ifBlank { null } ?: engine.bookTitle.ifBlank { null } ?: File(path).nameWithoutExtension)
@@ -1053,12 +1056,13 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         if (app.prefs.geminiAiEnabled) {
             val isDark = isLcd && (app.prefs.readingTheme == "DARK" || app.prefs.readingTheme == "OLED_BLACK")
             val geminiBtn = TextView(this).apply {
-                text = L10n.t("✨ Gemini (Beta)", "✨ Gemini (Beta)")
-                setPtSize(8f)
+                text = L10n.t("✨ Gemini", "✨ Gemini")
+                setPtSize(7.8f)
                 typeface = ReaderTheme.uiFontBold
-                setTextColor(if (isDark) 0xFF60A5FA.toInt() else ReaderTheme.ACCENT_PRIMARY_BLUE)
+                setTextColor(if (isDark) 0xFF60A5FA.toInt() else (if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.EINK_INK))
                 gravity = Gravity.CENTER
-                setPadding(dp(8), dp(4), dp(8), dp(4))
+                isSingleLine = true
+                setPadding(dp(6), dp(4), dp(6), dp(4))
                 setOnClickListener {
                     dismissHighlightDeleteButton()
                     val bTitle = (book?.title?.ifBlank { null } ?: engine.bookTitle.ifBlank { null } ?: File(path).nameWithoutExtension)
@@ -1809,7 +1813,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         dlg = AlertDialog.Builder(this)
             .setView(root)
             .create()
-        dlg.showWithOptimalWidth(this)
+        dlg.showWithOptimalWidth(this, enforceBalancedMargins = true)
     }
 
     private fun showTocAndNotesDialog() {

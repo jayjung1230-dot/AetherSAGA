@@ -178,8 +178,9 @@ object FolderPickerHelper {
         quickScroll.addView(quickJumps)
         root.addView(quickScroll)
 
-        // Scrollable list container
+        // Scrollable list container (flexible weight so bottom action bars never clip)
         val scroll = ScrollView(context).apply {
+            isFillViewport = true
             background = cardDrawable(ReaderTheme.EINK_CARD_BG, 8, ReaderTheme.EINK_BORDER)
             setPadding(dp(6), dp(4), dp(6), dp(4))
             enableVisibleScrollbar()
@@ -188,8 +189,7 @@ object FolderPickerHelper {
             orientation = LinearLayout.VERTICAL
         }
         scroll.addView(listLayout)
-        val maxH = (dm.heightPixels * 0.48f).toInt().coerceAtLeast(dp(200))
-        root.addView(scroll, LinearLayout.LayoutParams(-1, maxH))
+        root.addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
 
         // Multi-select Action Bar (when onFilesSelected is provided)
         val multiActionBar = LinearLayout(context).apply {
@@ -541,7 +541,7 @@ object FolderPickerHelper {
             }
         }
 
-        dlg.showWithOptimalWidth(context)
+        dlg.showWithOptimalWidth(context, enforceBalancedMargins = true)
     }
 
     private fun thinDivider(context: Context): View {

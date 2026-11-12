@@ -110,21 +110,30 @@ object GeminiDialogHelper {
         val borderCol = if (isDark) ReaderTheme.DARK_BORDER else (if (isLcd) 0xFFDDE3EA.toInt() else ReaderTheme.EINK_BORDER_CONTRAST)
         val accentCol = if (isDark) 0xFF60A5FA.toInt() else ReaderTheme.ACCENT_PRIMARY_BLUE
 
-        val scroll = ScrollView(activity).apply { isFillViewport = true }
+        val dialogRoot = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(bgCol)
+            setPadding(dp(18), dp(14), dp(18), dp(14))
+        }
+
+        val scroll = ScrollView(activity).apply {
+            isFillViewport = true
+            enableVisibleScrollbar(isDark = isDark)
+        }
         val root = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(bgCol)
-            setPadding(dp(18), dp(16), dp(18), dp(18))
+            setPadding(0, 0, dp(2), dp(8))
         }
         scroll.addView(root)
 
         lateinit var dlg: AlertDialog
 
-        // Header (Sparkle, Title & Subtitle)
+        // Header (Sparkle, Title & Close Button — Pinned at Top)
         val headerRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, 0, 0, dp(6))
+            setPadding(0, 0, 0, dp(4))
         }
         val sparkIcon = TextView(activity).apply {
             text = "✨"
@@ -136,18 +145,36 @@ object GeminiDialogHelper {
             textSize = 16f
             typeface = Typeface.create("serif", Typeface.BOLD)
             setTextColor(textCol)
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val closeBtn = TextView(activity).apply {
+            text = "✕"
+            textSize = 18f
+            setTextColor(textCol)
+            gravity = Gravity.CENTER
+            setPadding(dp(8), dp(2), dp(4), dp(2))
+            setOnClickListener { dlg.dismiss() }
         }
         headerRow.addView(sparkIcon)
         headerRow.addView(headerTitle)
-        root.addView(headerRow)
+        headerRow.addView(closeBtn)
+        dialogRoot.addView(headerRow)
 
         val bookChip = TextView(activity).apply {
             text = "📖 《$cleanTitle》 ($cleanAuthor) · $cleanChapter"
             textSize = 11.5f
             setTextColor(mutedCol)
-            setPadding(0, 0, 0, dp(10))
+            setPadding(0, 0, 0, dp(8))
         }
-        root.addView(bookChip)
+        dialogRoot.addView(bookChip)
+        dialogRoot.addView(scroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+
+        // Pinned Bottom Dock (Chat Input & Action Buttons)
+        val bottomDock = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+        }
+        dialogRoot.addView(bottomDock, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         // Loading Container (Hourglass ⏳ view)
         val loadingBox = LinearLayout(activity).apply {
@@ -192,9 +219,11 @@ object GeminiDialogHelper {
             val analysis = GeminiContextAnalyzer.analyze(cleanTitle, cleanAuthor, cleanChapter, quote)
             loadingBox.visibility = View.GONE
             contentBox.visibility = View.VISIBLE
+            bottomDock.visibility = View.VISIBLE
             populateContent(
                 activity = activity,
                 container = contentBox,
+                bottomDock = bottomDock,
                 scroll = scroll,
                 analysis = analysis,
                 bookTitle = cleanTitle,
@@ -217,7 +246,7 @@ object GeminiDialogHelper {
         }, 900L) // 0.9s smooth preparation
 
         dlg = AlertDialog.Builder(activity)
-            .setView(scroll)
+            .setView(dialogRoot)
             .create()
         dlg.showWithOptimalWidth(activity, enforceBalancedMargins = true)
     }
@@ -225,6 +254,7 @@ object GeminiDialogHelper {
     private fun populateContent(
         activity: Activity,
         container: LinearLayout,
+        bottomDock: LinearLayout,
         scroll: ScrollView,
         analysis: ExpectationAnalysis,
         bookTitle: String,
@@ -245,6 +275,7 @@ object GeminiDialogHelper {
         onShareQuote: (() -> Unit)?
     ) {
         container.removeAllViews()
+        bottomDock.removeAllViews()
 
         // 1. Quote & Concise Summary Card
         val quoteCard = LinearLayout(activity).apply {
@@ -290,8 +321,12 @@ object GeminiDialogHelper {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(8), dp(6), dp(8), dp(6))
-            background = cardDrawable(if (isDark) 0xFF0F172A.toInt() else 0xFFF1F5F9.toInt(), dp(8))
-            (layoutParams as? LinearLayout.LayoutParams)?.topMargin = dp(10)
+            background = cardDrawable(
+                if (isDark) 0xFF0F172A.toInt() else (if (isLcd) 0xFFF1F5F9.toInt() else Color.WHITE),
+                dp(8),
+                borderCol,
+                dp(if (isLcd) 1 else 2)
+            )
         }
         val searchPrefix = TextView(activity).apply {
             text = L10n.t("🔍 검색", "🔍 Search")
@@ -339,7 +374,9 @@ object GeminiDialogHelper {
             }
         }
         searchTrackCard.addView(webSearchBtn)
-        container.addView(searchTrackCard)
+        container.addView(searchTrackCard, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(8)
+        })
 
         // 3. Discussion Track Area
         val conversationHistory = ArrayList<ChatMessage>()
@@ -437,10 +474,19 @@ object GeminiDialogHelper {
             }
         }
 
-        // Discussion Suggestion Chips
+        // Discussion Suggestion Chips (Pinned in bottomDock)
+        val dockTopSep = View(activity).apply {
+            setBackgroundColor(borderCol)
+            layoutParams = LinearLayout.LayoutParams(-1, dp(1)).apply {
+                topMargin = dp(4)
+                bottomMargin = dp(4)
+            }
+        }
+        bottomDock.addView(dockTopSep)
+
         val chipScroll = HorizontalScrollView(activity).apply {
             isHorizontalScrollBarEnabled = false
-            setPadding(0, dp(8), 0, dp(4))
+            setPadding(0, dp(4), 0, dp(4))
         }
         val chipBox = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
         for (chip in analysis.discussionChips) {
@@ -455,9 +501,9 @@ object GeminiDialogHelper {
             chipBox.addView(chipBtn, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { rightMargin = dp(6) })
         }
         chipScroll.addView(chipBox)
-        container.addView(chipScroll)
+        bottomDock.addView(chipScroll)
 
-        // Chat Input Row
+        // Chat Input Row (Pinned in bottomDock)
         val inputRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -476,7 +522,7 @@ object GeminiDialogHelper {
             textSize = 12f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.WHITE)
-            background = cardDrawable(0xFF2563EB.toInt(), dp(16))
+            background = cardDrawable(if (isLcd) 0xFF2563EB.toInt() else ReaderTheme.ACCENT_CHARCOAL, dp(16), if (isLcd) 0xFF2563EB.toInt() else ReaderTheme.EINK_INK, dp(1))
             gravity = Gravity.CENTER
             setPadding(dp(12), dp(6), dp(12), dp(6))
             setOnClickListener {
@@ -489,17 +535,17 @@ object GeminiDialogHelper {
         }
         inputRow.addView(inputEt, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) })
         inputRow.addView(sendBtn)
-        container.addView(inputRow)
+        bottomDock.addView(inputRow)
 
-        // 4. Action Buttons (Save Memo, Share Card, External App)
+        // 4. Action Buttons (Save Memo, Share Card, External App — Pinned in bottomDock)
         val actionDivider = View(activity).apply {
             setBackgroundColor(borderCol)
             layoutParams = LinearLayout.LayoutParams(-1, dp(1)).apply {
-                topMargin = dp(10)
-                bottomMargin = dp(8)
+                topMargin = dp(6)
+                bottomMargin = dp(6)
             }
         }
-        container.addView(actionDivider)
+        bottomDock.addView(actionDivider)
 
         val btnRow = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
 
@@ -548,7 +594,7 @@ object GeminiDialogHelper {
         }
         btnRow.addView(extAppBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.9f))
 
-        container.addView(btnRow)
+        bottomDock.addView(btnRow)
     }
 
     private suspend fun callGeminiRestApi(
