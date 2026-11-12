@@ -40,32 +40,51 @@ data class SearchMatch(
  */
 class BitmapPoolImpl : BitmapPool {
     // 4 slots: 0 = PREVIOUS, 1 = CURRENT, 2 = NEXT, 3 = STAGING (off-screen render target)
-    private var bmps: Array<Bitmap>? = null
+    @Volatile private var bmps: Array<Bitmap>? = null
 
-    override fun acquire(slot: BitmapPool.Slot): Bitmap = bmps!![slot.ordinal]
+    @Synchronized
+    private fun ensureAllocated(): Array<Bitmap> {
+        var cur = bmps
+        if (cur == null) {
+            cur = Array(4) { Bitmap.createBitmap(100, 100, Bitmap.Config.RGB_565) }
+            bmps = cur
+        }
+        return cur
+    }
+
+    @Synchronized
+    override fun acquire(slot: BitmapPool.Slot): Bitmap = ensureAllocated()[slot.ordinal]
 
     /** Acquires the off-screen staging bitmap that is never actively bound to ReaderView on the UI thread. */
-    fun acquireStaging(): Bitmap = bmps!![3]
+    @Synchronized
+    fun acquireStaging(): Bitmap = ensureAllocated()[3]
 
     /** Atomically swaps the freshly rendered staging bitmap into the CURRENT slot and returns it. */
+    @Synchronized
     fun commitStagingToCurrent(): Bitmap {
-        val b = bmps!!
+        val b = ensureAllocated()
         val oldCurrent = b[1]
         b[1] = b[3]
         b[3] = oldCurrent
         return b[1]
     }
 
-    override fun rotateForward() { val b = bmps!!; bmps = arrayOf(b[1], b[2], b[0], b[3]) }
-    override fun rotateBackward() { val b = bmps!!; bmps = arrayOf(b[2], b[0], b[1], b[3]) }
+    @Synchronized
+    override fun rotateForward() { val b = ensureAllocated(); bmps = arrayOf(b[1], b[2], b[0], b[3]) }
+    @Synchronized
+    override fun rotateBackward() { val b = ensureAllocated(); bmps = arrayOf(b[2], b[0], b[1], b[3]) }
 
+    @Synchronized
     override fun reconfigure(width: Int, height: Int, config: Bitmap.Config) {
         val cfg = if (config == Bitmap.Config.ALPHA_8) Bitmap.Config.RGB_565 else config
+        val w = width.coerceAtLeast(10)
+        val h = height.coerceAtLeast(10)
         val cur = bmps
-        if (cur != null && cur[0].width == width && cur[0].height == height && cur[0].config == cfg) return
-        bmps = Array(4) { Bitmap.createBitmap(width.coerceAtLeast(10), height.coerceAtLeast(10), cfg) }
+        if (cur != null && cur[0].width == w && cur[0].height == h && cur[0].config == cfg) return
+        bmps = Array(4) { Bitmap.createBitmap(w, h, cfg) }
     }
 
+    @Synchronized
     override fun close() { bmps = null }
 }
 
@@ -111,7 +130,9 @@ class PagingEngineImpl(private val pool: BitmapPoolImpl) : PagingEngine {
     }
 
     @Volatile private var cache: ChLayout? = null
-    private val layoutCache = LinkedHashMap<Int, ChLayout>(8, 0.75f, true)
+    private val layoutCache = object : LinkedHashMap<Int, ChLayout>(8, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Int, ChLayout>?): Boolean = size > 6
+    }
 
     private fun clearLayoutCache() {
         synchronized(layoutCache) { layoutCache.clear() }

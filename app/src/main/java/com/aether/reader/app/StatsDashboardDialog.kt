@@ -31,6 +31,87 @@ import java.util.zip.ZipFile
 
 object StatsDashboardDialog {
 
+    private val pageEstimateCache = java.util.concurrent.ConcurrentHashMap<String, Pair<Int, Int>>()
+
+    private fun computeExactBookPagesOnIo(book: BookEntity): Pair<Int, Int> {
+        pageEstimateCache[book.path]?.let { (_, cachedTotal) ->
+            val cur = if (book.progress >= 0.98f) cachedTotal
+            else (1 + ((cachedTotal - 1) * book.progress.coerceIn(0f, 1f))).toInt().coerceIn(1, cachedTotal)
+            return cur to cachedTotal
+        }
+        val exactTotal: Int? = when (book.format.uppercase(Locale.US)) {
+            "PDF" -> runCatching {
+                val f = File(book.path)
+                if (f.exists()) {
+                    ParcelFileDescriptor.open(f, ParcelFileDescriptor.MODE_READ_ONLY).use { pfd ->
+                        PdfRenderer(pfd).use { it.pageCount }
+                    }
+                } else null
+            }.getOrNull()
+            "CBZ" -> runCatching {
+                val f = File(book.path)
+                if (f.exists()) {
+                    ZipFile(f).use { zip ->
+                        zip.entries().asSequence().count { entry ->
+                            !entry.isDirectory && entry.name.let { n ->
+                                n.endsWith(".jpg", true) || n.endsWith(".jpeg", true) ||
+                                n.endsWith(".png", true) || n.endsWith(".webp", true) ||
+                                n.endsWith(".gif", true)
+                            }
+                        }
+                    }
+                } else null
+            }.getOrNull()
+            "EPUB" -> runCatching {
+                val f = File(book.path)
+                if (f.exists()) {
+                    ZipFile(f).use { zip ->
+                        var totalTextBytes = 0L
+                        val entries = zip.entries()
+                        while (entries.hasMoreElements()) {
+                            val entry = entries.nextElement()
+                            if (!entry.isDirectory) {
+                                val name = entry.name.lowercase(Locale.US)
+                                if (name.endsWith(".xhtml") || name.endsWith(".html") || name.endsWith(".htm")) {
+                                    val sz = if (entry.size > 0) entry.size else entry.compressedSize * 2
+                                    totalTextBytes += sz
+                                }
+                            }
+                        }
+                        if (totalTextBytes > 0) {
+                            ((totalTextBytes / 1300.0).toInt()).coerceIn(1, 3000)
+                        } else null
+                    }
+                } else null
+            }.getOrNull()
+            else -> null
+        }
+
+        val total = if (exactTotal != null && exactTotal > 0) {
+            exactTotal
+        } else {
+            if (book.sizeBytes > 0) {
+                val divisor = when (book.format.uppercase(Locale.US)) {
+                    "EPUB" -> 2200.0
+                    "TXT", "MD", "MARKDOWN" -> 1200.0
+                    else -> 1800.0
+                }
+                ((book.sizeBytes / divisor).toInt()).coerceIn(1, 2000)
+            } else {
+                100
+            }
+        }
+
+        val cur = if (book.progress >= 0.98f) {
+            total
+        } else {
+            (1 + ((total - 1) * book.progress.coerceIn(0f, 1f))).toInt().coerceIn(1, total)
+        }
+        val pair = cur to total
+        pageEstimateCache[book.path] = pair
+        return pair
+    }
+
     fun show(activity: Activity, app: App, isEink: Boolean, onBack: (() -> Unit)? = null) {
         val scope = CoroutineScope(Dispatchers.Main)
         val density = activity.resources.displayMetrics.density
@@ -243,69 +324,21 @@ object StatsDashboardDialog {
         completedCard.addView(completedListContainer)
 
         fun estimateBookPages(book: BookEntity): Pair<Int, Int> {
-            val exactTotal: Int? = when (book.format.uppercase(Locale.US)) {
-                "PDF" -> runCatching {
-                    val f = File(book.path)
-                    if (f.exists()) {
-                        ParcelFileDescriptor.open(f, ParcelFileDescriptor.MODE_READ_ONLY).use { pfd ->
-                            PdfRenderer(pfd).use { it.pageCount }
-                        }
-                    } else null
-                }.getOrNull()
-                "CBZ" -> runCatching {
-                    val f = File(book.path)
-                    if (f.exists()) {
-                        ZipFile(f).use { zip ->
-                            zip.entries().asSequence().count { entry ->
-                                !entry.isDirectory && entry.name.let { n ->
-                                    n.endsWith(".jpg", true) || n.endsWith(".jpeg", true) ||
-                                    n.endsWith(".png", true) || n.endsWith(".webp", true) ||
-                                    n.endsWith(".gif", true)
-                                }
-                            }
-                        }
-                    } else null
-                }.getOrNull()
-                "EPUB" -> runCatching {
-                    val f = File(book.path)
-                    if (f.exists()) {
-                        ZipFile(f).use { zip ->
-                            var totalTextBytes = 0L
-                            val entries = zip.entries()
-                            while (entries.hasMoreElements()) {
-                                val entry = entries.nextElement()
-                                if (!entry.isDirectory) {
-                                    val name = entry.name.lowercase(Locale.US)
-                                    if (name.endsWith(".xhtml") || name.endsWith(".html") || name.endsWith(".htm")) {
-                                        val sz = if (entry.size > 0) entry.size else entry.compressedSize * 2
-                                        totalTextBytes += sz
-                                    }
-                                }
-                            }
-                            if (totalTextBytes > 0) {
-                                ((totalTextBytes / 1300.0).toInt()).coerceIn(1, 3000)
-                            } else null
-                        }
-                    } else null
-                }.getOrNull()
-                else -> null
+            pageEstimateCache[book.path]?.let { (_, cachedTotal) ->
+                val cur = if (book.progress >= 0.98f) cachedTotal
+                else (1 + ((cachedTotal - 1) * book.progress.coerceIn(0f, 1f))).toInt().coerceIn(1, cachedTotal)
+                return cur to cachedTotal
             }
-
-            val total = if (exactTotal != null && exactTotal > 0) {
-                exactTotal
-            } else {
-                if (book.sizeBytes > 0) {
-                    val divisor = when (book.format.uppercase(Locale.US)) {
-                        "EPUB" -> 2200.0
-                        "TXT", "MD", "MARKDOWN" -> 1200.0
-                        else -> 1800.0
-                    }
-                    ((book.sizeBytes / divisor).toInt()).coerceIn(1, 2000)
-                } else {
-                    100
+            val total = if (book.sizeBytes > 0) {
+                val divisor = when (book.format.uppercase(Locale.US)) {
+                    "EPUB" -> 2200.0
+                    "TXT", "MD", "MARKDOWN" -> 1200.0
+                    else -> 1800.0
                 }
+                ((book.sizeBytes / divisor).toInt()).coerceIn(1, 2000)
+            } else {
+                100
             }
-
             val cur = if (book.progress >= 0.98f) {
                 total
             } else {
@@ -761,6 +794,40 @@ object StatsDashboardDialog {
                 "${b.title} (${b.completedDate})"
             }
 
+            val activeReadingCandidates = cachedAllBooks.filter { b ->
+                val isCompleted = b.progress >= 0.98f || cachedCompletedBooks.any { c ->
+                    c.bookPath == b.path || (b.title.isNotBlank() && c.title.equals(b.title, ignoreCase = true))
+                }
+                !isCompleted && (b.progress > 0.002f || b.lastRead > 0L)
+            }.sortedWith(compareByDescending<BookEntity> { it.lastRead }.thenByDescending { it.progress })
+
+            val nowMs = System.currentTimeMillis()
+            val readingShareItems = activeReadingCandidates.take(4).map { b ->
+                val cleanTitle = b.title.ifBlank { File(b.path).nameWithoutExtension }
+                val cleanAuthor = b.author.ifBlank { L10n.t("저자 미상", "Unknown Author") }
+                val cleanFormat = b.format.ifBlank { "EPUB" }.uppercase(Locale.US)
+                val (curPage, totalPage) = estimateBookPages(b)
+                val recencyStr = if (b.lastRead > 0L) {
+                    val diffDays = ((nowMs - b.lastRead).coerceAtLeast(0L) / (1000L * 60 * 60 * 24)).toInt()
+                    when {
+                        diffDays == 0 -> L10n.t("오늘 읽음", "Read today")
+                        diffDays == 1 -> L10n.t("어제 읽음", "Read yesterday")
+                        diffDays < 7 -> L10n.t("${diffDays}일 전 읽음", "${diffDays}d ago")
+                        else -> java.text.SimpleDateFormat("M.d", Locale.US).format(Date(b.lastRead))
+                    }
+                } else {
+                    L10n.t("독서 중", "Reading")
+                }
+                AndroidShareHelper.ReadingBookShareItem(
+                    title = cleanTitle,
+                    author = cleanAuthor,
+                    format = cleanFormat,
+                    progress = b.progress.coerceIn(0.01f, 0.99f),
+                    subInfo = "${curPage} / ${totalPage}p · $recencyStr",
+                    coverPath = b.coverPath
+                )
+            }
+
             val payload = AndroidShareHelper.StatsSharePayload(
                 periodName = periodLabel,
                 periodSubLabel = subLabel,
@@ -772,7 +839,8 @@ object StatsDashboardDialog {
                 points = chartPoints,
                 yMax = res.yMax,
                 insightText = res.insightText,
-                completedBooksSummary = completedList
+                completedBooksSummary = completedList,
+                currentlyReadingBooks = readingShareItems
             )
 
             AndroidShareHelper.showStatsSnsShareDialog(
@@ -807,7 +875,13 @@ object StatsDashboardDialog {
                 runCatching { app.db.completedBooks().all() }.getOrDefault(emptyList())
             }
             val dbBooks = withContext(Dispatchers.IO) {
-                runCatching { app.db.books().all() }.getOrDefault(emptyList())
+                val list = runCatching { app.db.books().all() }.getOrDefault(emptyList())
+                // Pre-compute page counts on IO thread for recently read / active books so UI never blocks on disk IO
+                list.filter { it.lastRead > 0L || it.progress > 0f }
+                    .sortedByDescending { it.lastRead }
+                    .take(15)
+                    .forEach { b -> computeExactBookPagesOnIo(b) }
+                list
             }
             val todayStr = app.prefs.statsDate.ifBlank {
                 java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(Date())

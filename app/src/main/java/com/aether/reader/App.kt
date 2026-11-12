@@ -54,6 +54,16 @@ class App : Application() {
         L10n.init(this, prefs)
         db = Room.databaseBuilder(this, AppDatabase::class.java, "aether.db")
             .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+            .addCallback(object : androidx.room.RoomDatabase.Callback() {
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    super.onOpen(db)
+                    runCatching {
+                        db.execSQL("CREATE INDEX IF NOT EXISTS index_books_lastRead ON books (lastRead DESC)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS index_books_title ON books (title COLLATE NOCASE)")
+                        db.execSQL("CREATE INDEX IF NOT EXISTS index_highlights_bookPath_chapter ON highlights (bookPath, chapter, startChar)")
+                    }
+                }
+            })
             .fallbackToDestructiveMigration()
             .build()
         profiles = DisplayProfileManagerImpl(this, darkModeProvider = { prefs.dark })
