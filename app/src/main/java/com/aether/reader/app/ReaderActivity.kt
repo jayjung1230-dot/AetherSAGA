@@ -719,6 +719,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        ActiveDialogRegistry.updateAll()
         app.profiles.onConfigurationChanged()
         val vw = if (view.width > 0) view.width else null
         val vh = if (view.height > 0) view.height else null

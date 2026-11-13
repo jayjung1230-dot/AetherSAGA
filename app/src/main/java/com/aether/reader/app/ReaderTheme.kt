@@ -89,6 +89,36 @@ fun TextView.setPtSize(pt: Float) {
  * When [enforceBalancedMargins] is true, applies unified balanced margins on all 4 sides (top, bottom, left, right).
  * [customHeight] allows specialized windows (e.g. flashcard, highlight browsing) to specify purpose-fitted heights.
  */
+/**
+ * Registry of active dialogs to automatically re-fit window bounds on orientation or configuration change.
+ */
+object ActiveDialogRegistry {
+    private val dialogUpdaters = java.util.Collections.synchronizedMap(
+        java.util.WeakHashMap<android.app.Dialog, () -> Unit>()
+    )
+
+    fun register(dialog: android.app.Dialog, updateAction: () -> Unit) {
+        dialogUpdaters[dialog] = updateAction
+    }
+
+    fun unregister(dialog: android.app.Dialog) {
+        dialogUpdaters.remove(dialog)
+    }
+
+    fun updateAll() {
+        val actions = synchronized(dialogUpdaters) { dialogUpdaters.values.toList() }
+        actions.forEach { update ->
+            runCatching { update() }
+        }
+    }
+}
+
+/**
+ * Enforces a single, continuous, completely enclosed
+ * outline border around the entire popup window (top title + middle content + bottom buttons).
+ * When [enforceBalancedMargins] is true, applies unified balanced margins on all 4 sides (top, bottom, left, right).
+ * [customHeight] allows specialized windows (e.g. flashcard, highlight browsing) to specify purpose-fitted heights.
+ */
 fun android.app.AlertDialog.showWithOptimalWidth(
     context: Context,
     enforceBalancedMargins: Boolean = false,
@@ -97,29 +127,62 @@ fun android.app.AlertDialog.showWithOptimalWidth(
 ): android.app.AlertDialog {
     show()
     val w = window ?: return this
-    val dm = context.resources.displayMetrics
-    val isLandscape = dm.widthPixels > dm.heightPixels
 
-    val targetW = if (isLandscape) {
-        (dm.widthPixels * 0.85f).toInt().coerceAtMost(context.dp(720))
-    } else {
-        (dm.widthPixels * 0.94f).toInt().coerceAtMost(context.dp(640))
+    fun applyOptimalBounds() {
+        val currentW = window ?: return
+        val curDm = context.resources.displayMetrics
+        val isLandscape = curDm.widthPixels > curDm.heightPixels
+
+        val maxAllowedW = (curDm.widthPixels * 0.94f).toInt()
+        val maxAllowedH = (curDm.heightPixels * 0.92f).toInt()
+
+        val targetW = if (isLandscape) {
+            (curDm.widthPixels * 0.85f).toInt().coerceAtMost(context.dp(720)).coerceAtMost(maxAllowedW)
+        } else {
+            (curDm.widthPixels * 0.94f).toInt().coerceAtMost(context.dp(640)).coerceAtMost(maxAllowedW)
+        }
+
+        val targetH = when {
+            customHeight != null -> customHeight.coerceAtMost(maxAllowedH)
+            enforceBalancedMargins -> {
+                if (isLandscape) {
+                    (curDm.heightPixels * 0.92f).toInt().coerceAtMost(context.dp(620)).coerceAtMost(maxAllowedH)
+                } else {
+                    (curDm.heightPixels * 0.90f).toInt().coerceAtMost(context.dp(780)).coerceAtMost(maxAllowedH)
+                }
+            }
+            else -> ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+
+        currentW.setLayout(targetW, targetH)
+        currentW.setGravity(Gravity.CENTER)
     }
 
-    val targetH = when {
-        customHeight != null -> customHeight
-        enforceBalancedMargins -> {
-            if (isLandscape) {
-                (dm.heightPixels * 0.94f).toInt().coerceAtMost(context.dp(620))
-            } else {
-                (dm.heightPixels * 0.90f).toInt().coerceAtMost(context.dp(780))
+    applyOptimalBounds()
+
+    ActiveDialogRegistry.register(this) {
+        w.decorView.post {
+            if (isShowing) {
+                applyOptimalBounds()
             }
         }
-        else -> ViewGroup.LayoutParams.WRAP_CONTENT
     }
 
-    w.setLayout(targetW, targetH)
-    w.setGravity(Gravity.CENTER)
+    var lastW = context.resources.displayMetrics.widthPixels
+    var lastH = context.resources.displayMetrics.heightPixels
+    w.decorView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+        val curDm = context.resources.displayMetrics
+        if (curDm.widthPixels != lastW || curDm.heightPixels != lastH) {
+            lastW = curDm.widthPixels
+            lastH = curDm.heightPixels
+            w.decorView.post {
+                if (isShowing) {
+                    applyOptimalBounds()
+                }
+            }
+        }
+    }
+
     val strokeW = context.dp(2)
     val corner = context.dp(12).toFloat()
     val windowOutlineDrawable = GradientDrawable().apply {
@@ -160,15 +223,24 @@ fun android.app.AlertDialog.showWithOptimalWidth(
     }
 
     // If active inside ReaderActivity, attach dialog window to FrontlightController for live tint & brightness overlay
+    setOnDismissListener {
+        ActiveDialogRegistry.unregister(this)
+        if (context is ReaderActivity) {
+            try {
+                val flField = ReaderActivity::class.java.getDeclaredField("frontlight")
+                flField.isAccessible = true
+                val fl = flField.get(context) as? com.aether.reader.platform.FrontlightController
+                fl?.detachDialogWindow()
+            } catch (_: Throwable) {}
+        }
+    }
+
     if (context is ReaderActivity) {
         try {
             val flField = ReaderActivity::class.java.getDeclaredField("frontlight")
             flField.isAccessible = true
             val fl = flField.get(context) as? com.aether.reader.platform.FrontlightController
             fl?.attachDialogWindow(w)
-            setOnDismissListener {
-                fl?.detachDialogWindow()
-            }
         } catch (_: Throwable) {}
     }
 

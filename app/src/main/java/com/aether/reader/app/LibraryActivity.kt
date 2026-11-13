@@ -384,12 +384,7 @@ class LibraryActivity : Activity() {
         // 4. Content Frame (GridView + Empty State View)
         val contentFrame = FrameLayout(this)
 
-        val displayW = resources.displayMetrics.widthPixels
-        val colWidth = dp(130)
-        val columns = (displayW / colWidth).coerceIn(2, 6)
-
         grid = GridView(this).apply {
-            numColumns = columns
             horizontalSpacing = dp(14)
             verticalSpacing = dp(18)
             setPadding(0, dp(14), 0, dp(16))
@@ -419,6 +414,7 @@ class LibraryActivity : Activity() {
                 true
             }
         }
+        updateGridColumns()
         contentFrame.addView(grid, FrameLayout.LayoutParams(-1, -1))
 
         emptyBox = LinearLayout(this).apply {
@@ -498,9 +494,27 @@ class LibraryActivity : Activity() {
         setContentView(root)
     }
 
+    private fun updateGridColumns() {
+        if (!::grid.isInitialized) return
+        val displayW = resources.displayMetrics.widthPixels
+        val colSlotWidth = dp(138)
+        val columns = (displayW / colSlotWidth).coerceIn(2, 10)
+        grid.numColumns = columns
+    }
+
     override fun onResume() {
         super.onResume()
+        updateGridColumns()
         window.decorView.hideSystemBars()
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        ActiveDialogRegistry.updateAll()
+        updateGridColumns()
+        if (::grid.isInitialized) {
+            (grid.adapter as? BaseAdapter)?.notifyDataSetChanged()
+        }
     }
 
     private fun updateList() {
@@ -2404,16 +2418,22 @@ class LibraryActivity : Activity() {
         override fun getView(p: Int, cv: View?, parent: ViewGroup): View {
             val card = (cv as? LinearLayout) ?: LinearLayout(this@LibraryActivity).apply {
                 orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER_HORIZONTAL
                 setPadding(dp(4), dp(4), dp(4), dp(8))
 
                 val coverFrame = RelativeLayout(context).apply {
                     id = View.generateViewId()
                 }
+                val coverW = dp(120)
+                val coverH = dp(175)
                 val iv = ImageView(context).apply {
                     scaleType = ImageView.ScaleType.CENTER_CROP
                     id = View.generateViewId()
                 }
-                coverFrame.addView(iv, RelativeLayout.LayoutParams(-1, dp(175)))
+                val ivParams = RelativeLayout.LayoutParams(coverW, coverH).apply {
+                    addRule(RelativeLayout.CENTER_HORIZONTAL)
+                }
+                coverFrame.addView(iv, ivParams)
 
                 // Format & Progress badge (top-right corner pill)
                 val badgeTv = TextView(context).apply {
@@ -2428,9 +2448,9 @@ class LibraryActivity : Activity() {
                     setPadding(dp(5), dp(2), dp(5), dp(2))
                 }
                 val badgeParams = RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                    addRule(RelativeLayout.ALIGN_PARENT_TOP)
-                    addRule(RelativeLayout.ALIGN_PARENT_RIGHT)
-                    setMargins(dp(4), dp(4), dp(4), dp(4))
+                    addRule(RelativeLayout.ALIGN_TOP, iv.id)
+                    addRule(RelativeLayout.ALIGN_RIGHT, iv.id)
+                    setMargins(0, dp(4), dp(4), 0)
                 }
                 coverFrame.addView(badgeTv, badgeParams)
 
@@ -2444,8 +2464,9 @@ class LibraryActivity : Activity() {
                     }
                     visibility = View.GONE
                 }
-                val pbParams = RelativeLayout.LayoutParams(-1, dp(4)).apply {
+                val pbParams = RelativeLayout.LayoutParams(coverW, dp(4)).apply {
                     addRule(RelativeLayout.ALIGN_BOTTOM, iv.id)
+                    addRule(RelativeLayout.ALIGN_LEFT, iv.id)
                 }
                 coverFrame.addView(progressBar, pbParams)
 
@@ -2457,13 +2478,13 @@ class LibraryActivity : Activity() {
                     visibility = View.GONE
                 }
                 val checkParams = RelativeLayout.LayoutParams(dp(26), dp(26)).apply {
-                    addRule(RelativeLayout.ALIGN_PARENT_TOP)
-                    addRule(RelativeLayout.ALIGN_PARENT_LEFT)
-                    setMargins(dp(6), dp(6), dp(6), dp(6))
+                    addRule(RelativeLayout.ALIGN_TOP, iv.id)
+                    addRule(RelativeLayout.ALIGN_LEFT, iv.id)
+                    setMargins(dp(4), dp(4), 0, 0)
                 }
                 coverFrame.addView(checkBadge, checkParams)
 
-                addView(coverFrame, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
+                addView(coverFrame, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
                 val titleView = TextView(context).apply {
                     id = View.generateViewId()
@@ -2472,10 +2493,11 @@ class LibraryActivity : Activity() {
                     ellipsize = android.text.TextUtils.TruncateAt.END
                     textSize = 13.5f
                     typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-                    setPadding(0, dp(6), 0, dp(2))
+                    setPadding(dp(2), dp(6), dp(2), dp(2))
                     setLineSpacing(0f, 1.15f)
+                    gravity = Gravity.CENTER_HORIZONTAL
                 }
-                addView(titleView)
+                addView(titleView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
                 val authorView = TextView(context).apply {
                     id = View.generateViewId()
@@ -2484,8 +2506,10 @@ class LibraryActivity : Activity() {
                     ellipsize = android.text.TextUtils.TruncateAt.END
                     textSize = 11.5f
                     typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+                    gravity = Gravity.CENTER_HORIZONTAL
+                    setPadding(dp(2), 0, dp(2), 0)
                 }
-                addView(authorView)
+                addView(authorView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             }
 
             val coverFrame = card.getChildAt(0) as RelativeLayout
