@@ -31,8 +31,11 @@ class DisplayProfileManagerImpl(
         "ireader", "dasung", "likebook", "moaan", "xiaomi_ink", "remarkable", "pocketbook",
         "kobo", "rakuten", "crema", "luna", "aladdin", "aladin", "yes24", "kyobo", "kyobo_sam", "sam78", "sam10",
         "ridi", "ridibooks", "paper", "boyue", "tolino", "kindle", "amazon", "lab126",
+        "mobiscribe", "hanvon", "hyread", "inkpalm", "inkbook", "boke", "fac", "sd",
+        "palma", "palma2", "leaf", "poke", "nova", "note", "page", "tab_ultra", "tab_mini", "tab_c",
+        "nook", "barnes", "sony", "dpt", "prs",
         "fload", "linktop", "epdc", "epd", "e-ink", "eink", "carta", "ed060", "ed078",
-        "rk3566", "rk3326", "rk3026", "rk3188", "sun8iw10p1"
+        "rk3566", "rk3326", "rk3026", "rk3188", "rockchip", "allwinner", "sun8iw10p1", "sprd"
     )
     private val colorHints = listOf("color", "kaleido", "gallery", "colour", "luna c", "palma", "nova3 color", "tab ultra c")
 
@@ -73,16 +76,22 @@ class DisplayProfileManagerImpl(
             (id.contains("samsung") && (id.contains("fold") || id.contains("flip"))) ||
             isFlipResolution || isFoldResolution
 
-        val isKnownLcdOledBrand = isFoldFamily || id.contains("samsung") || id.contains("sm-") ||
+        val hasEinkVendorHint = einkVendors.any { id.contains(it) }
+
+        val isKnownLcdOledBrand = !hasEinkVendorHint && (
+            isFoldFamily || id.contains("samsung") || id.contains("sm-") ||
             id.contains("pixel") || id.contains("bluestacks") || id.contains("sdk_gphone") ||
             id.contains("emulator")
+        )
 
         val hasEinkSysProp = sysProp("ro.vendor.eink").isNotEmpty() ||
             sysProp("ro.hardware.eink").isNotEmpty() ||
             sysProp("ro.epd.present").isNotEmpty() ||
             sysProp("ro.vendor.epd").isNotEmpty() ||
             sysProp("sys.eink.app.name").isNotEmpty() ||
-            sysProp("persist.sys.eink").isNotEmpty()
+            sysProp("persist.sys.eink").isNotEmpty() ||
+            sysProp("ro.platform.has.epd").isNotEmpty() ||
+            sysProp("ro.boot.epd").isNotEmpty()
 
         // Check standard E-Ink resolutions (Carta 1200/1300/Pearl/Carta HD):
         val isStandardEinkResolution = !isKnownLcdOledBrand && (

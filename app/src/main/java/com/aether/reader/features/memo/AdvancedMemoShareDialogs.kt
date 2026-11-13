@@ -41,6 +41,7 @@ object AdvancedMemoShareDialogs {
         isLcd: Boolean,
         onBack: (() -> Unit)? = null
     ) {
+        if (!isLcd) return
         val inkCol = ReaderTheme.EINK_INK
         val cardBgCol = ReaderTheme.EINK_CARD_BG
         val borderCol = if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.EINK_BORDER_CONTRAST
@@ -535,6 +536,7 @@ object AdvancedMemoShareDialogs {
         isLcd: Boolean,
         onBack: (() -> Unit)?
     ) {
+        if (!isLcd) return
         CoroutineScope(Dispatchers.IO).launch {
             val allHl = app.db.highlights().all()
             val allBooks = app.db.books().all()

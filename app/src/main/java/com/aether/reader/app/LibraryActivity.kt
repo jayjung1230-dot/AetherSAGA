@@ -159,7 +159,7 @@ class LibraryActivity : Activity() {
             bgCol = ReaderTheme.EINK_PAPER
             inkCol = ReaderTheme.EINK_INK
             mutedCol = ReaderTheme.EINK_MUTED
-            val isLcd = strategy.kind == DisplayKind.LCD_OLED
+            val isLcd = (application as App).isLcdMode(strategy)
             cardBgCol = if (isLcd) ReaderTheme.EINK_CARD_BG_LIGHT else ReaderTheme.EINK_CARD_BG
             borderCol = if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.EINK_BORDER_CONTRAST
         }
@@ -868,7 +868,7 @@ class LibraryActivity : Activity() {
         val pct = (b.progress * 100).toInt()
         val curShelf = app.prefs.getBookShelf(b.path)
         val shelfDesc = if (curShelf.isBlank()) L10n.t("미분류", "Uncategorized") else curShelf
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = (application as App).isLcdMode(if (::strategy.isInitialized) strategy else null)
 
         val optOpen = L10n.t("도서 열기 (진행률 $pct%)", "Open Book ($pct%)")
         val optShelf = L10n.t("📁 책장 이동 / 변경 (현재: $shelfDesc)", "📁 Move / Change Shelf (Current: $shelfDesc)")
@@ -1349,7 +1349,7 @@ class LibraryActivity : Activity() {
             return
         }
 
-        val isLcd = strategy.kind == DisplayKind.LCD_OLED
+        val isLcd = (application as App).isLcdMode(strategy)
         val dialogRoot = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(12), dp(16), dp(12))
@@ -1628,7 +1628,7 @@ class LibraryActivity : Activity() {
         scroll.addView(box)
         lateinit var dlg: AlertDialog
 
-        val isLcd = strategy.kind == DisplayKind.LCD_OLED
+        val isLcd = (application as App).isLcdMode(strategy)
         val cardBg = if (isDark) ReaderTheme.DARK_CARD else (if (isLcd) cardBgCol else ReaderTheme.EINK_CARD_BG)
         val cardBorder = if (isDark) ReaderTheme.DARK_BORDER else (if (isLcd) borderCol else ReaderTheme.EINK_BORDER_CONTRAST)
         val btnBg = ReaderTheme.einkBtnBg(isLcd, isDark)
@@ -1813,7 +1813,7 @@ class LibraryActivity : Activity() {
         dispCard.addView(modeRow2)
         dispCard.addView(makeDivider())
 
-        val isLcdCapable = (strategy.kind == DisplayKind.LCD_OLED)
+        val isLcdCapable = isLcd
         if (isLcdCapable) {
             val themeTitle = TextView(this).apply {
                 text = L10n.t("🎨 독서 테마 및 색상 모드 (LCD/OLED)", "🎨 Reading Theme & Color Mode (LCD/OLED)")
@@ -1959,87 +1959,89 @@ class LibraryActivity : Activity() {
         fontCard.addView(docRow)
         box.addView(fontCard)
 
-        // 2-2. Gemini AI 독서 어시스턴트 설정 카드
-        box.addView(secHeader(L10n.t("✨ Gemini AI 독서 어시스턴트 (Beta)", "✨ Gemini AI Reading Assistant (Beta)")))
-        val geminiCard = makeCard()
+        // 2-2. Gemini AI 독서 어시스턴트 설정 카드 (Only on LCD/OLED devices)
+        if (isLcd) {
+            box.addView(secHeader(L10n.t("✨ Gemini AI 독서 어시스턴트 (Beta)", "✨ Gemini AI Reading Assistant (Beta)")))
+            val geminiCard = makeCard()
 
-        val geminiToggleRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(4), 0, dp(4))
-        }
-        val geminiCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val geminiTitleTv = TextView(this).apply {
-            text = L10n.t("Gemini AI 독서 도우미 사용", "Enable Gemini AI Assistant")
-            setPtSize(9f)
-            setTextColor(inkCol)
-            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
-        }
-        val geminiDescTv = TextView(this).apply {
-            text = L10n.t("문장 선택 및 하이라이트 탭 시 AI 심층 해석 & 1:1 토론 활성화", "Enable AI in-depth analysis & 1:1 discussion on text selection")
-            setPtSize(7.5f)
-            setTextColor(mutedCol)
-        }
-        geminiCol.addView(geminiTitleTv)
-        geminiCol.addView(geminiDescTv)
-
-        lateinit var geminiSw: ToggleSwitchView
-        geminiSw = toggleSwitch(p.geminiAiEnabled) {
-            p.geminiAiEnabled = !p.geminiAiEnabled
-            geminiSw.isChecked = p.geminiAiEnabled
-            Toast.makeText(this, if (p.geminiAiEnabled) L10n.t("Gemini AI (Beta)가 활성화되었습니다.", "Gemini AI (Beta) enabled.") else L10n.t("Gemini AI (Beta)가 비활성화되었습니다.", "Gemini AI (Beta) disabled."), Toast.LENGTH_SHORT).show()
-        }
-        geminiToggleRow.addView(geminiCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(8) })
-        geminiToggleRow.addView(geminiSw)
-        geminiCard.addView(geminiToggleRow)
-        geminiCard.addView(makeDivider())
-
-        // Gemini API Key row
-        val apiKeyRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(4), 0, dp(4))
-        }
-        val apiCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val apiTitleTv = TextView(this).apply {
-            text = L10n.t("🔑 Gemini API Key (Beta 인앱 1:1 실시간 대화)", "🔑 Gemini API Key (Beta In-App Chat)")
-            setPtSize(8.5f)
-            setTextColor(inkCol)
-        }
-        val keyStatus = if (p.geminiApiKey.isNotBlank()) {
-            L10n.t("✅ 무료 API Key 등록됨 (인앱 1:1 실시간 대화 모드)", "✅ API Key registered (In-App Chat active)")
-        } else {
-            L10n.t("ℹ️ 미등록 (외부 Gemini 앱 자동 연결 모드 동작)", "ℹ️ Not set (External App Mode active)")
-        }
-        val apiDescTv = TextView(this).apply {
-            text = keyStatus
-            setPtSize(7.5f)
-            setTextColor(if (p.geminiApiKey.isNotBlank()) 0xFF16A34A.toInt() else mutedCol)
-        }
-        apiCol.addView(apiTitleTv)
-        apiCol.addView(apiDescTv)
-
-        val setKeyBtn = pillButton(L10n.t("키 설정", "Set Key"), inkCol, btnBg, btnBorder) {
-            dlg.dismiss()
-            inputDialog(
-                title = L10n.t("Google Gemini API Key 입력", "Enter Gemini API Key"),
-                initial = p.geminiApiKey
-            ) { newKey ->
-                p.geminiApiKey = newKey.trim()
-                Toast.makeText(
-                    this,
-                    if (p.geminiApiKey.isNotBlank()) L10n.t("Gemini API Key가 저장되었습니다. (인앱 대화 활성화)", "Gemini API Key saved. (In-App Chat Active)")
-                    else L10n.t("API Key가 비워졌습니다. (외부 앱 모드)", "API Key cleared. (External App Mode)"),
-                    Toast.LENGTH_SHORT
-                ).show()
-                settingsMenu()
+            val geminiToggleRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(4), 0, dp(4))
             }
-        }
-        apiKeyRow.addView(apiCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) })
-        apiKeyRow.addView(setKeyBtn)
-        geminiCard.addView(apiKeyRow)
+            val geminiCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            val geminiTitleTv = TextView(this).apply {
+                text = L10n.t("Gemini AI 독서 도우미 사용", "Enable Gemini AI Assistant")
+                setPtSize(9f)
+                setTextColor(inkCol)
+                typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            }
+            val geminiDescTv = TextView(this).apply {
+                text = L10n.t("문장 선택 및 하이라이트 탭 시 AI 심층 해석 & 1:1 토론 활성화", "Enable AI in-depth analysis & 1:1 discussion on text selection")
+                setPtSize(7.5f)
+                setTextColor(mutedCol)
+            }
+            geminiCol.addView(geminiTitleTv)
+            geminiCol.addView(geminiDescTv)
 
-        box.addView(geminiCard)
+            lateinit var geminiSw: ToggleSwitchView
+            geminiSw = toggleSwitch(p.geminiAiEnabled) {
+                p.geminiAiEnabled = !p.geminiAiEnabled
+                geminiSw.isChecked = p.geminiAiEnabled
+                Toast.makeText(this, if (p.geminiAiEnabled) L10n.t("Gemini AI (Beta)가 활성화되었습니다.", "Gemini AI (Beta) enabled.") else L10n.t("Gemini AI (Beta)가 비활성화되었습니다.", "Gemini AI (Beta) disabled."), Toast.LENGTH_SHORT).show()
+            }
+            geminiToggleRow.addView(geminiCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(8) })
+            geminiToggleRow.addView(geminiSw)
+            geminiCard.addView(geminiToggleRow)
+            geminiCard.addView(makeDivider())
+
+            // Gemini API Key row
+            val apiKeyRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(4), 0, dp(4))
+            }
+            val apiCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            val apiTitleTv = TextView(this).apply {
+                text = L10n.t("🔑 Gemini API Key (Beta 인앱 1:1 실시간 대화)", "🔑 Gemini API Key (Beta In-App Chat)")
+                setPtSize(8.5f)
+                setTextColor(inkCol)
+            }
+            val keyStatus = if (p.geminiApiKey.isNotBlank()) {
+                L10n.t("✅ 무료 API Key 등록됨 (인앱 1:1 실시간 대화 모드)", "✅ API Key registered (In-App Chat active)")
+            } else {
+                L10n.t("ℹ️ 미등록 (외부 Gemini 앱 자동 연결 모드 동작)", "ℹ️ Not set (External App Mode active)")
+            }
+            val apiDescTv = TextView(this).apply {
+                text = keyStatus
+                setPtSize(7.5f)
+                setTextColor(if (p.geminiApiKey.isNotBlank()) 0xFF16A34A.toInt() else mutedCol)
+            }
+            apiCol.addView(apiTitleTv)
+            apiCol.addView(apiDescTv)
+
+            val setKeyBtn = pillButton(L10n.t("키 설정", "Set Key"), inkCol, btnBg, btnBorder) {
+                dlg.dismiss()
+                inputDialog(
+                    title = L10n.t("Google Gemini API Key 입력", "Enter Gemini API Key"),
+                    initial = p.geminiApiKey
+                ) { newKey ->
+                    p.geminiApiKey = newKey.trim()
+                    Toast.makeText(
+                        this,
+                        if (p.geminiApiKey.isNotBlank()) L10n.t("Gemini API Key가 저장되었습니다. (인앱 대화 활성화)", "Gemini API Key saved. (In-App Chat Active)")
+                        else L10n.t("API Key가 비워졌습니다. (외부 앱 모드)", "API Key cleared. (External App Mode)"),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    settingsMenu()
+                }
+            }
+            apiKeyRow.addView(apiCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) })
+            apiKeyRow.addView(setKeyBtn)
+            geminiCard.addView(apiKeyRow)
+
+            box.addView(geminiCard)
+        }
 
         // 3. 백업 및 서재 관리 카드
         box.addView(secHeader(L10n.t("데이터 백업 및 서재 관리", "Data Backup & Library Management")))
@@ -2694,7 +2696,7 @@ class LibraryActivity : Activity() {
             toast(L10n.t("책장에 등록된 도서가 없습니다.", "No books found in library."))
             return
         }
-        val isLcd = strategy.kind == DisplayKind.LCD_OLED
+        val isLcd = (application as App).isLcdMode(strategy)
         if (allBooks.size == 1) {
             val b = allBooks[0]
             scope.launch {
@@ -2741,7 +2743,7 @@ class LibraryActivity : Activity() {
         scope.launch {
             val allHl = withContext(Dispatchers.IO) { app.db.highlights().all() }
             val hlCountByBook = allHl.groupingBy { it.bookPath }.eachCount()
-            val isLcd = strategy.kind == DisplayKind.LCD_OLED
+            val isLcd = (application as App).isLcdMode(strategy)
             val cardBg = if (isDark) ReaderTheme.DARK_CARD else (if (isLcd) cardBgCol else ReaderTheme.EINK_CARD_BG)
             val cardBorder = if (isDark) ReaderTheme.DARK_BORDER else (if (isLcd) borderCol else ReaderTheme.EINK_BORDER_CONTRAST)
             val strokePx = ReaderTheme.einkStrokePx(this@LibraryActivity, isLcd)
@@ -2923,7 +2925,7 @@ class LibraryActivity : Activity() {
             }
 
             withContext(Dispatchers.Main) {
-                val isLcd = strategy.kind == DisplayKind.LCD_OLED
+                val isLcd = (application as App).isLcdMode(strategy)
                 val cardBg = if (isDark) ReaderTheme.DARK_CARD else (if (isLcd) cardBgCol else ReaderTheme.EINK_CARD_BG)
                 val cardBorder = if (isDark) ReaderTheme.DARK_BORDER else (if (isLcd) borderCol else ReaderTheme.EINK_BORDER_CONTRAST)
                 val strokePx = ReaderTheme.einkStrokePx(this@LibraryActivity, isLcd)
@@ -2988,21 +2990,27 @@ class LibraryActivity : Activity() {
                     setPadding(dp(6), dp(6), dp(6), dp(6))
                 }
 
-                val mindMapBtn = pillButton(L10n.t("🧠 뇌 지도", "🧠 Mind Map"), Color.WHITE, 0xFF7C3AED.toInt(), 0xFF7C3AED.toInt(), strokePx) {
-                    com.aether.reader.features.memo.AdvancedMemoShareDialogs.shareKnowledgeGraphCard(
-                        activity = this@LibraryActivity,
-                        app = app,
-                        isLcd = isLcd,
-                        onBack = { showMainHighlightsDialog() }
-                    )
-                }.apply {
-                    setPtSize(7.8f)
-                    setPadding(dp(6), dp(6), dp(6), dp(6))
-                }
+                toolBar.addView(filterBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f).apply {
+                    if (isLcd) rightMargin = dp(4)
+                })
+                toolBar.addView(zipBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    if (isLcd) rightMargin = dp(4)
+                })
 
-                toolBar.addView(filterBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f).apply { rightMargin = dp(4) })
-                toolBar.addView(zipBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(4) })
-                toolBar.addView(mindMapBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.95f))
+                if (isLcd) {
+                    val mindMapBtn = pillButton(L10n.t("🧠 뇌 지도", "🧠 Mind Map"), Color.WHITE, 0xFF7C3AED.toInt(), 0xFF7C3AED.toInt(), strokePx) {
+                        com.aether.reader.features.memo.AdvancedMemoShareDialogs.shareKnowledgeGraphCard(
+                            activity = this@LibraryActivity,
+                            app = app,
+                            isLcd = isLcd,
+                            onBack = { showMainHighlightsDialog() }
+                        )
+                    }.apply {
+                        setPtSize(7.8f)
+                        setPadding(dp(6), dp(6), dp(6), dp(6))
+                    }
+                    toolBar.addView(mindMapBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.95f))
+                }
                 outer.addView(toolBar)
 
                 val scroll = ScrollView(this@LibraryActivity).apply {

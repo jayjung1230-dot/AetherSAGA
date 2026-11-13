@@ -246,7 +246,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
 
         rootFrame = FrameLayout(this)
         rootFrame.addView(view, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        val isLcdDevice = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcdDevice = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         bookmarkRibbonView = BookmarkRibbonView(this, !isLcdDevice).apply {
             visibility = View.GONE
             setOnClickListener {
@@ -545,7 +545,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 rightMargin = dp(2)
             })
         }
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         val isComic = (book?.format == "CBZ" || book?.format == "CBR" || path.endsWith(".cbz", true) || path.endsWith(".cbr", true))
         if (isComic) {
             addQuickBtn(L10n.t("🎨 만화설정", "🎨 Manga")) { showComicSettingsDialog() }
@@ -632,7 +632,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         val vw = if (view.width > 0) view.width else null
         val vh = if (view.height > 0) view.height else null
         strategy = app.profiles.detect(app.prefs.displaySettings(), vw, vh)
-        val isLcd = (strategy.kind == DisplayKind.LCD_OLED)
+        val isLcd = app.isLcdMode(strategy)
         val bg: Int
         val fg: Int
         val dark: Boolean
@@ -1003,7 +1003,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             }
         }
 
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
 
         val sep = View(this).apply {
             setBackgroundColor(if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.EINK_DIVIDER_CONTRAST)
@@ -1222,7 +1222,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         menuItems += optDotted
         menuItems += optBg
         menuItems += optNote
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         if (isLcd && app.prefs.geminiAiEnabled) {
             menuItems += optGemini
         }
@@ -1241,7 +1241,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 optBg -> saveHighlight(r, 2, "")
                 optNote -> inputDialog(L10n.t("독서 메모 작성", "Write Reading Note"), multiline = true) { saveHighlight(r, 0, it) }
                 optGemini -> {
-                    val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+                    val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
                     val isDark = isLcd && (app.prefs.readingTheme == "DARK" || app.prefs.readingTheme == "OLED_BLACK")
                     val bTitle = (book?.title?.ifBlank { null } ?: engine.bookTitle.ifBlank { null } ?: File(path).nameWithoutExtension)
                     val bAuthor = book?.author?.ifBlank { null } ?: engine.bookAuthor
@@ -1285,7 +1285,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                     }
                 }
                 optFootnote -> {
-                    val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+                    val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
                     val isDark = app.prefs.dark && (strategy.layoutSpec.allowDarkMode || strategy.kind == DisplayKind.LCD_OLED)
                     val body = if (chapterNotes.isNotEmpty()) {
                         chapterNotes.entries.joinToString("\n\n") { "• [${it.key}] ${it.value}" }
@@ -1399,7 +1399,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     private fun settingsCardContainer(): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(dp(14), dp(8), dp(14), dp(8))
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         val bg = if (isLcd) ReaderTheme.EINK_CARD_BG_LIGHT else ReaderTheme.EINK_CARD_BG
         val border = if (isLcd) ReaderTheme.EINK_BORDER else ReaderTheme.EINK_BORDER_CONTRAST
         val strokePx = ReaderTheme.einkStrokePx(this@ReaderActivity, isLcd)
@@ -1407,7 +1407,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     }
 
     private fun thinDivider(): View {
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         return if (isLcd) {
             View(this).apply {
                 setBackgroundColor(ReaderTheme.EINK_BORDER)
@@ -1442,7 +1442,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         val valueUpdaters = ArrayList<() -> Unit>()
         lateinit var dlg: AlertDialog
 
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         val sheetBtnBg = ReaderTheme.einkBtnBg(isLcd)
         val sheetBtnBorder = ReaderTheme.einkBtnBorder(isLcd)
         val sheetStroke = ReaderTheme.einkStrokePx(this, isLcd)
@@ -1767,7 +1767,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         header.addView(closeBtn)
         root.addView(header)
 
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
 
         // 구분선
         val dividerLine = View(this).apply {
@@ -1823,7 +1823,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         val bmCount = highlights.count { it.kind == 1 }
         val bTitle = (book?.title?.ifBlank { null } ?: engine.bookTitle.ifBlank { null } ?: File(path).nameWithoutExtension)
         val bAuthor = book?.author?.ifBlank { null } ?: engine.bookAuthor
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         val options = mutableListOf(
             L10n.t("📑 목차 이동 (총 ${engine.chapters.size}개 섹션)", "📑 Table of Contents (${engine.chapters.size} sections)"),
             L10n.t("🖍 하이라이트 및 북마크 ($hlCount / $bmCount)", "🖍 Highlights & Bookmarks ($hlCount / $bmCount)"),
@@ -2232,7 +2232,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         scroll.addView(box)
         lateinit var dlg: AlertDialog
 
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         val isDark = app.prefs.dark && isLcd
         val btnBg = ReaderTheme.einkBtnBg(isLcd, isDark)
         val btnBorder = ReaderTheme.einkBtnBorder(isLcd, isDark)
@@ -2432,7 +2432,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         val rawYear = meta["year"]?.ifBlank { null }
         val year = rawYear?.let { if (it.endsWith("년")) it else "${it}년" } ?: "-"
 
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         lateinit var dlg: AlertDialog
 
         val root = LinearLayout(this).apply {
@@ -2908,7 +2908,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     }
 
     private fun exportMenu(onBack: (() -> Unit)? = null) {
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         val hlCount = highlights.count { it.kind == 0 }
         val bmCount = highlights.count { it.kind == 1 }
         val bTitle = (book?.title?.ifBlank { null } ?: engine.bookTitle.ifBlank { null } ?: File(path).nameWithoutExtension)
@@ -2938,7 +2938,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
      * 4. Sends book info + attached cover image + selected quotes via email.
      */
     private fun showEmailShareDialog(initialQuote: HighlightEntity? = null, onBack: (() -> Unit)? = null) {
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         val loc = engine.currentLocation()
         val resolvedFormat = (book?.format?.ifBlank { null } ?: (Containers.formatOf(path) ?: BookFormat.TXT).name)
         val resolvedTitle = engine.bookTitle.ifBlank { book?.title ?: "" }.ifBlank { File(path).nameWithoutExtension.ifBlank { L10n.t("Aether SAGA 도서", "Aether SAGA Book") } }
@@ -2986,7 +2986,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 return@listDialog
             }
             val h = items[i - 1]
-            val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+            val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
             val itemActions = listOf(
                 L10n.t("해당 페이지로 이동", "Go to Page"),
                 L10n.t("📢 독서 기록 공유 (카드 · 이메일)", "📢 Share Reading Notes (Card · Email)"),
@@ -3041,7 +3041,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     }
 
     private fun openTtsControlPanel() {
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         if (!tts.isAudioOutputAvailable()) {
             if (isLcd) {
                 toast("TTS 음성 엔진을 시작할 수 없습니다")
@@ -3175,7 +3175,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             TextRange(ttsCurrentChapter, sentence.startChar.toLong(), sentence.endChar.toLong(), sentence.text)
         )
         view.ttsHighlightRects = rects
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         if (isLcd && app.prefs.ttsMultiVoiceEnabled && sentence.isDialogue) {
             tts.setDialogueMode(true, app.prefs.ttsDialoguePitch)
         } else {
@@ -3626,7 +3626,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
 
     private fun formatTtsVoiceBadgeText(): String {
         val p = app.prefs
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         return if (isLcd && p.ttsMultiVoiceEnabled) {
             L10n.t("다중 화자 ${p.ttsNarratorPitch}x/${p.ttsDialoguePitch}x", "Multi ${p.ttsNarratorPitch}x/${p.ttsDialoguePitch}x")
         } else {
@@ -3641,7 +3641,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
     }
 
     private fun showTtsVoiceSettingsDialog() {
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         if (isLcd) {
             showLcdTtsVoiceStudioDialog()
         } else {
@@ -4246,7 +4246,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 val local = b?.lastRead ?: 0L
                 if (upd > local && (ch != (b?.chapter ?: 0) || abs(off - (b?.charOffset ?: 0L)) > 2000)) {
                     withContext(Dispatchers.Main) {
-                        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+                        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
                         val device = j.optString("device", "외부 기기")
                         val pct = (j.getDouble("progress") * 100).toInt()
                         if (isLcd) {
@@ -4459,7 +4459,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         box.addView(langCard)
 
         // Gemini AI Reading Assistant Section (Only available on LCD/OLED devices)
-        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        val isLcd = app.isLcdMode(if (::strategy.isInitialized) strategy else null)
         if (isLcd) {
             box.addView(sectionHeader(L10n.t("✨ Gemini AI 독서 어시스턴트", "✨ Gemini AI Reading Assistant")))
             val geminiCard = settingsCardContainer()

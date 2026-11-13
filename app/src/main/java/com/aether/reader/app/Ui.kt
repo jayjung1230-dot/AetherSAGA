@@ -829,35 +829,40 @@ fun Activity.showReadingNotesShareDialog(
         setPadding(dp(6), dp(9), dp(6), dp(9))
     }
 
-    val specialBg = if (isLcd) 0xFF4338CA.toInt() else Color.WHITE
-    val specialFg = if (isLcd) Color.WHITE else ReaderTheme.EINK_INK
-    val specialStroke = if (isLcd) 0xFF4338CA.toInt() else ReaderTheme.EINK_INK
-    val specialBtn = pillButton(
-        L10n.t("✨ 스페셜 카드", "✨ Special Cards"),
-        specialFg,
-        specialBg,
-        specialStroke
-    ) {
-        dlg.dismiss()
-        com.aether.reader.features.memo.AdvancedMemoShareDialogs.showAdvancedMemoMenu(
-            activity = this,
-            app = app,
-            currentBook = book,
-            currentHighlights = highlights,
-            isLcd = isLcd,
-            onBack = {
-                showReadingNotesShareDialog(app, book, highlights, totalChapters, rawCoverBytes, isLcd, initialQuote, onBack)
-            }
-        )
-    }.apply {
-        setPtSize(8.0f)
-        typeface = ReaderTheme.uiFontBold
-        setPadding(dp(6), dp(9), dp(6), dp(9))
-    }
+    if (isLcd) {
+        val specialBg = 0xFF4338CA.toInt()
+        val specialFg = Color.WHITE
+        val specialStroke = 0xFF4338CA.toInt()
+        val specialBtn = pillButton(
+            L10n.t("✨ 스페셜 카드", "✨ Special Cards"),
+            specialFg,
+            specialBg,
+            specialStroke
+        ) {
+            dlg.dismiss()
+            com.aether.reader.features.memo.AdvancedMemoShareDialogs.showAdvancedMemoMenu(
+                activity = this,
+                app = app,
+                currentBook = book,
+                currentHighlights = highlights,
+                isLcd = isLcd,
+                onBack = {
+                    showReadingNotesShareDialog(app, book, highlights, totalChapters, rawCoverBytes, isLcd, initialQuote, onBack)
+                }
+            )
+        }.apply {
+            setPtSize(8.0f)
+            typeface = ReaderTheme.uiFontBold
+            setPadding(dp(6), dp(9), dp(6), dp(9))
+        }
 
-    actionBtnRow.addView(sendBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(4) })
-    actionBtnRow.addView(snsBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.05f).apply { rightMargin = dp(4) })
-    actionBtnRow.addView(specialBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f))
+        actionBtnRow.addView(sendBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(4) })
+        actionBtnRow.addView(snsBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.05f).apply { rightMargin = dp(4) })
+        actionBtnRow.addView(specialBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f))
+    } else {
+        actionBtnRow.addView(sendBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(6) })
+        actionBtnRow.addView(snsBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+    }
 
     // Divider separating scrollable reading content from pinned bottom action buttons
     val actionDivider = View(this).apply {
