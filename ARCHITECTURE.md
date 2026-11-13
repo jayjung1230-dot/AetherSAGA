@@ -11,7 +11,7 @@
 | **Display & Foldable Profiles** | 6"~13.3" E-Ink (Carta 1200/1300 & Kaleido 3) | Smartphones, Tablets, **Galaxy Z Fold/Ultra** (`2176×1812`, `2184×1968`), **Galaxy Z Flip** (`2640×1080` Main & `748×720` / `512×260` Cover) |
 | **Themes & Lighting** | Pure Paper/Ink high contrast + Hardware Frontlight (CTM) | 4 Eye-Care Themes (White, Sepia, Charcoal, OLED Black) + In-app Brightness & Warm Amber Filter |
 | **Refresh & Borders** | 1–30 page Full Refresh cycle, 2px charcoal outlines, dotted dividers, 7dp `EinkScrollBarView` | Refresh UI hidden, soft dim (`0.35f`), elevation shadows, slim scrollbars |
-| **Gemini AI Reading Assistant** | **Completely Deactivated** (Zero battery/resource waste, 0% flicker, instant 0.05s classic cards) | **In-App Direct REST API Pipeline**: Gemini 1.5 Flash in-app 1:1 chat, 1-step API key setup, ⏳ Hourglass status dialog, 1-click 1080p SNS discussion cards |
+| **Gemini AI Reading Assistant (Beta)** | **100% Completely Deactivated on E-Ink** (Zero battery/resource waste, 0% flicker, all menus/cards hidden, instant 0.05s classic cards) | **In-App Direct REST API Pipeline [Beta]**: Gemini 1.5 Flash in-app 1:1 chat, 1-step API key setup, ⏳ Hourglass status dialog, 1-click 1080p SNS discussion cards |
 | **Smart TTS & Share** | BT/Headset safety gate + 3-step offline pitch; SNS Share (Gallery, KakaoTalk, IG, Threads, X, FB; hides SMS) | Built-in speaker + Voice Studio (multi-speaker dialogue split); Full SNS Share including KakaoTalk & SMS |
 
 ## Layers (Clean Architecture + MVVM + Modular Features)
@@ -149,7 +149,7 @@ H/W 특성에 맞춘 이원화 UX 설계를 통해 극단적인 반응성과 시
      - `features/share/DirectEmailSender.kt`: ShareFileProvider 기반 다이렉트 이메일 전송기
      - `features/sync/WebDavSyncManager.kt`: WebDAV 동기화 및 큐 관리자
      - `features/tts/TtsEngineController.kt`: 스마트 TTS 엔진 및 세션 관리자
-     - `features/gemini/`: Gemini AI 독서 어시스턴트 컨텍스트 분석 및 토론 엔진
+     - `features/gemini/`: Gemini AI 독서 어시스턴트 컨텍스트 분석 및 토론 엔진 (Beta)
    - `Services.kt` 및 `Hardware.kt`에 `typealias`를 두어 기존 호출 코드의 변경 없이 100% 무손실 하위 호환성 유지.
 30. **속도 및 메모리 안정성 최적화 아키텍처 (Speed & Stability Optimization Architecture)**:
    - **UI 스레드 디스크 I/O 완전 제거 & 0ms 탭 전환 (Zero-I/O Tab Switching)**:

@@ -37,6 +37,12 @@
 
 Adhering to a strict **Zero Heavy Library Policy** (no Jetpack Compose, no Glide/Coil, no Retrofit/OkHttp, no AppCompat), Aether SAGA delivers lightning-fast cold startups, live fold/unfold responsive repagination, and butter-smooth page turns.
 
+> [!IMPORTANT]
+> ### ⚠️ Gemini AI Features Status: BETA PREVIEW
+> **All Gemini AI features (In-App Live Chat, 1080p Discussion Cards, Cross-Book Serendipity Insights) are currently in BETA (Beta Preview).**
+> - **Exclusively for LCD/OLED Devices (Smartphones, Tablets, Foldables):** Users can optionally activate these features by entering their personal free Google Gemini API key.
+> - **100% Deactivated & Completely Hidden on E-Ink Hardware:** To ensure maximum battery preservation, zero screen flashes, and undisturbed offline reading, all Gemini AI menus, buttons, settings cards, and prompts are **strictly disabled and 100% hidden** on E-Ink devices or when in E-Ink display mode. On E-Ink, note sharing generates pure classic high-contrast typography cards in 0.05 seconds with zero network calls.
+
 ---
 
 ## 📊 E-Ink vs. LCD/OLED Feature Bifurcation Matrix
@@ -51,7 +57,7 @@ Aether SAGA automatically detects display panel physics (reflective e-paper vs. 
 | **Anti-Ghosting & Refresh** | **1–30 Page Full-Screen Refresh Cycle** setting exposed + hardware key forced refresh | Refresh menu automatically hidden for zero-ghosting 60–120Hz LCD/OLED panels |
 | **Typography Enhancement** | **10-Step Edge Stroke Booster & `ALPHA_8` Buffer** (razor-sharp ink outlines on e-paper) | **Subpixel Anti-Aliasing & OpenType Variable Weight** (smooth glyph rendering on high-DPI color screens) |
 | **UI Borders & Scrollbars** | **2px High-Contrast Charcoal Outlines**, dotted dividers, persistent **7dp `EinkScrollBarView`** | Soft backdrop dim (`0.35f`), card elevation shadows, rounded bottom sheets & slim scrollbars |
-| **Gemini AI Reading Assistant** | **Completely Deactivated on E-Ink** (Zero resource/battery waste, 0% screen flicker, renders pure classic typography cards in 0.05s) | **Dedicated In-App REST API Pipeline**: Direct in-app Gemini 1.5 Flash communication, 1-step API key prompt, Hourglass (⏳) status dialog, and 1-click 1080p SNS discussion cards |
+| **Gemini AI Reading Assistant (Beta)** | **100% Completely Deactivated on E-Ink** (Zero resource/battery waste, 0% screen flicker, all menus/cards hidden, renders pure classic typography cards in 0.05s) | **Dedicated In-App REST API Pipeline [Beta]**: Direct in-app Gemini 1.5 Flash communication, 1-step API key prompt, Hourglass (⏳) status dialog, and 1-click 1080p SNS discussion cards |
 | **Smart TTS Read-Aloud** | **Bluetooth/Headset Safety Gate** (prevents accidental speaker noise) + 3-step offline pitch (`0.8x/1.0x/1.2x`) | **Immediate Speaker/Earphone Playback** + **Voice Studio** (multi-speaker dialogue/narrator split & persona presets) |
 | **SNS Card Sharing Channels** | **Gallery Save, KakaoTalk, Instagram, Threads, X, Facebook** (hides cellular SMS on Wi-Fi-only readers) | **Gallery Save, KakaoTalk, Instagram (1:1 Feed / 9:16 Story), Threads, X, Facebook, and SMS** |
 | **Sync Notification UI** | Flicker-free **Instant High-Contrast Modal Dialog** for remote reading position jumps | Smooth top-down **Floating Snackbar Banner** (8-second auto-dismiss with 1-click jump action) |
@@ -60,7 +66,9 @@ Aether SAGA automatically detects display panel physics (reflective e-paper vs. 
 
 ## 🌟 Highlighted Special Features
 
-### 🤖 0. E-Ink AI Complete Deactivation & LCD/OLED In-App Gemini 1.5 Flash REST API Integration (Ver. 2.6)
+### 🤖 0. E-Ink AI Complete Deactivation & LCD/OLED In-App Gemini 1.5 Flash REST API Integration [Beta Preview] (Ver. 2.6)
+* **Beta Feature Notice**:
+  * The Gemini AI reading companion, in-app discussion, and cross-book serendipity synthesis are experimental **Beta features** designed exclusively for LCD/OLED devices with user-provided free Google Gemini API keys.
 * **Complete AI Deactivation on E-Ink Hardware**:
   * On E-Ink e-readers, all Gemini AI menus, buttons, and drawer categories are completely hidden to eliminate battery drain, unnecessary screen flash, and awkward browser redirect kicks.
   * Memo and reflection card sharing instantly generates 100% classic high-contrast monochrome typography cards in 0.05 seconds with zero network calls and zero delay.
