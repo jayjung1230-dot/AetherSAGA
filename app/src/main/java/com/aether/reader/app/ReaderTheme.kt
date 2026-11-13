@@ -126,13 +126,47 @@ fun android.app.AlertDialog.showWithOptimalWidth(
     show()
     val w = window ?: return this
 
+    val initialIsLandscape = context.resources.displayMetrics.widthPixels > context.resources.displayMetrics.heightPixels
+
+    val res = context.resources
+    fun sysId(name: String): Int = res.getIdentifier(name, "id", "android")
+
+    val contentRoot = w.findViewById<android.view.ViewGroup>(android.R.id.content)
+    val parentPanel = (sysId("parentPanel").takeIf { it != 0 }?.let { w.findViewById<View>(it) } as? android.view.ViewGroup)
+        ?: (contentRoot?.getChildAt(0) as? android.view.ViewGroup)
+
+    fun enforceScrollablePanels() {
+        parentPanel?.layoutParams?.let {
+            it.height = ViewGroup.LayoutParams.MATCH_PARENT
+            parentPanel.layoutParams = it
+        }
+        val cp = sysId("customPanel").takeIf { it != 0 }?.let { w.findViewById<View>(it) }
+            ?: sysId("custom").takeIf { it != 0 }?.let { w.findViewById<View>(it) }
+        (cp?.layoutParams as? LinearLayout.LayoutParams)?.let { lp ->
+            lp.weight = 1f
+            lp.height = 0
+            cp.layoutParams = lp
+        }
+        val contentP = sysId("contentPanel").takeIf { it != 0 }?.let { w.findViewById<View>(it) }
+        (contentP?.layoutParams as? LinearLayout.LayoutParams)?.let { lp ->
+            lp.weight = 1f
+            lp.height = 0
+            contentP.layoutParams = lp
+        }
+        parentPanel?.requestLayout()
+    }
+
     fun applyOptimalBounds() {
         val currentW = window ?: return
         val curDm = context.resources.displayMetrics
         val isLandscape = curDm.widthPixels > curDm.heightPixels
 
+        val visibleFrame = android.graphics.Rect()
+        currentW.decorView.getWindowVisibleDisplayFrame(visibleFrame)
+        val availH = if (visibleFrame.height() > context.dp(200)) minOf(curDm.heightPixels, visibleFrame.height()) else curDm.heightPixels
+
         val maxAllowedW = (curDm.widthPixels * 0.94f).toInt()
-        val maxAllowedH = (curDm.heightPixels * 0.92f).toInt()
+        val maxAllowedH = (availH * 0.92f).toInt()
 
         val targetW = if (isLandscape) {
             (curDm.widthPixels * 0.85f).toInt().coerceAtMost(context.dp(720)).coerceAtMost(maxAllowedW)
@@ -141,12 +175,23 @@ fun android.app.AlertDialog.showWithOptimalWidth(
         }
 
         val targetH = when {
-            customHeight != null -> customHeight.coerceAtMost(maxAllowedH)
+            customHeight != null -> {
+                if (isLandscape != initialIsLandscape) {
+                    val responsiveH = if (isLandscape) {
+                        (availH * 0.90f).toInt().coerceAtMost(context.dp(600))
+                    } else {
+                        (availH * 0.85f).toInt().coerceAtMost(context.dp(740))
+                    }
+                    responsiveH.coerceAtMost(maxAllowedH)
+                } else {
+                    customHeight.coerceAtMost(maxAllowedH)
+                }
+            }
             enforceBalancedMargins -> {
                 if (isLandscape) {
-                    (curDm.heightPixels * 0.92f).toInt().coerceAtMost(context.dp(620)).coerceAtMost(maxAllowedH)
+                    (availH * 0.92f).toInt().coerceAtMost(context.dp(620)).coerceAtMost(maxAllowedH)
                 } else {
-                    (curDm.heightPixels * 0.90f).toInt().coerceAtMost(context.dp(780)).coerceAtMost(maxAllowedH)
+                    (availH * 0.90f).toInt().coerceAtMost(context.dp(780)).coerceAtMost(maxAllowedH)
                 }
             }
             else -> ViewGroup.LayoutParams.WRAP_CONTENT
@@ -154,6 +199,19 @@ fun android.app.AlertDialog.showWithOptimalWidth(
 
         currentW.setLayout(targetW, targetH)
         currentW.setGravity(Gravity.CENTER)
+        currentW.decorView.requestLayout()
+        parentPanel?.requestLayout()
+
+        if (targetH == ViewGroup.LayoutParams.WRAP_CONTENT) {
+            currentW.decorView.post {
+                if (isShowing && currentW.decorView.height > maxAllowedH) {
+                    enforceScrollablePanels()
+                    currentW.setLayout(targetW, maxAllowedH)
+                    currentW.setGravity(Gravity.CENTER)
+                    currentW.decorView.requestLayout()
+                }
+            }
+        }
     }
 
     applyOptimalBounds()
@@ -248,9 +306,6 @@ fun android.app.AlertDialog.showWithOptimalWidth(
         }
     }
 
-    val res = context.resources
-    fun sysId(name: String): Int = res.getIdentifier(name, "id", "android")
-
     // Strip broken 3-part Holo 9-patch backgrounds from internal panels so the middle section never loses its border
     val panelNames = listOf("topPanel", "title_template", "contentPanel", "scrollView", "customPanel", "custom", "buttonPanel")
     for (name in panelNames) {
@@ -270,25 +325,8 @@ fun android.app.AlertDialog.showWithOptimalWidth(
         setPadding(context.dp(12), context.dp(4), context.dp(12), context.dp(6))
     }
 
-    val contentRoot = w.findViewById<android.view.ViewGroup>(android.R.id.content)
-    val parentPanel = (sysId("parentPanel").takeIf { it != 0 }?.let { w.findViewById<View>(it) } as? android.view.ViewGroup)
-        ?: (contentRoot?.getChildAt(0) as? android.view.ViewGroup)
-
     if (enforceBalancedMargins || customHeight != null) {
-        parentPanel?.layoutParams?.height = ViewGroup.LayoutParams.MATCH_PARENT
-        val cp = sysId("customPanel").takeIf { it != 0 }?.let { w.findViewById<View>(it) }
-            ?: sysId("custom").takeIf { it != 0 }?.let { w.findViewById<View>(it) }
-        (cp?.layoutParams as? LinearLayout.LayoutParams)?.let { lp ->
-            lp.weight = 1f
-            lp.height = 0
-            cp.layoutParams = lp
-        }
-        val contentP = sysId("contentPanel").takeIf { it != 0 }?.let { w.findViewById<View>(it) }
-        (contentP?.layoutParams as? LinearLayout.LayoutParams)?.let { lp ->
-            lp.weight = 1f
-            lp.height = 0
-            contentP.layoutParams = lp
-        }
+        enforceScrollablePanels()
     }
 
     parentPanel?.apply {
