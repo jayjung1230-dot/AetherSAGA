@@ -24,6 +24,7 @@ import android.widget.Toast
 import com.aether.reader.App
 import com.aether.reader.data.HighlightEntity
 import com.aether.reader.data.L10n
+import com.aether.reader.data.Prefs
 import com.aether.reader.features.gemini.ExpectationAnalysis
 import com.aether.reader.features.gemini.GeminiContextAnalyzer
 import kotlinx.coroutines.CoroutineScope
@@ -87,13 +88,22 @@ object GeminiDialogHelper {
         bookAuthor: String,
         chapterTitle: String,
         quote: String,
-        highlight: HighlightEntity?,
+        @Suppress("UNUSED_PARAMETER") highlight: HighlightEntity?,
         isLcd: Boolean,
         isDark: Boolean,
         onSearchInBook: ((keyword: String) -> Unit)? = null,
         onSaveMemo: ((note: String) -> Unit)? = null,
         onShareQuote: (() -> Unit)? = null
     ) {
+        if (!isLcd) {
+            Toast.makeText(
+                activity,
+                L10n.t("Gemini AI 독서 도우미는 LCD/OLED 태블릿 환경에서 지원됩니다.", "Gemini AI features are supported on LCD/OLED devices."),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
         val density = activity.resources.displayMetrics.density
         fun dp(v: Int): Int = (v * density + 0.5f).toInt()
 
@@ -427,8 +437,9 @@ object GeminiDialogHelper {
         fun executePrompt(userQuery: String) {
             val apiKey = prefs.geminiApiKey.trim()
             if (apiKey.isBlank()) {
-                // No API Key -> Launch Official Gemini App / Web with prefill
-                openGeminiWithPrompt(activity, bookTitle, bookAuthor, chapterTitle, quote, userQuery)
+                showApiKeyInputDialog(activity, prefs) {
+                    executePrompt(userQuery)
+                }
                 return
             }
 
@@ -445,7 +456,7 @@ object GeminiDialogHelper {
                 background = cardDrawable(if (isDark) 0xFF1E293B.toInt() else 0xFFF1F5F9.toInt(), dp(12))
             }
             val loadingTv = TextView(activity).apply {
-                text = L10n.t("🤖 Gemini AI가 사유를 나누고 있습니다... ✨", "🤖 Gemini AI is thinking... ✨")
+                text = L10n.t("⏳ Gemini AI가 사유를 나누고 있습니다... ✨", "⏳ Gemini AI is thinking... ✨")
                 textSize = 12f
                 setTextColor(mutedCol)
             }
@@ -583,18 +594,135 @@ object GeminiDialogHelper {
         }
         btnRow.addView(shareCardBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(4) })
 
-        val extAppBtn = activity.pillButton(
-            L10n.t("🚀 외부 앱", "🚀 External"),
-            mutedCol,
-            if (isDark) ReaderTheme.DARK_SURFACE else 0xFFF1F5F9.toInt(),
-            borderCol
+        val discussionCardBtn = activity.pillButton(
+            L10n.t("✨ 토론 SNS 카드", "✨ Discussion Card"),
+            Color.WHITE,
+            0xFF4338CA.toInt(),
+            0xFF4338CA.toInt()
         ) {
             onDismiss()
-            openGeminiWithPrompt(activity, bookTitle, bookAuthor, chapterTitle, quote, analysis.fullDiscussionPrompt)
+            val userQ = conversationHistory.findLast { it.isUser }?.text
+                ?: L10n.t("이 문맥의 본질적 의미와 통찰은 무엇인가?", "What is the essence of this passage?")
+            val aiA = conversationHistory.findLast { !it.isUser }?.text
+                ?: analysis.summary
+
+            val cardBmp = com.aether.reader.features.gemini.DiscussionCardSynthesizer.renderDiscussionCard(
+                bookTitle = bookTitle,
+                bookAuthor = bookAuthor,
+                quote = quote,
+                userQuery = userQ,
+                distilledInsight = aiA
+            )
+
+            com.aether.reader.data.AndroidShareHelper.showSnsTargetPicker(
+                activity = activity,
+                dialogTitle = L10n.t("✨ Gemini 독서 토론 1080p 카드 공유", "Share Discussion Card"),
+                subtitle = "《$bookTitle》 — " + L10n.t("독자와 AI가 나눈 사유", "Reader & AI Dialogue"),
+                isEink = false
+            ) { target ->
+                com.aether.reader.data.AndroidShareHelper.dispatchCustomCardSns(
+                    activity = activity,
+                    target = target,
+                    cardBitmap = cardBmp,
+                    shareText = "[Aether SAGA] 《$bookTitle》 " + L10n.t("독서 토론", "Reading Dialogue") + "\n#AetherSAGA #독서토론 #GeminiAI",
+                    isStory = false
+                )
+            }
+        }.apply {
+            setPtSize(8f)
+            typeface = ReaderTheme.uiFontBold
+            setPadding(dp(6), dp(8), dp(6), dp(8))
         }
-        btnRow.addView(extAppBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.9f))
+        btnRow.addView(discussionCardBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.15f))
 
         bottomDock.addView(btnRow)
+    }
+
+    private fun showApiKeyInputDialog(
+        activity: Activity,
+        prefs: Prefs,
+        onKeySaved: (String) -> Unit
+    ) {
+        val density = activity.resources.displayMetrics.density
+        fun dp(v: Int): Int = (v * density + 0.5f).toInt()
+
+        val root = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(14), dp(18), dp(14))
+        }
+
+        val titleTv = TextView(activity).apply {
+            text = L10n.t("✨ Gemini AI 독서 도우미 (API 등록)", "✨ Gemini AI Reading Assistant")
+            setPtSize(10f)
+            typeface = ReaderTheme.uiFontBold
+            setTextColor(ReaderTheme.EINK_INK)
+            setPadding(0, 0, 0, dp(6))
+        }
+        val descTv = TextView(activity).apply {
+            text = L10n.t(
+                "Google Gemini 무료 API 키를 등록하면 외부 브라우저로 나가지 않고 앱 내부에서 실시간으로 사유와 토론을 나눌 수 있습니다.",
+                "Register a free Google Gemini API key to discuss ideas with AI directly in-app without opening external browsers."
+            )
+            setPtSize(8f)
+            setTextColor(ReaderTheme.EINK_MUTED)
+            setLineSpacing(dp(2).toFloat(), 1.15f)
+            setPadding(0, 0, 0, dp(10))
+        }
+
+        val input = EditText(activity).apply {
+            hint = "AIzaSy..."
+            setText(prefs.geminiApiKey)
+            setPtSize(8.5f)
+            setSingleLine(true)
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+            background = cardDrawable(Color.WHITE, 6, ReaderTheme.EINK_BORDER, dp(1))
+        }
+
+        root.addView(titleTv)
+        root.addView(descTv)
+        root.addView(input)
+
+        val linkTv = TextView(activity).apply {
+            text = L10n.t("🌐 [무료 API 키 1분 발급받기 - Google AI Studio]", "🌐 [Get free API Key - Google AI Studio]")
+            setPtSize(7.6f)
+            setTextColor(0xFF2563EB.toInt())
+            setPadding(0, dp(6), 0, dp(12))
+            isClickable = true
+            setOnClickListener {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://aistudio.google.com/app/apikey"))
+                    activity.startActivity(intent)
+                } catch (_: Throwable) {}
+            }
+        }
+        root.addView(linkTv)
+
+        lateinit var dlg: AlertDialog
+        val saveBtn = activity.pillButton(
+            L10n.t("🔑 저장하고 바로 토론 시작", "🔑 Save & Start Chat"),
+            Color.WHITE,
+            0xFF4338CA.toInt(),
+            0xFF4338CA.toInt()
+        ) {
+            val key = input.text.toString().trim()
+            if (key.isBlank()) {
+                Toast.makeText(activity, L10n.t("API 키를 입력해주세요", "Please enter API Key"), Toast.LENGTH_SHORT).show()
+            } else {
+                prefs.geminiApiKey = key
+                dlg.dismiss()
+                onKeySaved(key)
+            }
+        }.apply {
+            setPtSize(8.2f)
+            typeface = ReaderTheme.uiFontBold
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+        }
+        root.addView(saveBtn, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
+
+        dlg = AlertDialog.Builder(activity)
+            .setView(root)
+            .create()
+        dlg.showWithOptimalWidth(activity)
     }
 
     private suspend fun callGeminiRestApi(

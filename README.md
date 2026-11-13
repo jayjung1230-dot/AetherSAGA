@@ -11,15 +11,15 @@
 
 <p align="center">
   <a href="./README_ko.md">🇰🇷 한국어 설명서 (Korean)</a> •
-  <a href="./RELEASE_NOTES.md">Release Notes (v2.5.1)</a> •
+  <a href="./RELEASE_NOTES.md">Release Notes (v2.6)</a> •
   <a href="./ARCHITECTURE.md">Architecture Spec</a> •
   <a href="./FUNCTION.md">Functional Spec</a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.5.1-blue.svg" alt="Version 2.5.1" />
+  <img src="https://img.shields.io/badge/version-2.6-blue.svg" alt="Version 2.6" />
   <img src="https://img.shields.io/badge/platform-Android%208.0%2B%20(API%2026%2B)-green.svg" alt="Platform" />
-  <img src="https://img.shields.io/badge/APK%20Size-~1.9%20MB%20(with%2021--Diagram%20Guide)-success.svg" alt="APK Size" />
+  <img src="https://img.shields.io/badge/APK%20Size-~2.2%20MB%20(with%2021--Diagram%20Guide)-success.svg" alt="APK Size" />
   <img src="https://img.shields.io/badge/Dependencies-Zero%20Heavy%20Libs-orange.svg" alt="Dependencies" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-lightgrey.svg" alt="License" />
 </p>
@@ -51,7 +51,7 @@ Aether SAGA automatically detects display panel physics (reflective e-paper vs. 
 | **Anti-Ghosting & Refresh** | **1–30 Page Full-Screen Refresh Cycle** setting exposed + hardware key forced refresh | Refresh menu automatically hidden for zero-ghosting 60–120Hz LCD/OLED panels |
 | **Typography Enhancement** | **10-Step Edge Stroke Booster & `ALPHA_8` Buffer** (razor-sharp ink outlines on e-paper) | **Subpixel Anti-Aliasing & OpenType Variable Weight** (smooth glyph rendering on high-DPI color screens) |
 | **UI Borders & Scrollbars** | **2px High-Contrast Charcoal Outlines**, dotted dividers, persistent **7dp `EinkScrollBarView`** | Soft backdrop dim (`0.35f`), card elevation shadows, rounded bottom sheets & slim scrollbars |
-| **Gemini AI Assistant (Beta)** | **Automatically Hidden on E-Ink** to preserve offline immersion and ultra-low battery consumption | **Dedicated Support**: 3-genre auto-detection (Literature, Tech Tutor, History), **in-app 1:1 multi-turn chat popup**, and Settings On/Off toggle |
+| **Gemini AI Reading Assistant** | **Completely Deactivated on E-Ink** (Zero resource/battery waste, 0% screen flicker, renders pure classic typography cards in 0.05s) | **Dedicated In-App REST API Pipeline**: Direct in-app Gemini 1.5 Flash communication, 1-step API key prompt, Hourglass (⏳) status dialog, and 1-click 1080p SNS discussion cards |
 | **Smart TTS Read-Aloud** | **Bluetooth/Headset Safety Gate** (prevents accidental speaker noise) + 3-step offline pitch (`0.8x/1.0x/1.2x`) | **Immediate Speaker/Earphone Playback** + **Voice Studio** (multi-speaker dialogue/narrator split & persona presets) |
 | **SNS Card Sharing Channels** | **Gallery Save, KakaoTalk, Instagram, Threads, X, Facebook** (hides cellular SMS on Wi-Fi-only readers) | **Gallery Save, KakaoTalk, Instagram (1:1 Feed / 9:16 Story), Threads, X, Facebook, and SMS** |
 | **Sync Notification UI** | Flicker-free **Instant High-Contrast Modal Dialog** for remote reading position jumps | Smooth top-down **Floating Snackbar Banner** (8-second auto-dismiss with 1-click jump action) |
@@ -60,7 +60,24 @@ Aether SAGA automatically detects display panel physics (reflective e-paper vs. 
 
 ## 🌟 Highlighted Special Features
 
-### 📱 0. Foldable (Galaxy Z Fold / Ultra / Z Flip) Live Responsive Engine & 21-Diagram Official User Guide (Ver. 2.5)
+### 🤖 0. E-Ink AI Complete Deactivation & LCD/OLED In-App Gemini 1.5 Flash REST API Integration (Ver. 2.6)
+* **Complete AI Deactivation on E-Ink Hardware**:
+  * On E-Ink e-readers, all Gemini AI menus, buttons, and drawer categories are completely hidden to eliminate battery drain, unnecessary screen flash, and awkward browser redirect kicks.
+  * Memo and reflection card sharing instantly generates 100% classic high-contrast monochrome typography cards in 0.05 seconds with zero network calls and zero delay.
+* **Direct In-App Gemini 1.5 Flash REST API Client (`GeminiApiClient.kt`)**:
+  * On LCD/OLED devices, communicate directly with Google's Gemini 1.5 Flash endpoint via pure HTTPS REST without requiring external browsers or apps.
+  * In-app 1-step API key registration dialog (`showApiKeyInputDialog`) for instant activation.
+  * In-memory LRU cache (30 recent queries) for instant 0ms responses on repeated prompts.
+* **Hourglass (⏳) Activity Status Indicator**:
+  * Displays a dedicated loading dialog with an hourglass icon while Gemini synthesizes philosophical insights: *"⏳ Gemini AI is analyzing intellectual synergies... ✨"*.
+* **1-Click 1080p Social Discussion Card Synthesizer (`DiscussionCardSynthesizer.kt`)**:
+  * Transforms in-book dialogues and philosophical discussions into aesthetic 1080×1080 square cards for Instagram, Threads, and KakaoTalk with one tap.
+* **Cross-Book Serendipity Cards (`CrossBookSerendipityEngine.kt`)**:
+  * Generates intellectual synergy bridges between notes from past books and current reads, highlighted by an Indigo AI insight badge on LCD or a crisp keyword badge on E-Ink.
+* **Official User Guide EPUB Overhaul with Realistic Operational Visuals**:
+  * Fully updated user guide featuring authentic app screen mockups illustrating live dialogues, stats dashboards, reading rulers, and social cards.
+
+### 📱 1. Foldable (Galaxy Z Fold / Ultra / Z Flip) Live Responsive Engine (Ver. 2.5)
 * **Galaxy Z Fold (`2176×1812`), Fold Ultra (`2184×1968`) & Galaxy Z Flip (`2640×1080` Main & `748×720` / `512×260` Cover)**: Dedicated resolution profiles automatically adjust margins (`0.85x` compact on narrow cover/Flex Window screens, `1.1x` balanced on wide screens) and enable **2-Column (Dual-Page)** spread views on unfolded tablets.
 * **Seamless Fold↔Unfold Live Repagination**: Folding or unfolding your device preserves 100% of your exact character offset (`currentRawOffset`) while dynamically reflowing text, high-res inline EPUB images (up to `2800px`), and CBZ/ZIP comic viewports without restarting the activity.
 * **21-Diagram Bundled Official User Guide (`AetherSAGA_User_Guide.epub`)**: Every chapter and subsection (`<h2>`) of the built-in user guide includes a custom high-resolution infographic diagram (21 diagrams total + cover) explaining every feature visually.

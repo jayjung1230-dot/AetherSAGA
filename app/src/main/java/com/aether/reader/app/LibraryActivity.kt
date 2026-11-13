@@ -99,6 +99,7 @@ class LibraryActivity : Activity() {
 
     private val fileImporter by lazy { FileImportManager(this, app.db, app.covers) }
     private val backupManager by lazy { BackupRestoreManager(this, app.db, app.prefs) }
+    private var cachedShelfMap: Map<String, String> = emptyMap()
 
     // Active palette colors
     private var isDark = false
@@ -182,7 +183,7 @@ class LibraryActivity : Activity() {
         }
         val appTitle = TextView(this).apply {
             val brand = "Aether SAGA"
-            val verText = "  Ver. 2.5"
+            val verText = "  Ver. 2.6"
             val subText = "\njourneys through endless stories"
             val ssb = android.text.SpannableStringBuilder(brand).apply {
                 setSpan(android.text.style.StyleSpan(Typeface.BOLD), 0, brand.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -559,6 +560,7 @@ class LibraryActivity : Activity() {
         }
 
         val shelfMap = p.getAllBookShelves()
+        cachedShelfMap = shelfMap
         val rawList = allBooks.filter { b ->
             val bookShelf = shelfMap[b.path].orEmpty()
             val matchShelf = when (selShelf) {
@@ -2147,7 +2149,7 @@ class LibraryActivity : Activity() {
         }
         releaseCard.addView(guideBtn, LinearLayout.LayoutParams(-1, ViewGroup.LayoutParams.WRAP_CONTENT))
         releaseCard.addView(makeDivider())
-        val releaseBtn = pillButton(L10n.t("📋 릴리즈 노트 (Release Notes) • Ver. 2.5", "📋 Release Notes • Ver. 2.5"), inkCol, btnBg, btnBorder) {
+        val releaseBtn = pillButton(L10n.t("📋 릴리즈 노트 (Release Notes) • Ver. 2.6", "📋 Release Notes • Ver. 2.6"), inkCol, btnBg, btnBorder) {
             dlg.dismiss()
             showReleaseNotesDialog(onBack = { settingsMenu() })
         }
@@ -2173,13 +2175,13 @@ class LibraryActivity : Activity() {
         scroll.addView(box)
 
         val verBadge = TextView(this).apply {
-            text = "Aether SAGA  Ver. 2.5"
+            text = "Aether SAGA  Ver. 2.6"
             setPtSize(10.5f)
             setTextColor(inkCol)
             typeface = Typeface.create("serif", Typeface.BOLD)
         }
         val releaseDate = TextView(this).apply {
-            text = L10n.t("정식 릴리즈 • 2026. 11. 12", "Official Release • Nov 12, 2026")
+            text = L10n.t("정식 릴리즈 • 2026. 11. 13", "Official Release • Nov 13, 2026")
             setPtSize(7.5f)
             setTextColor(mutedCol)
             setPadding(0, dp(1), 0, dp(8))
@@ -2216,6 +2218,14 @@ class LibraryActivity : Activity() {
         }
 
         if (L10n.isKorean) {
+            addSection("🚀 Ver. 2.6 e-ink AI 완전 비활성화, LCD/OLED 인앱 Gemini 원스톱 연동 & SNS 카드 발행", listOf(
+                "e-ink 단말기 AI 기능 완전 비활성화: e-ink 기기에서는 리소스 낭비와 불필요한 점멸을 방지하기 위해 Gemini AI 메뉴를 완전히 은닉하고 100% 클래식 고대비 타이포그래피 모드로 즉각 동작",
+                "LCD/OLED 인앱 Gemini 1.5 Flash REST API 직통 연동: 외부 브라우저나 외부 앱 이동 없이 앱 내부에서 직접 Gemini API와 통신하여 1:1 토론 및 심층 사유 제공",
+                "모래시계(⏳) 작업 상태 인디케이터: AI 분석 및 사유 생성 중 '⏳ Gemini AI가 사유를 나누고 있습니다... ✨' 모래시계 다이얼로그로 명확한 동작 인지 지원",
+                "1클릭 고해상도(1080p) SNS 토론 카드 합성: AI와 나눈 토론 결과를 미학적 정사각형 카드로 즉시 변환하여 인스타그램, 스레드, 카카오톡 등으로 1클릭 전송",
+                "과거 읽은 책과의 대화(Serendipity Card) 고도화: 두 도서 간의 지적 연결 고리를 AI 통찰 배지와 함께 1:1 미학 카드로 합성",
+                "공식 사용 설명서(EPUB) 전면 개정: 실제 앱 동작을 생생하게 보여주는 고해상도 UI 일러스트 다이어그램 전면 탑재"
+            ))
             addSection("🚀 Ver. 2.5 폴더블·플립 반응형 조판, E-Ink vs LCD 이원화 비교표 & 21종 일러스트 가이드", listOf(
                 "공식 사용 설명서 전 항목 21종 일러스트 다이어그램 탑재: 모든 장·항목마다 직관적인 인포그래픽 도표(총 21장)를 수록하고, E-Ink 단말기와 LCD/OLED 기기의 10대 기능 구분 상세 비교표를 추가",
                 "갤럭시 Z 폴드 / 폴드 울트라 / Z 플립 완벽 대응: 메인 펼침 화면(폴드 2176×1812, 울트라 2184×1968, 플립 2640×1080) 및 플립 커버 플렉스 윈도우(748×720 / 512×260) 해상도 전용 프로파일 탑재",
@@ -2291,6 +2301,14 @@ class LibraryActivity : Activity() {
                 "WebDAV 원격 독서 위치 동기화 및 설정 JSON 백업/복원"
             ))
         } else {
+            addSection("🚀 Ver. 2.6 E-Ink AI Deactivation, In-App Gemini REST API & Instant SNS Card Dispatch", listOf(
+                "Complete AI Deactivation on E-Ink: Completely hides Gemini AI menus on e-ink devices to prevent battery/resource drain and flicker, instantly rendering pure classic high-contrast typography cards.",
+                "In-App Gemini 1.5 Flash REST API Integration: Direct in-app communication with Gemini API without opening external browsers or apps.",
+                "Hourglass (⏳) Activity Status Indicator: Displays a clear hourglass loading dialog during AI analysis and synthesis.",
+                "1-Click 1080p Social Discussion Card Synthesizer: Instantly synthesizes dialogues into aesthetic 1080x1080 cards for Instagram, Threads, and KakaoTalk.",
+                "Cross-Book Serendipity Cards: Deep intellectual synergy bridges between contrasting books in your personal library.",
+                "Official User Guide (EPUB) Overhaul: Enriched with realistic app operation UI visual mockups."
+            ))
             addSection("🚀 Ver. 2.5 Foldable/Flip Responsive Layout, E-Ink vs LCD Matrix & 21-Diagram Guide", listOf(
                 "21 High-Res Illustrated Diagrams Across All User Guide Sections: Every chapter & subsection now includes visual infographic diagrams plus a 10-point E-Ink vs. LCD/OLED Feature Comparison Matrix",
                 "Galaxy Z Fold / Fold Ultra / Z Flip Native Support: Dedicated display profiles for unfolded main screens (Fold 2176×1812, Ultra 2184×1968, Flip 2640×1080) and Flip Cover Flex Windows (748×720 / 512×260)",
@@ -2479,7 +2497,7 @@ class LibraryActivity : Activity() {
             val item = items[p]
             titleTv.text = item.title
             val pct = (item.progress * 100).toInt().coerceIn(0, 100)
-            val itemShelf = app.prefs.getBookShelf(item.path)
+            val itemShelf = cachedShelfMap[item.path].orEmpty()
             val baseAuthor = if (item.author.isNotBlank()) item.author else item.format
             authorTv.text = if (itemShelf.isNotBlank() && app.prefs.selectedShelf.isBlank()) {
                 "$baseAuthor  •  📁 $itemShelf"
@@ -2965,10 +2983,26 @@ class LibraryActivity : Activity() {
                         allBooks.find { it.path == selectedFilterPath || "file://${it.path}" == selectedFilterPath }?.author ?: ""
                     } else L10n.t("통합 독서 보관함", "Unified Highlights Archive")
                     showEmailHighlightsZipDialog(app, bTitle, bAuthor, currentItems, onBack = { showMainHighlightsDialog() })
+                }.apply {
+                    setPtSize(7.8f)
+                    setPadding(dp(6), dp(6), dp(6), dp(6))
                 }
 
-                toolBar.addView(filterBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.2f).apply { rightMargin = dp(6) })
-                toolBar.addView(zipBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+                val mindMapBtn = pillButton(L10n.t("🧠 뇌 지도", "🧠 Mind Map"), Color.WHITE, 0xFF7C3AED.toInt(), 0xFF7C3AED.toInt(), strokePx) {
+                    com.aether.reader.features.memo.AdvancedMemoShareDialogs.shareKnowledgeGraphCard(
+                        activity = this@LibraryActivity,
+                        app = app,
+                        isLcd = isLcd,
+                        onBack = { showMainHighlightsDialog() }
+                    )
+                }.apply {
+                    setPtSize(7.8f)
+                    setPadding(dp(6), dp(6), dp(6), dp(6))
+                }
+
+                toolBar.addView(filterBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f).apply { rightMargin = dp(4) })
+                toolBar.addView(zipBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(4) })
+                toolBar.addView(mindMapBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.95f))
                 outer.addView(toolBar)
 
                 val scroll = ScrollView(this@LibraryActivity).apply {

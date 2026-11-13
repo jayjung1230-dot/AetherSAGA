@@ -802,34 +802,62 @@ fun Activity.showReadingNotesShareDialog(
     val sendBg = if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.ACCENT_CHARCOAL
     val sendStroke = if (isLcd) ReaderTheme.ACCENT_PRIMARY_BLUE else ReaderTheme.EINK_INK
     val sendBtn = pillButton(
-        L10n.t("📨 이메일 전송하기", "📨 Send Email"),
+        L10n.t("📨 이메일 전송", "📨 Send Email"),
         Color.WHITE,
         sendBg,
         sendStroke
     ) {
         executeSend()
     }.apply {
-        setPtSize(8.8f)
+        setPtSize(8.0f)
         typeface = ReaderTheme.uiFontBold
-        setPadding(dp(10), dp(10), dp(10), dp(10))
+        setPadding(dp(6), dp(9), dp(6), dp(9))
     }
     val snsBg = if (isLcd) ReaderTheme.ACCENT_CHARCOAL else Color.WHITE
     val snsFg = if (isLcd) Color.WHITE else ReaderTheme.EINK_INK
     val snsStroke = if (isLcd) ReaderTheme.ACCENT_CHARCOAL else ReaderTheme.EINK_INK
     val snsBtn = pillButton(
-        L10n.t("📱 SNS 독서카드 공유", "📱 Share to SNS"),
+        L10n.t("📱 발췌문 카드", "📱 Quote Cards"),
         snsFg,
         snsBg,
         snsStroke
     ) {
         executeSns()
     }.apply {
-        setPtSize(8.8f)
+        setPtSize(8.0f)
         typeface = ReaderTheme.uiFontBold
-        setPadding(dp(10), dp(10), dp(10), dp(10))
+        setPadding(dp(6), dp(9), dp(6), dp(9))
     }
-    actionBtnRow.addView(sendBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.15f).apply { rightMargin = dp(6) })
-    actionBtnRow.addView(snsBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+
+    val specialBg = if (isLcd) 0xFF4338CA.toInt() else Color.WHITE
+    val specialFg = if (isLcd) Color.WHITE else ReaderTheme.EINK_INK
+    val specialStroke = if (isLcd) 0xFF4338CA.toInt() else ReaderTheme.EINK_INK
+    val specialBtn = pillButton(
+        L10n.t("✨ 스페셜 카드", "✨ Special Cards"),
+        specialFg,
+        specialBg,
+        specialStroke
+    ) {
+        dlg.dismiss()
+        com.aether.reader.features.memo.AdvancedMemoShareDialogs.showAdvancedMemoMenu(
+            activity = this,
+            app = app,
+            currentBook = book,
+            currentHighlights = highlights,
+            isLcd = isLcd,
+            onBack = {
+                showReadingNotesShareDialog(app, book, highlights, totalChapters, rawCoverBytes, isLcd, initialQuote, onBack)
+            }
+        )
+    }.apply {
+        setPtSize(8.0f)
+        typeface = ReaderTheme.uiFontBold
+        setPadding(dp(6), dp(9), dp(6), dp(9))
+    }
+
+    actionBtnRow.addView(sendBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(4) })
+    actionBtnRow.addView(snsBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.05f).apply { rightMargin = dp(4) })
+    actionBtnRow.addView(specialBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.1f))
 
     // Divider separating scrollable reading content from pinned bottom action buttons
     val actionDivider = View(this).apply {

@@ -845,6 +845,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 updateProgressDisplay()
                 updateBookmarkIndicator()
                 val loc = engine.currentLocation()
+                checkPeriodicAutoSave(loc)
                 if (highlights.any { it.chapter == loc.chapterIndex && it.kind == 0 } || book?.format == "PDF" || path.endsWith(".pdf", true)) {
                     if (::strategy.isInitialized && strategy.kind != DisplayKind.LCD_OLED) {
                         view.postDelayed({ doFlash(if (strategy.kind == DisplayKind.COLOR_EINK) RefreshMode.FULL_GC16 else RefreshMode.FULL_INVERT) }, 50)
@@ -1053,7 +1054,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         }
         container.addView(sep2, LinearLayout.LayoutParams(dp(1), dp(16)))
 
-        if (app.prefs.geminiAiEnabled) {
+        if (isLcd && app.prefs.geminiAiEnabled) {
             val isDark = isLcd && (app.prefs.readingTheme == "DARK" || app.prefs.readingTheme == "OLED_BLACK")
             val geminiBtn = TextView(this).apply {
                 text = L10n.t("✨ Gemini", "✨ Gemini")
@@ -1221,7 +1222,8 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         menuItems += optDotted
         menuItems += optBg
         menuItems += optNote
-        if (app.prefs.geminiAiEnabled) {
+        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        if (isLcd && app.prefs.geminiAiEnabled) {
             menuItems += optGemini
         }
         menuItems += optCopy
@@ -2284,22 +2286,24 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             L10n.t("⚡ 독서 보조 도구", "⚡ Reading Tools") to { showAdvancedFeaturesMenu(onBack = { showFullMenu() }) }
         ))
 
-        val geminiToggleLabel = if (app.prefs.geminiAiEnabled) L10n.t("✨ Gemini AI (Beta): ON", "✨ Gemini AI (Beta): ON")
-                                else L10n.t("✨ Gemini AI (Beta): OFF", "✨ Gemini AI (Beta): OFF")
-        addCategoryGrid(L10n.t("✨ Gemini AI 독서 어시스턴트 (Beta)", "✨ Gemini AI Assistant (Beta)"), listOf(
-            geminiToggleLabel to {
-                app.prefs.geminiAiEnabled = !app.prefs.geminiAiEnabled
-                toast(if (app.prefs.geminiAiEnabled) L10n.t("✨ Gemini AI (Beta) 어시스턴트가 켜졌습니다.", "✨ Gemini AI (Beta) enabled.") else L10n.t("Gemini AI (Beta) 어시스턴트가 꺼졌습니다.", "Gemini AI (Beta) disabled."))
-                showFullMenu()
-            },
-            L10n.t("🔑 Gemini API Key 설정", "🔑 Set Gemini API Key") to {
-                inputDialog(L10n.t("Google Gemini API Key 입력 (Beta)", "Enter Gemini API Key (Beta)"), initial = app.prefs.geminiApiKey) { newKey ->
-                    app.prefs.geminiApiKey = newKey.trim()
-                    toast(if (app.prefs.geminiApiKey.isNotBlank()) L10n.t("Gemini API Key가 저장되었습니다. (인앱 대화 활성화)", "Gemini API Key saved. (In-App Chat Active)") else L10n.t("API Key가 비워졌습니다. (외부 앱 모드)", "API Key cleared. (External App Mode)"))
+        if (isLcd) {
+            val geminiToggleLabel = if (app.prefs.geminiAiEnabled) L10n.t("✨ Gemini AI: ON", "✨ Gemini AI: ON")
+                                    else L10n.t("✨ Gemini AI: OFF", "✨ Gemini AI: OFF")
+            addCategoryGrid(L10n.t("✨ Gemini AI 독서 어시스턴트", "✨ Gemini AI Assistant"), listOf(
+                geminiToggleLabel to {
+                    app.prefs.geminiAiEnabled = !app.prefs.geminiAiEnabled
+                    toast(if (app.prefs.geminiAiEnabled) L10n.t("✨ Gemini AI 어시스턴트가 켜졌습니다.", "✨ Gemini AI enabled.") else L10n.t("Gemini AI 어시스턴트가 꺼졌습니다.", "Gemini AI disabled."))
                     showFullMenu()
+                },
+                L10n.t("🔑 Gemini API Key 설정", "🔑 Set Gemini API Key") to {
+                    inputDialog(L10n.t("Google Gemini API Key 입력", "Enter Gemini API Key"), initial = app.prefs.geminiApiKey) { newKey ->
+                        app.prefs.geminiApiKey = newKey.trim()
+                        toast(if (app.prefs.geminiApiKey.isNotBlank()) L10n.t("Gemini API Key가 저장되었습니다. (인앱 대화 활성화)", "Gemini API Key saved. (In-App Active)") else L10n.t("API Key가 비워졌습니다.", "API Key cleared."))
+                        showFullMenu()
+                    }
                 }
-            }
-        ))
+            ))
+        }
 
         addCategoryGrid(L10n.t("기기 입력 및 클라우드", "Input & Cloud"), listOf(
             L10n.t("⌨ 물리 버튼 매핑", "⌨ Key Mapping") to { remapKeys(onBack = { showFullMenu() }) },
@@ -4262,6 +4266,27 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         }
     }
 
+    private var lastCheckpointTime = 0L
+    private var pagesSinceCheckpoint = 0
+    private var lastCheckpointChapter = -1
+
+    /**
+     * Periodic & event-driven background checkpoint saving.
+     * Prevents progress loss in case of battery outage, abrupt OS process death,
+     * or prolonged continuous reading sessions without closing the book.
+     */
+    private fun checkPeriodicAutoSave(loc: BookLocation) {
+        pagesSinceCheckpoint++
+        val now = System.currentTimeMillis()
+        val chapterChanged = (lastCheckpointChapter >= 0 && loc.chapterIndex != lastCheckpointChapter)
+        if (pagesSinceCheckpoint >= 10 || (now - lastCheckpointTime >= 45_000L && pagesSinceCheckpoint >= 1) || chapterChanged) {
+            lastCheckpointTime = now
+            pagesSinceCheckpoint = 0
+            lastCheckpointChapter = loc.chapterIndex
+            saveProgress()
+        }
+    }
+
     private fun saveProgress() {
         if (!opened) return
         val loc = engine.currentLocation()
@@ -4320,6 +4345,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         super.onPause()
         orientationMgr.stop()
         saveProgress()
+        app.flushReadingStatsImmediate()
         pauseTts()
         applyTtsKeepScreenOn(false)
     }
@@ -4432,53 +4458,56 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         langCard.addView(langRow)
         box.addView(langCard)
 
-        // Gemini AI Reading Assistant Section
-        box.addView(sectionHeader(L10n.t("✨ Gemini AI 독서 어시스턴트 (Beta)", "✨ Gemini AI Reading Assistant (Beta)")))
-        val geminiCard = settingsCardContainer()
-        addToggleRow(
-            geminiCard,
-            L10n.t("Gemini AI 독서 도우미 (Beta) 켜기", "Enable Gemini AI Assistant (Beta)"),
-            L10n.t("문장 탭 및 텍스트 선택 시 AI 심층 해석 & 1:1 토론 메뉴 활성화", "Enable AI in-depth analysis & 1:1 discussion on text selection"),
-            false,
-            { p.geminiAiEnabled }
-        ) {
-            p.geminiAiEnabled = !p.geminiAiEnabled
-            toast(if (p.geminiAiEnabled) L10n.t("Gemini AI 독서 도우미가 켜졌습니다", "Gemini AI Assistant enabled") else L10n.t("Gemini AI 독서 도우미가 꺼졌습니다", "Gemini AI Assistant disabled"))
-        }
-
-        val apiKeyRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(5), 0, dp(5))
-        }
-        val apiCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val apiTitleTv = TextView(this).apply {
-            text = L10n.t("🔑 Gemini API Key (Beta 인앱 1:1 실시간 대화)", "🔑 Gemini API Key (Beta In-App Chat)")
-            setPtSize(9f)
-            setTextColor(ReaderTheme.EINK_INK)
-            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
-        }
-        val keyStatus = if (p.geminiApiKey.isNotBlank()) L10n.t("✅ 등록됨 (인앱 1:1 실시간 대화 모드)", "✅ Configured (In-App Chat Mode)") else L10n.t("ℹ️ 미등록 (외부 앱 자동 연결 모드 동작)", "ℹ️ Not set (External App Mode)")
-        val apiDescTv = TextView(this).apply {
-            text = keyStatus
-            setPtSize(7.5f)
-            setTextColor(if (p.geminiApiKey.isNotBlank()) 0xFF16A34A.toInt() else ReaderTheme.EINK_MUTED)
-        }
-        apiCol.addView(apiTitleTv)
-        apiCol.addView(apiDescTv)
-
-        val setKeyBtn = pillButton(L10n.t("키 설정", "Set Key"), ReaderTheme.EINK_INK, ReaderTheme.EINK_CARD_BG, ReaderTheme.EINK_BORDER) {
-            dlg.dismiss()
-            inputDialog(L10n.t("Google Gemini API Key 입력", "Enter Gemini API Key"), initial = p.geminiApiKey) { newKey ->
-                p.geminiApiKey = newKey.trim()
-                toast(if (p.geminiApiKey.isNotBlank()) L10n.t("Gemini API Key가 저장되었습니다. (인앱 대화 활성화)", "Gemini API Key saved. (In-App Chat Active)") else L10n.t("API Key가 비워졌습니다. (외부 앱 모드)", "API Key cleared. (External App Mode)"))
-                showAdvancedFeaturesMenu(onBack)
+        // Gemini AI Reading Assistant Section (Only available on LCD/OLED devices)
+        val isLcd = if (::strategy.isInitialized) strategy.kind == DisplayKind.LCD_OLED else false
+        if (isLcd) {
+            box.addView(sectionHeader(L10n.t("✨ Gemini AI 독서 어시스턴트", "✨ Gemini AI Reading Assistant")))
+            val geminiCard = settingsCardContainer()
+            addToggleRow(
+                geminiCard,
+                L10n.t("Gemini AI 독서 도우미 켜기", "Enable Gemini AI Assistant"),
+                L10n.t("문장 탭 및 텍스트 선택 시 AI 심층 해석 & 1:1 토론 메뉴 활성화", "Enable AI in-depth analysis & 1:1 discussion on text selection"),
+                false,
+                { p.geminiAiEnabled }
+            ) {
+                p.geminiAiEnabled = !p.geminiAiEnabled
+                toast(if (p.geminiAiEnabled) L10n.t("Gemini AI 독서 도우미가 켜졌습니다", "Gemini AI Assistant enabled") else L10n.t("Gemini AI 독서 도우미가 꺼졌습니다", "Gemini AI Assistant disabled"))
             }
+
+            val apiKeyRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(5), 0, dp(5))
+            }
+            val apiCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            val apiTitleTv = TextView(this).apply {
+                text = L10n.t("🔑 Gemini API Key (인앱 1:1 실시간 대화)", "🔑 Gemini API Key (In-App Chat)")
+                setPtSize(9f)
+                setTextColor(ReaderTheme.EINK_INK)
+                typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            }
+            val keyStatus = if (p.geminiApiKey.isNotBlank()) L10n.t("✅ 등록됨 (인앱 1:1 실시간 대화 모드)", "✅ Configured (In-App Chat Mode)") else L10n.t("ℹ️ 미등록 (무료 API 키 등록 시 인앱 활성화)", "ℹ️ Not set (Register free API key to activate)")
+            val apiDescTv = TextView(this).apply {
+                text = keyStatus
+                setPtSize(7.5f)
+                setTextColor(if (p.geminiApiKey.isNotBlank()) 0xFF16A34A.toInt() else ReaderTheme.EINK_MUTED)
+            }
+            apiCol.addView(apiTitleTv)
+            apiCol.addView(apiDescTv)
+
+            val setKeyBtn = pillButton(L10n.t("키 설정", "Set Key"), ReaderTheme.EINK_INK, ReaderTheme.EINK_CARD_BG, ReaderTheme.EINK_BORDER) {
+                dlg.dismiss()
+                inputDialog(L10n.t("Google Gemini API Key 입력", "Enter Gemini API Key"), initial = p.geminiApiKey) { newKey ->
+                    p.geminiApiKey = newKey.trim()
+                    toast(if (p.geminiApiKey.isNotBlank()) L10n.t("Gemini API Key가 저장되었습니다. (인앱 대화 활성화)", "Gemini API Key saved. (In-App Chat Active)") else L10n.t("API Key가 비워졌습니다.", "API Key cleared."))
+                    showAdvancedFeaturesMenu(onBack)
+                }
+            }
+            apiKeyRow.addView(apiCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            apiKeyRow.addView(setKeyBtn)
+            geminiCard.addView(apiKeyRow)
+            box.addView(geminiCard)
         }
-        apiKeyRow.addView(apiCol, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        apiKeyRow.addView(setKeyBtn)
-        geminiCard.addView(apiKeyRow)
-        box.addView(geminiCard)
 
         box.addView(sectionHeader(L10n.t("시선 집중 및 가독성 보조", "Focus & Readability Tools")))
         val focusCard = settingsCardContainer()
@@ -4539,7 +4568,6 @@ class ReaderActivity : Activity(), ReaderView.Listener {
             setTextColor(ReaderTheme.EINK_INK)
             setPadding(dp(8), 0, dp(8), 0)
         }
-        val isLcd = strategy.kind == DisplayKind.LCD_OLED
         val btnStrokePx = if (isLcd) dp(1) else dp(2)
         val autoMinusBtn = pillButton(
             L10n.t("-5초", "-5s"),
@@ -4784,6 +4812,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         applyTtsKeepScreenOn(false)
         stopAutoPageTurn()
         handler.removeCallbacksAndMessages(null)
+        app.flushReadingStatsImmediate()
         tts.shutdown()
         scope.cancel()
         engine.close()

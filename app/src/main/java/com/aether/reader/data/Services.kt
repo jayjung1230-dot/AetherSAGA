@@ -1988,7 +1988,65 @@ object AndroidShareHelper {
         return BitmapDrawable(context.resources, bmp)
     }
 
-    private fun showSnsTargetPicker(
+    fun dispatchCustomCardSns(
+        activity: Activity,
+        target: SnsTarget,
+        cardBitmap: Bitmap,
+        shareText: String,
+        isStory: Boolean = false,
+        filePrefix: String = "AetherSAGA_Card"
+    ) {
+        if (target == SnsTarget.SAVE_IMAGE) {
+            val ok = saveCardToGallery(activity, cardBitmap, filePrefix)
+            if (ok) {
+                Toast.makeText(activity, L10n.t("카드가 갤러리(Pictures/AetherSAGA)에 저장되었습니다. 💾", "Card saved to Gallery (Pictures/AetherSAGA). 💾"), Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(activity, L10n.t("이미지 저장에 실패했습니다.", "Failed to save image."), Toast.LENGTH_SHORT).show()
+            }
+            cardBitmap.recycle()
+            return
+        }
+
+        if (target == SnsTarget.SMS) {
+            val cardUri = prepareSnsCardUri(activity, cardBitmap, "${filePrefix}.png")
+            dispatchSmsIntent(activity, shareText, cardUri)
+            cardBitmap.recycle()
+            return
+        }
+
+        if (!target.isInstalled(activity)) {
+            showSnsAppNotInstalledDialog(activity, target)
+            cardBitmap.recycle()
+            return
+        }
+
+        if (target == SnsTarget.INSTAGRAM && isStory) {
+            val cardUri = prepareSnsCardUri(activity, cardBitmap, "${filePrefix}_Story.png")
+            if (cardUri != null) {
+                dispatchInstagramStoryIntent(activity, cardUri)
+            }
+            cardBitmap.recycle()
+            return
+        }
+
+        val cardUri = prepareSnsCardUri(activity, cardBitmap, "${filePrefix}.png")
+        if (cardUri != null) {
+            dispatchSnsIntent(activity, target, shareText, cardUri)
+        }
+        cardBitmap.recycle()
+    }
+
+    fun dispatchSnsTarget(
+        activity: Activity,
+        target: SnsTarget,
+        cardBitmap: Bitmap,
+        textToShare: String,
+        isStory: Boolean = false
+    ) {
+        dispatchCustomCardSns(activity, target, cardBitmap, textToShare, isStory)
+    }
+
+    fun showSnsTargetPicker(
         activity: Activity,
         dialogTitle: String,
         subtitle: String,

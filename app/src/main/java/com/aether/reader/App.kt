@@ -9,7 +9,9 @@ import com.aether.reader.platform.HardwareProfileManager
 import com.aether.reader.platform.display.DisplayProfileManagerImpl
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -121,6 +123,13 @@ class App : Application() {
         }
     }
 
+    @Volatile private var pendingStatsJob: Job? = null
+
+    /**
+     * Records reading page & time deltas in memory immediately,
+     * and batches/debounces SQLite database disk writes by 4 seconds
+     * to eliminate storage write contention during fast page flipping.
+     */
     fun recordReadingSession(pagesDelta: Int, msDelta: Long) {
         prefs.recordReading(pagesDelta, msDelta)
         val today = prefs.statsDate.ifBlank {
@@ -128,6 +137,31 @@ class App : Application() {
         }
         val p = prefs.todayPages
         val m = prefs.todayMinutes
+
+        synchronized(this) {
+            pendingStatsJob?.cancel()
+            pendingStatsJob = appScope.launch {
+                delay(4000L)
+                runCatching {
+                    db.stats().upsert(DailyReadingStatsEntity(today, m, p))
+                }
+            }
+        }
+    }
+
+    /**
+     * Instantly flushes any buffered in-memory reading stats to SQLite on lifecycle pause/destroy.
+     */
+    fun flushReadingStatsImmediate() {
+        val today = prefs.statsDate.ifBlank {
+            java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+        }
+        val p = prefs.todayPages
+        val m = prefs.todayMinutes
+        synchronized(this) {
+            pendingStatsJob?.cancel()
+            pendingStatsJob = null
+        }
         appScope.launch {
             runCatching {
                 db.stats().upsert(DailyReadingStatsEntity(today, m, p))

@@ -1,5 +1,84 @@
 # Aether SAGA – Release Notes
 
+## [Ver. 2.6] - 2026-11-13
+*E-Ink Hardware AI Complete Deactivation, LCD/OLED In-App Gemini 1.5 Flash REST API Integration, Hourglass (⏳) Activity Indicator, 1-Click 1080p Social Discussion Card Synthesizer & Overhauled User Guide with Realistic Operational Visuals*
+
+---
+
+### 🌟 Ver. 2.6 개요 (Overview)
+**Aether SAGA Ver. 2.6**은 전자종이(E-Ink) 기기와 일반 화면(LCD/OLED) 기기 간의 하드웨어 특성을 반영하여 AI 기능을 완벽히 분기하고, 인앱 Gemini 1.5 Flash REST API 직통 파이프라인과 1클릭 SNS 카드 발행 체계를 완성한 메이저 릴리즈입니다.
+
+1. **전자종이(E-Ink) 단말기 AI 기능 완전 비활성화 (Complete AI Deactivation on E-Ink)**:
+   - E-Ink 단말기 특성상 배터리 보호, 오프라인 독서 집중, 불필요한 화면 점멸 및 외부 브라우저 튕김 현상을 원천 방지하기 위해 **모든 Gemini AI 메뉴를 완전히 은닉/비활성화**했습니다.
+   - 뷰어 텍스트 선택 팝업, 하이라이트 액션 메뉴, 전체 리더 설정 및 환경설정에서 Gemini 항목이 노출되지 않으며, 독서 카드 공유 시에도 0.05초 내에 순수 흑백 고대비 클래식 타이포그래피 카드로 즉각 렌더링됩니다.
+2. **LCD/OLED 기기 전용 인앱 Gemini 1.5 Flash REST API 직통 파이프라인 (`GeminiApiClient.kt`)**:
+   - 외부 브라우저나 외부 Gemini 앱으로의 전환 없이, 앱 내부에서 Google Gemini 1.5 Flash 엔드포인트와 HTTPS REST로 직접 통신하여 1:1 토론과 심층 사유를 즉시 진행합니다.
+   - 1회성 간편 API 키 등록 팝업을 통해 키가 없을 경우에도 즉시 등록하고 대화를 이어갈 수 있으며, 인메모리 LRU 캐시(30건)를 적용하여 중복 쿼리를 방지하고 속도를 극대화했습니다.
+3. **모래시계(⏳) 작업 상태 인디케이터 (`showHourglassLoadingDialog`)**:
+   - AI 분석 및 사유 생성 중 사용자가 작업 진행 상황을 명확히 인지할 수 있도록 모래시계 아이콘이 포함된 전용 로딩 인디케이터를 도입했습니다:
+     - *"⏳ Gemini AI가 사유를 나누고 있습니다... ✨"*
+     - *"⏳ Gemini AI가 두 도서의 지적 통찰을 분석하고 있습니다... ✨"*
+4. **1클릭 1080p 고해상도 SNS 토론 카드 합성 및 다이렉트 전송 (`DiscussionCardSynthesizer.kt`)**:
+   - 인앱 AI 토론 결과나 두 도서 간의 지적 연결을 **[✨ 토론 SNS 카드]** 버튼 클릭 한 번으로 고해상도(1080×1080) 정방형 미학 카드로 즉시 합성합니다.
+   - 인스타그램 피드, 스레드, 카카오톡, X(트위터), 갤러리 저장으로 원클릭 다이렉트 디스패치를 지원합니다.
+5. **도서 간 지적 연결 세렌디피티 카드 (Cross-Book Serendipity Card)**:
+   - 과거에 읽었던 책의 메모와 현재 읽는 책의 생각을 비교 분석하여 두 도서의 사유가 맞닿는 '지적 연결 통찰' 배지가 담긴 1:1 카드를 발행합니다. (E-Ink에서는 핵심 키워드 배지 클래식 카드로 즉시 렌더링)
+6. **공식 사용 설명서(EPUB) 전면 개정 (Realistic Operational Visuals)**:
+   - 사용 설명서의 삽화 다이어그램을 실제 앱 동작을 생생하게 보여주는 고해상도 UI 목업으로 전면 개편하여 설명서 열람 시 실제 앱 화면을 보듯 직관적으로 기능을 이해할 수 있도록 개선했습니다.
+7. **전 시스템 버전 표기 2.6 통일**:
+   - 앱 빌드 메타데이터(`versionCode = 260`, `versionName = "2.6"`), 서재 헤더 및 환경설정, 문서 전반의 버전을 일원화했습니다.
+
+---
+
+### 🚀 Ver. 2.6 주요 기능 및 변경 사항 (Key Features & Updates)
+
+#### 1. E-Ink 기기 AI 완전 비활성화 & 초고속 클래식 모드
+- **UI 및 메뉴 레벨 완전 차단 (`ReaderActivity.kt`, `GeminiDialogHelper.kt`)**:
+  - `DisplayKind.LCD_OLED`가 아닌 모든 전자종이 기기(`!isLcd`)에서 Gemini AI 어시스턴트 기능을 전면 비활성화.
+  - 뷰어 텍스트 선택 시 하이라이트 팝업 내 `[✨ Gemini]` 버튼 숨김 처리.
+  - 리더 전체 메뉴(Drawer Menu) 및 보조 도구 설정 메뉴에서 Gemini AI 카테고리 완전 은닉.
+  - 서재 환경설정 내 불필요한 AI 메뉴 은닉.
+- **0.05초 무지연 클래식 타이포그래피 카드 렌더링 (`AdvancedMemoShareDialogs.kt`)**:
+  - E-Ink 환경에서 도서 간 세렌디피티 카드나 독서 메모 공유 시 외부 네트워크 호출이나 AI 분석 단계를 건너뛰고, 순수 흑백 고대비 타이포그래피 카드를 0.05초 내에 즉각 생성.
+  - 화면 깜빡임, 배터리 소모, 대기 지연을 원천 제거.
+
+#### 2. LCD/OLED 인앱 Gemini 1.5 Flash REST API 클라이언트
+- **독립 모듈화 패키지 (`features/gemini/GeminiApiClient.kt`)**:
+  - 무거운 SDK나 외부 브라우저 호출 없이 순수 Java/Kotlin `HttpURLConnection` 기반 HTTPS JSON REST 통신 구현.
+  - 모델: `gemini-1.5-flash` (고속 인문학/독서 사유 최적화).
+  - 지능형 시스템 인스트럭션 탑재: 도서 장르별(문학·철학, 교과서·기술, 역사) 맞춤 맥락 파악 및 1~2문장 핵심 아포리즘 정제.
+  - 인메모리 LRU 캐시(최근 30건) 탑재: 동일 인용구/문맥에 대한 중복 분석 시 즉시 캐시 반환 (0ms).
+- **안전한 예외 처리 및 네트워크 폴백**:
+  - 타임아웃(12초 연결 / 20초 읽기) 및 HTTP 에러 시 앱 크래시 없이 안전한 지적 폴백 텍스트 반환.
+- **인앱 1단계 무료 API 키 등록 대화상자**:
+  - API 키가 설정되지 않은 경우, 화면을 벗어나지 않고 현재 팝업 위에서 바로 키를 입력할 수 있는 안내 다이얼로그(`showApiKeyInputDialog`) 제공.
+  - Google AI Studio 무료 발급 페이지 1분 바로가기 링크 탑재.
+
+#### 3. 모래시계(⏳) 작업 상태 인디케이터
+- **진행 상황 사용자 인지 보장 (`showHourglassLoadingDialog`)**:
+  - AI 분석 및 사유 생성 중 사용자가 동작 상태를 명확히 인지할 수 있도록 모래시계 아이콘이 포함된 전용 다이얼로그 표출.
+  - 고대비 라운드 박스와 직관적인 상태 메시지:
+    - *"⏳ Gemini AI가 사유를 나누고 있습니다... ✨"*
+    - *"⏳ Gemini AI가 두 도서의 지적 통찰을 분석하고 있습니다... ✨"*
+  - 분석 완료 즉시 부드럽게 닫히며 결과 화면 및 SNS 공유 선택 화면으로 매끄럽게 전환.
+
+#### 4. 인앱 토론 ➔ 1클릭 1080p 고해상도 SNS 토론 카드 합성
+- **토론 카드 전용 합성 엔진 (`features/gemini/DiscussionCardSynthesizer.kt`)**:
+  - 인앱 1:1 토론에서 도출된 핵심 질문과 AI의 철학적 통찰을 1080×1080 정방형 카드 이미지로 렌더링.
+  - 딥 미드나이트 옵시디언 배경, 인디고 악센트 바, 도서명/저자 메타데이터, 원문 인용구 블록, 인디고 통찰 배지, 해시태그(`#AetherSAGA #독서토론 #GeminiAI`) 자동 배치.
+  - `[✨ 토론 SNS 카드]` 버튼 원클릭으로 인스타그램, 스레드, 카카오톡, X, 갤러리 저장 즉시 디스패치.
+
+#### 5. 공식 사용 설명서(EPUB) 전면 개정 (Realistic Operational Visuals)
+- **실제 앱 동작 화면을 보여주는 고해상도 UI 일러스트 탑재**:
+  - `diag_gemini.png`: 실제 리더 뷰어 위의 인앱 1:1 대화 모달, 모래시계 로딩 인디케이터, 토론 SNS 카드 결과물, e-ink 기기 분기 원칙을 사실적으로 묘사.
+  - `diag_share_export.png`: 1:1 피드 카드, 과거 읽은 책과의 대화 카드, 9:16 인스타 스토리 카드의 실제 합성 레이아웃 표출.
+  - `diag_stats_dashboard.png`: 순수 Canvas 곡선 차트, 12일 연속 독서 스트릭, 도서별 진행률 바가 담긴 대시보드 팝업 동작 화면 수록.
+  - `diag_eink_vs_lcd.png`: E-Ink와 LCD/OLED 간의 AI 및 화면 모드 분기 비교표 갱신.
+- **설명서 번들링 최신화**:
+  - `app/src/main/assets/books/AetherSAGA_User_Guide.epub` 바이너리 전면 갱신 (1.54 MB).
+
+---
+
 ## [Ver. 2.5.1] - 2026-11-12
 *Currently Reading Books Stats Share, Complete Feature Modularization & Extreme Speed/Stability Optimizations*
 
