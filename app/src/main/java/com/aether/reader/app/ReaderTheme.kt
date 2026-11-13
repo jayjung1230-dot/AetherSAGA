@@ -11,14 +11,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 
-// Theme Palettes (Kindle Paperwhite Warm/Mono + Ridi Modern Clean Slate)
+// Theme Palettes (Warm Paper / Mono + Modern Clean Slate)
 object ReaderTheme {
-    const val EINK_PAPER = 0xFFFBFBF8.toInt()      // Carta 1300 warm paper off-white
+    const val EINK_PAPER = 0xFFFBFBF8.toInt()      // High-contrast E-Ink warm paper off-white
     const val EINK_INK = 0xFF111111.toInt()        // Deep ink black
     const val EINK_MUTED = 0xFF767676.toInt()      // Clean secondary text
     const val EINK_BORDER = 0xFFE0E0DC.toInt()     // Subtle paper divider
-    const val EINK_BORDER_CONTRAST = 0xFF666666.toInt() // High-contrast charcoal border (2px) for E-Ink Carta screens
-    const val EINK_DIVIDER_CONTRAST = 0xFF666666.toInt() // High-contrast charcoal divider for E-Ink Carta screens
+    const val EINK_BORDER_CONTRAST = 0xFF666666.toInt() // High-contrast charcoal border (2px) for E-Ink screens
+    const val EINK_DIVIDER_CONTRAST = 0xFF666666.toInt() // High-contrast charcoal divider for E-Ink screens
     const val EINK_CARD_BG = 0xFFF0EEE9.toInt()    // Warm soft gray surface for cards and menu groups
     const val EINK_CARD_BG_LIGHT = 0xFFF2F2EE.toInt() // Subtle light surface for book cards
 
@@ -36,8 +36,6 @@ object ReaderTheme {
 
     const val ACCENT_CHARCOAL = 0xFF2A2A2A.toInt()
     const val ACCENT_PRIMARY_BLUE = 0xFF1F8CE6.toInt() // Primary interactive blue accent
-    const val ACCENT_KINDLE = ACCENT_CHARCOAL
-    const val ACCENT_RIDI_BLUE = ACCENT_PRIMARY_BLUE
 
     const val CORNER_CARD_DP = 8
     const val CORNER_PILL_DP = 20
@@ -672,7 +670,7 @@ fun Context.toggleSwitch(initial: Boolean, onToggleClick: () -> Unit): ToggleSwi
         onToggle = onToggleClick
     }
 
-/** Kindle-style modern rounded card container */
+/** Modern rounded card container */
 fun cardDrawable(bg: Int, cornerDp: Int = 8, border: Int = Color.TRANSPARENT, strokePx: Int = 2): Drawable {
     return GradientDrawable().apply {
         setColor(bg)
@@ -681,7 +679,7 @@ fun cardDrawable(bg: Int, cornerDp: Int = 8, border: Int = Color.TRANSPARENT, st
     }
 }
 
-/** Ridi/Kindle-style book cover placeholder with typography when no cover image exists */
+/** Modern book cover placeholder with typography when no cover image exists */
 fun renderDefaultBookCover(width: Int, height: Int, title: String, author: String, dark: Boolean): Bitmap {
     val bmp = Bitmap.createBitmap(width.coerceAtLeast(10), height.coerceAtLeast(10), Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)

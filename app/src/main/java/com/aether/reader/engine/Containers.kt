@@ -877,7 +877,7 @@ class EpubContainer(path: String, customTitle: String? = null) : BookContainer {
             if (boundsOpt.outWidth <= 0 || boundsOpt.outHeight <= 0) return null
 
             var sample = 1
-            val maxDim = 2800 // High-resolution allowance for Galaxy Z Fold / Ultra and high-DPI tablets
+            val maxDim = 2800 // High-resolution allowance for foldable main displays and high-DPI tablets
             while (boundsOpt.outWidth / sample > maxDim || boundsOpt.outHeight / sample > maxDim) {
                 sample *= 2
             }

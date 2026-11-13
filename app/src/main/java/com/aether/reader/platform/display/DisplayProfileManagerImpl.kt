@@ -26,18 +26,11 @@ class DisplayProfileManagerImpl(
     @Volatile private var lastSettings = DisplaySettings()
     @Volatile private var current: DisplayStrategy? = null
 
-    private val einkVendors = listOf(
-        "innospace", "onyx", "boox", "meebook", "bigme", "hisense", "supernote",
-        "ireader", "dasung", "likebook", "moaan", "xiaomi_ink", "remarkable", "pocketbook",
-        "kobo", "rakuten", "crema", "luna", "aladdin", "aladin", "yes24", "kyobo", "kyobo_sam", "sam78", "sam10",
-        "ridi", "ridibooks", "paper", "boyue", "tolino", "kindle", "amazon", "lab126",
-        "mobiscribe", "hanvon", "hyread", "inkpalm", "inkbook", "boke", "fac", "sd",
-        "palma", "palma2", "leaf", "poke", "nova", "note", "page", "tab_ultra", "tab_mini", "tab_c",
-        "nook", "barnes", "sony", "dpt", "prs",
-        "fload", "linktop", "epdc", "epd", "e-ink", "eink", "carta", "ed060", "ed078",
+    private val einkKeywords = listOf(
+        "epdc", "epd", "e-ink", "eink", "ed060", "ed078",
         "rk3566", "rk3326", "rk3026", "rk3188", "rockchip", "allwinner", "sun8iw10p1", "sprd"
     )
-    private val colorHints = listOf("color", "kaleido", "gallery", "colour", "luna c", "palma", "nova3 color", "tab ultra c")
+    private val colorHints = listOf("color", "colour", "ceink")
 
     private fun sysProp(key: String): String = try {
         val c = Class.forName("android.os.SystemProperties")
@@ -61,27 +54,21 @@ class DisplayProfileManagerImpl(
         val minDim = minOf(rawW, rawH)
 
         val isFlipResolution =
-            (maxDim in 2600..2680 && minDim in 1050..1120) || // Galaxy Z Flip 3/4/5/6 Main (2640x1080, 22:9)
-            (maxDim in 730..760 && minDim in 700..735) ||     // Galaxy Z Flip 5/6 Flex Window Cover (748x720)
-            (maxDim in 500..525 && minDim in 250..270)        // Galaxy Z Flip 3/4 Cover (512x260)
+            (maxDim in 2600..2680 && minDim in 1050..1120) || // Clamshell Main (2640x1080, 22:9)
+            (maxDim in 730..760 && minDim in 700..735) ||     // Clamshell Cover (748x720)
+            (maxDim in 500..525 && minDim in 250..270)        // Compact Clamshell Cover (512x260)
 
         val isFoldResolution =
-            (maxDim in 2140..2220 && minDim in 1780..1990) || // Galaxy Z Fold 3/4/5/6 & Fold Ultra Main (2176x1812, 2156x1856, 2184x1968)
-            (maxDim in 2250..2550 && minDim in 820..1090)     // Galaxy Z Fold 3/4/5/6 & Fold Ultra Cover (2316x904, 2376x968, 2520x1080)
+            (maxDim in 2140..2220 && minDim in 1780..1990) || // Foldable Main (2176x1812, 2156x1856, 2184x1968)
+            (maxDim in 2250..2550 && minDim in 820..1090)     // Foldable Cover (2316x904, 2376x968, 2520x1080)
 
-        val isFoldFamily = id.contains("sm-f9") || id.contains("sm-f7") || id.contains("sm-w202") ||
-            id.contains("sm-w9") || id.contains("sm-w7") || id.contains("q2q") || id.contains("q4") ||
-            id.contains("q5") || id.contains("q6") || id.contains("b2q") || id.contains("b4") ||
-            id.contains("b5") || id.contains("b6") || id.contains("bloomq") ||
-            (id.contains("samsung") && (id.contains("fold") || id.contains("flip"))) ||
+        val isFoldFamily = id.contains("fold") || id.contains("flip") ||
             isFlipResolution || isFoldResolution
 
-        val hasEinkVendorHint = einkVendors.any { id.contains(it) }
+        val hasEinkVendorHint = einkKeywords.any { id.contains(it) }
 
         val isKnownLcdOledBrand = !hasEinkVendorHint && (
-            isFoldFamily || id.contains("samsung") || id.contains("sm-") ||
-            id.contains("pixel") || id.contains("bluestacks") || id.contains("sdk_gphone") ||
-            id.contains("emulator")
+            isFoldFamily || id.contains("sdk_gphone") || id.contains("emulator")
         )
 
         val hasEinkSysProp = sysProp("ro.vendor.eink").isNotEmpty() ||
@@ -93,19 +80,19 @@ class DisplayProfileManagerImpl(
             sysProp("ro.platform.has.epd").isNotEmpty() ||
             sysProp("ro.boot.epd").isNotEmpty()
 
-        // Check standard E-Ink resolutions (Carta 1200/1300/Pearl/Carta HD):
+        // Check standard E-Ink panel resolutions:
         val isStandardEinkResolution = !isKnownLcdOledBrand && (
-            (maxDim in 1420..1480 && minDim in 1050..1100) || // 6.0" 1448x1072 (Luna X, Poke 3/4/5, Clara 2E)
-            (maxDim in 1650..1710 && minDim in 1230..1290) || // 7.0" 1680x1264 (Leaf, Page, Motive, Libra 2)
-            (maxDim in 1840..1900 && minDim in 1380..1430) || // 7.8" & 10.3" 1872x1404 (Expert, Nova, Note)
-            (maxDim in 1000..1050 && minDim in 740..780)   || // 6.0" 1024x758 (Sound, older 6")
-            (maxDim in 1620..1670 && minDim in 1210..1260) || // 6.8" 1648x1236 (PW5)
-            (maxDim in 1180..1220 && minDim in 810..840)   || // 6.0" 1200x825 (Voyage)
-            (maxDim in 2450..2520 && minDim in 1830..1890) || // 13.3" 2480x1860 (Max)
+            (maxDim in 1420..1480 && minDim in 1050..1100) || // 6.0" 1448x1072
+            (maxDim in 1650..1710 && minDim in 1230..1290) || // 7.0" 1680x1264
+            (maxDim in 1840..1900 && minDim in 1380..1430) || // 7.8" & 10.3" 1872x1404
+            (maxDim in 1000..1050 && minDim in 740..780)   || // 6.0" 1024x758
+            (maxDim in 1620..1670 && minDim in 1210..1260) || // 6.8" 1648x1236
+            (maxDim in 1180..1220 && minDim in 810..840)   || // 6.0" 1200x825
+            (maxDim in 2450..2520 && minDim in 1830..1890) || // 13.3" 2480x1860
             (maxDim in 780..820 && minDim in 580..620)        // 800x600 (Legacy E-Ink)
         )
 
-        val einkHint = !isKnownLcdOledBrand && (einkVendors.any { id.contains(it) } || hasEinkSysProp || isStandardEinkResolution)
+        val einkHint = !isKnownLcdOledBrand && (hasEinkVendorHint || hasEinkSysProp || isStandardEinkResolution)
         if (isStandardEinkResolution && (ppi < 200f || ppi > 450f)) {
             ppi = if (maxDim in 1000..1050) 212f else 300f
         }
@@ -114,10 +101,10 @@ class DisplayProfileManagerImpl(
         val oled = isFoldFamily || (!einkHint && diag < 14f && display.isWideColorGamut)
         if (isFoldFamily && (ppi < 200f || ppi > 600f)) {
             ppi = when {
-                maxDim in 730..760 && minDim in 700..735 -> 306f // Galaxy Z Flip 5/6 Cover
-                id.contains("sm-f7") || id.contains("flip") || isFlipResolution -> 425f // Galaxy Z Flip Main
-                maxDim.toFloat() / minDim.toFloat() < 1.35f -> 374f // Galaxy Z Fold Main
-                else -> 402f // Galaxy Z Fold Cover
+                maxDim in 730..760 && minDim in 700..735 -> 306f // Clamshell Cover
+                id.contains("flip") || isFlipResolution -> 425f // Clamshell Main
+                maxDim.toFloat() / minDim.toFloat() < 1.35f -> 374f // Foldable Main
+                else -> 402f // Foldable Cover
             }
         }
         return DisplayMetricsInfo(
@@ -133,7 +120,7 @@ class DisplayProfileManagerImpl(
 
         // Apply hardware display resolution profile overrides (Recommended devices sorted by size)
         val effectiveMetrics = when (settings.devicePreset) {
-            "LUNA_X_60", "LUNA_X_78", "STANDARD_6" -> m.copy(
+            "EINK_60_300", "STANDARD_6" -> m.copy(
                 widthPx = if (m.isLandscape) 1448 else 1072,
                 heightPx = if (m.isLandscape) 1072 else 1448,
                 ppi = 300f,
@@ -147,21 +134,21 @@ class DisplayProfileManagerImpl(
                 isEinkHint = true,
                 isColorEinkHint = false
             )
-            "KINDLE_PW_68" -> m.copy(
+            "EINK_68_300" -> m.copy(
                 widthPx = if (m.isLandscape) 1648 else 1236,
                 heightPx = if (m.isLandscape) 1236 else 1648,
                 ppi = 300f,
                 isEinkHint = true,
                 isColorEinkHint = false
             )
-            "ONYX_LEAF_70", "ONYX_LEAF_7" -> m.copy(
+            "EINK_70_300" -> m.copy(
                 widthPx = if (m.isLandscape) 1680 else 1264,
                 heightPx = if (m.isLandscape) 1264 else 1680,
                 ppi = 300f,
                 isEinkHint = true,
                 isColorEinkHint = false
             )
-            "NOVA_78" -> m.copy(
+            "EINK_78_300" -> m.copy(
                 widthPx = if (m.isLandscape) 1872 else 1404,
                 heightPx = if (m.isLandscape) 1404 else 1872,
                 ppi = 300f,
@@ -182,7 +169,7 @@ class DisplayProfileManagerImpl(
                 isEinkHint = true,
                 isColorEinkHint = false
             )
-            "GALAXY_FOLD_MAIN" -> m.copy(
+            "FOLD_MAIN" -> m.copy(
                 widthPx = if (m.isLandscape) 2176 else 1812,
                 heightPx = if (m.isLandscape) 1812 else 2176,
                 ppi = 374f,
@@ -190,7 +177,7 @@ class DisplayProfileManagerImpl(
                 isEinkHint = false,
                 isColorEinkHint = false
             )
-            "GALAXY_FOLD_COVER" -> m.copy(
+            "FOLD_COVER" -> m.copy(
                 widthPx = if (m.isLandscape) 2316 else 904,
                 heightPx = if (m.isLandscape) 904 else 2316,
                 ppi = 402f,
@@ -198,7 +185,7 @@ class DisplayProfileManagerImpl(
                 isEinkHint = false,
                 isColorEinkHint = false
             )
-            "GALAXY_FOLD_ULTRA" -> m.copy(
+            "FOLD_ULTRA_MAIN" -> m.copy(
                 widthPx = if (m.isLandscape) 2184 else 1968,
                 heightPx = if (m.isLandscape) 1968 else 2184,
                 ppi = 372f,
@@ -206,7 +193,7 @@ class DisplayProfileManagerImpl(
                 isEinkHint = false,
                 isColorEinkHint = false
             )
-            "GALAXY_FLIP_MAIN" -> m.copy(
+            "CLAMSHELL_MAIN" -> m.copy(
                 widthPx = if (m.isLandscape) 2640 else 1080,
                 heightPx = if (m.isLandscape) 1080 else 2640,
                 ppi = 425f,
@@ -214,7 +201,7 @@ class DisplayProfileManagerImpl(
                 isEinkHint = false,
                 isColorEinkHint = false
             )
-            "GALAXY_FLIP_COVER" -> m.copy(
+            "CLAMSHELL_COVER" -> m.copy(
                 widthPx = if (m.isLandscape) 748 else 720,
                 heightPx = if (m.isLandscape) 720 else 748,
                 ppi = 306f,
@@ -231,8 +218,7 @@ class DisplayProfileManagerImpl(
                 val maxDim = maxOf(m.widthPx, m.heightPx)
                 val minDim = minOf(m.widthPx, m.heightPx)
                 val id = (Build.MANUFACTURER + " " + Build.MODEL + " " + Build.BRAND + " " + Build.DEVICE).lowercase()
-                val isKnownLcdOled = m.isOled || id.contains("samsung") || id.contains("sm-") ||
-                    id.contains("pixel") || id.contains("bluestacks") || id.contains("sdk_gphone") || id.contains("emulator")
+                val isKnownLcdOled = m.isOled || id.contains("sdk_gphone") || id.contains("emulator")
                 val isStandardResolution = !isKnownLcdOled && (
                     (maxDim in 1420..1480 && minDim in 1050..1100) ||
                     (maxDim in 1600..1710 && minDim in 1200..1300) ||
@@ -248,10 +234,10 @@ class DisplayProfileManagerImpl(
         }
 
         val kind = settings.forcedKind ?: when (settings.devicePreset) {
-            "LUNA_X_60", "LUNA_X_78", "STANDARD_6", "EINK_60_HD", "KINDLE_PW_68",
-            "ONYX_LEAF_70", "ONYX_LEAF_7", "NOVA_78", "LARGE_103", "MAX_133" -> DisplayKind.MONO_EINK
-            "GENERIC_TABLET", "GALAXY_FOLD_MAIN", "GALAXY_FOLD_COVER", "GALAXY_FOLD_ULTRA",
-            "GALAXY_FLIP_MAIN", "GALAXY_FLIP_COVER" -> DisplayKind.LCD_OLED
+            "EINK_60_300", "STANDARD_6", "EINK_60_HD", "EINK_68_300",
+            "EINK_70_300", "EINK_78_300", "LARGE_103", "MAX_133" -> DisplayKind.MONO_EINK
+            "GENERIC_TABLET", "FOLD_MAIN", "FOLD_COVER", "FOLD_ULTRA_MAIN",
+            "CLAMSHELL_MAIN", "CLAMSHELL_COVER" -> DisplayKind.LCD_OLED
             else -> when {
                 effectiveMetrics.isColorEinkHint -> DisplayKind.COLOR_EINK
                 effectiveMetrics.isEinkHint -> DisplayKind.MONO_EINK

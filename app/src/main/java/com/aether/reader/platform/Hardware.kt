@@ -53,7 +53,7 @@ class KeyEventDispatcher(private val prefs: Prefs, private val onAction: (Reader
 
 /**
  * Brightness via window attributes (+ system setting when WRITE_SETTINGS is granted).
- * Supports system default brightness toggle, LCD warm tint overlay, and vendor E-Ink frontlight (Onyx/Boyue).
+ * Supports system default brightness toggle, LCD warm tint overlay, and vendor E-Ink frontlight.
  */
 /**
  * Composite screen filter drawable that renders both:
@@ -98,7 +98,7 @@ private class FrontlightFilterDrawable : Drawable() {
  * Brightness & Color Temperature controller:
  * - Drives Activity window + active Dialog window attributes (`screenBrightness`)
  * - Drives composite `FrontlightFilterDrawable` on both the main reader overlay and any open Settings dialog
- * - Drives system settings (`WRITE_SETTINGS`) and vendor E-Ink frontlight APIs (Onyx Boox / Boyue).
+ * - Drives system settings (`WRITE_SETTINGS`) and vendor E-Ink frontlight APIs.
  */
 class FrontlightController(private val act: Activity, private val overlay: View, private val prefs: Prefs) {
     private var dimmed = false
@@ -212,7 +212,7 @@ class FrontlightController(private val act: Activity, private val overlay: View,
     fun setSystemDefault() {
         prefs.followSystemBrightness = true
         syncVisualState()
-        tryOnyxFrontLight(isReset = true)
+        tryVendorEinkFrontLight(isReset = true)
     }
 
     fun setBrightness(v: Float, userAction: Boolean = true) {
@@ -234,7 +234,7 @@ class FrontlightController(private val act: Activity, private val overlay: View,
             act.sendBroadcast(Intent("com.onyx.android.sdk.action.COLD_LIGHT").putExtra("value", scaled255))
             act.sendBroadcast(Intent("action.onyx.frontlight.cold").putExtra("value", scaled255))
         } catch (_: Throwable) {}
-        tryOnyxFrontLight(brightnessVal = b)
+        tryVendorEinkFrontLight(brightnessVal = b)
     }
 
     fun setWarmth(v: Float, userAction: Boolean = true) {
@@ -255,16 +255,16 @@ class FrontlightController(private val act: Activity, private val overlay: View,
         if (prefs.ctmBroadcastAction.isNotBlank()) {
             act.sendBroadcast(Intent(prefs.ctmBroadcastAction).putExtra(prefs.ctmBroadcastExtra, w))
         }
-        // Onyx Boox / Boyue common frontlight intents
+        // Vendor E-Ink common frontlight intents
         try {
             act.sendBroadcast(Intent("com.onyx.android.sdk.action.WARM_LIGHT").putExtra("value", scaled255))
             act.sendBroadcast(Intent("action.onyx.frontlight.warm").putExtra("value", scaled255))
         } catch (_: Throwable) {}
 
-        tryOnyxFrontLight(warmthVal = w)
+        tryVendorEinkFrontLight(warmthVal = w)
     }
 
-    private fun tryOnyxFrontLight(brightnessVal: Float = -1f, warmthVal: Float = -1f, isReset: Boolean = false) {
+    private fun tryVendorEinkFrontLight(brightnessVal: Float = -1f, warmthVal: Float = -1f, isReset: Boolean = false) {
         try {
             val flClass = Class.forName("com.onyx.android.sdk.api.device.FrontLightController")
             if (isReset) return
@@ -292,7 +292,7 @@ class FrontlightController(private val act: Activity, private val overlay: View,
                 }
             }
         } catch (_: Throwable) {
-            // Not an Onyx SDK environment
+            // Vendor E-Ink SDK not available on this device
         }
     }
 

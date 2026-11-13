@@ -7,7 +7,7 @@ import com.aether.reader.platform.HardwareSpec
 /**
  * Feature Gating & Capability Resolution matrix for Comic/Manga Engine.
  * Dynamically scales memory windows, rendering animations, scrolling modes,
- * and image contrast filtering between low-spec E-Ink devices (Luna X, Poke, Leaf)
+ * and image contrast filtering between low-spec E-Ink devices (6"~7" 2GB RAM)
  * and high-spec LCD/OLED tablets.
  */
 data class ComicProfile(
@@ -24,7 +24,7 @@ object ComicProfileResolver {
 
     /**
      * Resolves the hardware profile for comics based on [HardwareSpec].
-     * Low-spec E-Ink (e.g. Luna X, Snapdragon 630, 2GB RAM):
+     * Low-spec E-Ink (e.g. 2GB RAM class E-Ink readers):
      * - Cache window: 3 pages (Previous, Current, Next) strictly.
      * - Instant 0ms page turns (no curl/slide animation).
      * - Vertical webtoon mode DISABLED to avoid continuous E-Ink refresh flicker.

@@ -660,7 +660,7 @@ class ReaderActivity : Activity(), ReaderView.Listener {
                 }
             }
         } else {
-            // E-Ink devices: pure Carta paper off-white & deep ink black.
+            // E-Ink devices: pure paper off-white & deep ink black.
             // Software warm/sepia tints are strictly hidden and disabled to prevent optical contrast loss.
             bg = ReaderTheme.EINK_PAPER
             fg = ReaderTheme.EINK_INK
@@ -2888,8 +2888,8 @@ class ReaderActivity : Activity(), ReaderView.Listener {
         data class DisplayModeItem(val id: String, val forcedKind: String, val preset: String, val title: String)
         val modeList = listOf(
             DisplayModeItem("AUTO", "", "AUTO", "자동 감지 (기기 환경에 맞춤 - 권장)"),
-            DisplayModeItem("MONO_EINK", DisplayKind.MONO_EINK.name, "MONO_EINK", "흑백 E-Ink 모드 강제 적용 (Carta 1300/1200)"),
-            DisplayModeItem("COLOR_EINK", DisplayKind.COLOR_EINK.name, "COLOR_EINK", "컬러 E-Ink 모드 강제 적용 (Kaleido 3)"),
+            DisplayModeItem("MONO_EINK", DisplayKind.MONO_EINK.name, "MONO_EINK", L10n.t("흑백 E-Ink 모드 강제 적용", "Force Mono E-Ink Mode")),
+            DisplayModeItem("COLOR_EINK", DisplayKind.COLOR_EINK.name, "COLOR_EINK", L10n.t("컬러 E-Ink 모드 강제 적용", "Force Color E-Ink Mode")),
             DisplayModeItem("LCD_OLED", DisplayKind.LCD_OLED.name, "GENERIC_TABLET", "일반 LCD / OLED 모드 강제 적용 (컬러)")
         )
 

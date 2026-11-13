@@ -8,7 +8,7 @@
 
 | Dimension | E-Ink Devices (`MONO_EINK` / `COLOR_EINK`) | LCD / OLED Devices (`LCD_OLED` incl. Fold & Flip) |
 | :--- | :--- | :--- |
-| **Display & Foldable Profiles** | 6"~13.3" E-Ink (Carta 1200/1300 & Kaleido 3) | Smartphones, Tablets, **Galaxy Z Fold/Ultra** (`2176×1812`, `2184×1968`), **Galaxy Z Flip** (`2640×1080` Main & `748×720` / `512×260` Cover) |
+| **Display & Foldable Profiles** | 6"~13.3" E-Ink (Mono & Color E-Ink) | Smartphones, Tablets, **Foldable Main/Ultra** (`2176×1812`, `2184×1968`), **Clamshell Foldable** (`2640×1080` Main & `748×720` / `512×260` Cover) |
 | **Themes & Lighting** | Pure Paper/Ink high contrast + Hardware Frontlight (CTM) | 4 Eye-Care Themes (White, Sepia, Charcoal, OLED Black) + In-app Brightness & Warm Amber Filter |
 | **Refresh & Borders** | 1–30 page Full Refresh cycle, 2px charcoal outlines, dotted dividers, 7dp `EinkScrollBarView` | Refresh UI hidden, soft dim (`0.35f`), elevation shadows, slim scrollbars |
 | **Gemini AI Reading Assistant (Beta)** | **100% Completely Deactivated on E-Ink** (Zero battery/resource waste, 0% flicker, all menus/cards hidden, instant 0.05s classic cards) | **In-App Direct REST API Pipeline [Beta]**: Gemini 1.5 Flash in-app 1:1 chat, 1-step API key setup, ⏳ Hourglass status dialog, 1-click 1080p SNS discussion cards |
@@ -39,14 +39,14 @@ Dependency rule: `app → domain ← data`, `engine`/`platform` implement domain
 `DisplayProfileManager.detect()` runs once at launch (and on config/display change) and picks one of
 `MonoEInkStrategy`, `ColorEInkStrategy`, `LcdOledStrategy`. Detection signals:
 system properties (vendor/board, e.g. `ro.product.manufacturer`, `ro.product.model`), `Display.supportedModes` refresh rates,
-density/size (300 PPI + 6" => E-Ink, Crema Luna X: 1448x1072 Carta 1200), and a user override in settings. The strategy owns: page-transition style,
+density/size (300 PPI + 6" => E-Ink, 6.0" E-Ink: 1448x1072 Mono), and a user override in settings. The strategy owns: page-transition style,
 refresh policy, palette/post-processing, layout (single vs. dual column), allowed animations.
 
 ## Device Bifurcation Architecture (E-Ink vs. LCD/OLED)
 H/W 특성에 맞춘 이원화 UX 설계를 통해 극단적인 반응성과 시인성을 보장합니다.
 
 1. **페이지 전환 정책 (Instant Page Presentation & Zero-Animation Policy)**:
-   - `전체 기기 공통`: 시각적 잔상/플리커 방지 및 특허 리스크(애플 3D Page Curl 등) 100% 원천 배제를 위해 3D 책장 넘김, 슬라이드, 스크롤 등 일체의 전환 애니메이션을 코드베이스에서 완전 삭제하고 순수 즉시 전환(`PageTransition.INSTANT`)으로 일원화.
+   - `전체 기기 공통`: 시각적 잔상/플리커 방지 및 특허 리스크(3D Page Curl 등) 100% 원천 배제를 위해 3D 책장 넘김, 슬라이드, 스크롤 등 일체의 전환 애니메이션을 코드베이스에서 완전 삭제하고 순수 즉시 전환(`PageTransition.INSTANT`)으로 일원화.
 2. **TTS 오디오 라우팅 (Speech Engine Routing)**:
    - `E-Ink`: 조용한 독서 공간에서의 돌발 소음 방지를 위해 블루투스 오디오 또는 유선 이어폰 연결 필수.
    - `LCD/OLED`: 기기 내장 스피커를 통한 다이렉트 낭독 허용.
@@ -59,7 +59,7 @@ H/W 특성에 맞춘 이원화 UX 설계를 통해 극단적인 반응성과 시
    - `E-Ink`: 2dp 고대비 아웃라인, 인스턴트 노애니메이션 카드, 직관적인 닫기 '✕' 버튼.
    - `LCD/OLED`: 반투명 딤(Dim) 백드롭, 16dp 둥근 모서리 바텀시트, 드래그 제스처 핸들 바.
 6. **타이포그래피 엔진 (Typography Pipeline)**:
-   - `E-Ink`: Carta 1300/1200 흑백 패널의 시인성을 위해 외곽선 스트로크 부스터(`StrokeJoin.ROUND`, 0~10단계)와 순수 흑백 렌더링.
+   - `E-Ink`: 고대비 흑백 E-Ink 흑백 패널의 시인성을 위해 외곽선 스트로크 부스터(`StrokeJoin.ROUND`, 0~10단계)와 순수 흑백 렌더링.
    - `공통/LCD`: 가변 폰트 OpenType `'wght'` (100~900) 정밀 웨이트 제어.
 7. **상·하단 메뉴바 시각적 이원화 (Overlay Bar Theming)**:
    - `E-Ink`: 본문 텍스트와 메뉴 영역의 경계를 직관적으로 인지할 수 있도록 은은한 웜그레이 배경(`0xFFF0EEE9`)과 1dp 소프트 점선(Dashed Border, `dashWidth 4dp, dashGap 3dp`) 적용.
@@ -69,7 +69,7 @@ H/W 특성에 맞춘 이원화 UX 설계를 통해 극단적인 반응성과 시
      - 4대 독서 테마 탑재: 기본 화이트(`WHITE`), 눈 보호 웜톤/블루라이트 차단 세피아(`SEPIA`), 야간 차콜 다크(`DARK`), OLED 트루 블랙(`OLED_BLACK`).
      - E-Ink 전용인 화면 잔상 제거(Full Refresh) 설정 UI를 완전히 은닉.
    - `E-Ink`:
-     - Carta 1300/1200 등 반사형 전자잉크 패널 특성에 맞게 소프트웨어 컬러 필터 및 세피아 틴트를 완전 차단하고 순수 종이/잉크 대비 보존.
+     - 고대비 흑백 E-Ink 등 반사형 전자잉크 패널 특성에 맞게 소프트웨어 컬러 필터 및 세피아 틴트를 완전 차단하고 순수 종이/잉크 대비 보존.
      - 화면 잔상 제거(Full Refresh) 주기 설정(1~30페이지) 지원.
    - `바이오닉 리딩 영구 삭제`:
      - 프랑스 등록특허(FR3052587) 및 글로벌 상표(Bionic Reading®) 분쟁을 원천 방지하기 위해 바이오닉 리딩 기능을 전 기기 및 코드베이스에서 영구 삭제.
@@ -82,7 +82,7 @@ H/W 특성에 맞춘 이원화 UX 설계를 통해 극단적인 반응성과 시
    - 본문 하이라이트 클릭 시 끝점 우측 상단 앵커링을 통한 `[ ✎ 메모 ] | [ ✕ 삭제 ]` 복합 팝오버 표시 및 즉각적 영속화.
    - 북마크 등록 페이지 상단 우측 전용 벡터 리본(`BookmarkRibbonView`) 표시 및 원클릭 토글 해제.
 12. **전자잉크 vs LCD/OLED 화면 조명 최적화 및 이원화 (E-Ink System Brightness & LCD Eye-Care)**:
-   - `E-Ink`: Carta 흑백 명암비 저하를 막기 위해 소프트웨어 디밍 오버레이를 영구 비활성화하고, 단말기 전용 하드웨어 LED 프론트라이트와 연동되는 시스템 조명 모드로 고정하며 시스템 조명 설정 바로가기 인텐트 제공.
+   - `E-Ink`: 흑백 E-Ink 명암비 저하를 막기 위해 소프트웨어 디밍 오버레이를 영구 비활성화하고, 단말기 전용 하드웨어 LED 프론트라이트와 연동되는 시스템 조명 모드로 고정하며 시스템 조명 설정 바로가기 인텐트 제공.
    - `LCD/OLED`: 0~100% 인앱 밝기 슬라이더, 앰버 색온도 필터, 4대 시력 보호 독서 테마 제공.
 13. **독서 페이스 기반 완독 예상 시간 계산기 (Time-to-Finish Estimator)**:
    - 페이지 체류 시간(5~180초 유효 구간)을 지수 평활 가중치(`0.7 * 이전 + 0.3 * 현재`)로 실시간 추정하여 하단 푸터 및 스크러버에 남은 완독 시간 안내.
@@ -132,8 +132,8 @@ H/W 특성에 맞춘 이원화 UX 설계를 통해 극단적인 반응성과 시
    - 독서 진행 창(`scrubberLabel`)을 2줄로 분리하여 1행(페이지/진도율)과 2행(완독 예상 시간)의 시인성 극대화.
    - e-INK 기기 목차(TOC)에서 도서 정보 아래 가로 구분선은 양단 18dp 여백의 **직선**으로, 챕터들 사이 구분선은 `DashPathEffect` 양단 18dp 여백의 **옅은 점선**으로 이원화하여 가독성 극대화 (LCD/OLED는 실선 유지).
    - 독서 화면 최하단 좌우 상태바(챕터명, 진행률) 폰트 크기를 1PT 확대.
-27. **E-Ink 고대비 설정 UI 및 옅은 점선 구분선 아키텍처 (High-Contrast Carta UI & Dotted Dividers)**:
-   - Carta 1300/1200 16단계 패널에 최적화된 메뉴 카드(`ReaderTheme.EINK_CARD_BG`, 2px 차콜 외곽선 `#666666`) 및 내부 버튼(화이트 필 바탕, 2px 외곽선) 규격화.
+27. **E-Ink 고대비 설정 UI 및 옅은 점선 구분선 아키텍처 (High-Contrast High-Contrast UI & Dotted Dividers)**:
+   - 고대비 흑백 E-Ink 16단계 패널에 최적화된 메뉴 카드(`ReaderTheme.EINK_CARD_BG`, 2px 차콜 외곽선 `#666666`) 및 내부 버튼(화이트 필 바탕, 2px 외곽선) 규격화.
    - 글자 스타일, 화면/조명, 독서 보조도구, 메인 환경설정 카드 내부의 모든 행 구분선에 `DottedDividerView`(`0xFF888888`, 1dp 스트로크, 3dp 대시/3dp 갭)를 적용하여 시각적 답답함을 해소하고 부드러운 계층감 완성.
    - `ReaderTheme.kt` 내 디자인 토큰 및 헬퍼 함수(`einkBtnBg`, `einkBtnBorder`, `einkStrokePx`)를 통한 100% UI 일관성 확보.
    - `PagingEngineImpl` 4구간 LRU 캐시(`layoutCache`) 및 비트맵 즉시 회수(`bitmap.recycle()`) 파이프라인으로 0ms 챕터 전환 및 1GB RAM 저사양 기기 메모리 안정성 달성.
@@ -172,7 +172,7 @@ H/W 특성에 맞춘 이원화 UX 설계를 통해 극단적인 반응성과 시
 | Cover cache | grayscale WebP on external SD, LruCache ≤ 8 MB in RAM |
 | APK | < 2.3 MB (Debug unminified) / ~530 KB (Release R8 full mode), no Glide/Retrofit/Hilt |
 
-Mono mode renders to `ALPHA_8` (8-bit gray) — a 4× saving vs ARGB_8888 and exactly what Carta 1200/1300 needs.
+Mono mode renders to `ALPHA_8` (8-bit gray) — a 4× saving vs ARGB_8888 and exactly what 고대비 E-Ink needs.
 
 ## Chunk Paging Pipeline
 ```

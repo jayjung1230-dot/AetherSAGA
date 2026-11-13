@@ -422,7 +422,7 @@ object AndroidShareHelper {
     }
 
     /**
-     * [Option B] Directly opens the device's default email composer (Gmail, Samsung Email, Outlook, etc.)
+     * [Option B] Directly opens the device's default email composer
      * with recipient, subject, complete book info, and selected sentences pre-filled,
      * without showing any general Android share sheet (Bluetooth, Quick Share, Messages, etc.).
      */

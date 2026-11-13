@@ -334,13 +334,13 @@ class FeaturesVerificationTest {
     }
 
     @Test
-    fun testLunaXHardwarePresetSixInch() {
-        val presetKey = "LUNA_X_78"
-        val label = "루나 X 6.0인치 1448 x 1072 [E Ink Carta]"
+    fun testSixInchEinkHardwarePreset() {
+        val presetKey = "EINK_60_300"
+        val label = "6.0인치 E-Ink 1448 x 1072 [고대비]"
 
         // 6인치 및 1448x1072 해상도 명시 검증
-        assertTrue("루나 X는 6.0인치 규격이어야 함", label.contains("6.0인치"))
-        assertTrue("루나 X는 1448 x 1072 해상도여야 함", label.contains("1448 x 1072"))
+        assertTrue("6.0인치 규격이어야 함", label.contains("6.0인치"))
+        assertTrue("1448 x 1072 해상도여야 함", label.contains("1448 x 1072"))
         assertFalse("7.8인치로 오표기되지 않아야 함", label.contains("7.8인치"))
     }
 
@@ -731,11 +731,11 @@ class FeaturesVerificationTest {
         // 자동감지 최상단, 시스템 해상도 최하단, 중간 기기들은 인치 크기 오름차순 정렬 검증
         val presets = listOf(
             "AUTO" to 0.0,
-            "LUNA_X_60" to 6.0,
+            "EINK_60_300" to 6.0,
             "EINK_60_HD" to 6.0,
-            "KINDLE_PW_68" to 6.8,
-            "ONYX_LEAF_70" to 7.0,
-            "NOVA_78" to 7.8,
+            "EINK_68_300" to 6.8,
+            "EINK_70_300" to 7.0,
+            "EINK_78_300" to 7.8,
             "LARGE_103" to 10.3,
             "MAX_133" to 13.3,
             "GENERIC_TABLET" to 999.0
@@ -791,8 +791,8 @@ class FeaturesVerificationTest {
         data class ModeItem(val id: String, val forcedKind: String, val title: String)
         val modeList = listOf(
             ModeItem("AUTO", "", "자동 감지 (기기 환경에 맞춤 - 권장)"),
-            ModeItem("MONO_EINK", "MONO_EINK", "흑백 E-Ink 모드 강제 적용 (Carta 1300/1200)"),
-            ModeItem("COLOR_EINK", "COLOR_EINK", "컬러 E-Ink 모드 강제 적용 (Kaleido 3)"),
+            ModeItem("MONO_EINK", "MONO_EINK", "흑백 E-Ink 모드 강제 적용"),
+            ModeItem("COLOR_EINK", "COLOR_EINK", "컬러 E-Ink 모드 강제 적용"),
             ModeItem("LCD_OLED", "LCD_OLED", "일반 LCD / OLED 모드 강제 적용 (컬러)")
         )
 
@@ -1805,8 +1805,8 @@ class FeaturesVerificationTest {
     }
 
     @Test
-    fun testGalaxyFoldAndUltraResolutionAspectSupport() {
-        // 1. Galaxy Z Fold 3/4/5/6 and Fold Ultra/SE Main Screens (Unfolded)
+    fun testFoldableAndUltraResolutionAspectSupport() {
+        // 1. Foldable Main Screens (Unfolded)
         val fold4MainRatio = 2176f / 1812f // 1.201f
         val fold6MainRatio = 2156f / 1856f // 1.161f
         val foldUltraMainRatio = 2184f / 1968f // 1.109f
@@ -1814,7 +1814,7 @@ class FeaturesVerificationTest {
         assertEquals(com.aether.reader.domain.display.AspectClass.SQUARE_FOLD, com.aether.reader.domain.display.AspectClass.classify(fold6MainRatio))
         assertEquals(com.aether.reader.domain.display.AspectClass.SQUARE_FOLD, com.aether.reader.domain.display.AspectClass.classify(foldUltraMainRatio))
 
-        // 2. Galaxy Z Fold Cover Screens (Folded)
+        // 2. Foldable Cover Screens (Folded)
         val fold4CoverRatio = 2316f / 904f // 2.561f
         val fold6CoverRatio = 2376f / 968f // 2.454f
         val foldUltraCoverRatio = 2520f / 1080f // 2.333f
@@ -1852,8 +1852,8 @@ class FeaturesVerificationTest {
     }
 
     @Test
-    fun testGalaxyFlipResolutionsAndKakaoSnsRestoration() {
-        // 1. Galaxy Z Flip 3/4/5/6 Main Screen (2640 x 1080, 22:9 = 2.444:1, 425 PPI)
+    fun testClamshellResolutionsAndKakaoSnsRestoration() {
+        // 1. Clamshell Main Screen (2640 x 1080, 22:9 = 2.444:1, 425 PPI)
         val flipMainRatio = 2640f / 1080f
         assertEquals(com.aether.reader.domain.display.AspectClass.EXTREME_TALL, com.aether.reader.domain.display.AspectClass.classify(flipMainRatio))
 
@@ -1870,7 +1870,7 @@ class FeaturesVerificationTest {
         val flipMainLandLayout = com.aether.reader.platform.display.layoutFor(flipMainLandscape, allowDarkMode = true, trueBlack = true)
         assertEquals(2, flipMainLandLayout.columns)
 
-        // 2. Galaxy Z Flip 5/6 Cover Screen (Flex Window: 748 x 720, 1.039:1, 306 PPI)
+        // 2. Clamshell Cover Screen (748 x 720, 1.039:1, 306 PPI)
         val flipCoverRatio = 748f / 720f
         assertEquals(com.aether.reader.domain.display.AspectClass.SQUARE_FOLD, com.aether.reader.domain.display.AspectClass.classify(flipCoverRatio))
 

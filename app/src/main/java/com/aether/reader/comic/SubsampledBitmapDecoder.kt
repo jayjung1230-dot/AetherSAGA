@@ -17,7 +17,7 @@ import kotlin.math.min
  * Viewport-aware bitmap decoder that calculates exact inSampleSize
  * to prevent allocating oversized bitmaps in low-RAM (2GB) environments.
  * Also performs automatic margin cropping (10-25% active panel enlargement)
- * and gamma/contrast boost for E-Ink Carta displays.
+ * and gamma/contrast boost for E-Ink displays.
  */
 object SubsampledBitmapDecoder {
 
@@ -183,7 +183,7 @@ object SubsampledBitmapDecoder {
 
     /**
      * Applies high-speed Gamma +2.0 and contrast boost to enhance faint pencil and ink lines
-     * for crisp, high-contrast readability on E-Ink Carta displays.
+     * for crisp, high-contrast readability on E-Ink displays.
      */
     fun applyEinkContrastBoost(src: Bitmap): Bitmap {
         val out = try {

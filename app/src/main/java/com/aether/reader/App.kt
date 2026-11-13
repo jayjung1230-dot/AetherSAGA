@@ -248,8 +248,8 @@ class App : Application() {
         // 2. Check preset
         val preset = prefs.displayDevicePreset
         val einkPresets = setOf(
-            "LUNA_X_60", "LUNA_X_78", "STANDARD_6", "EINK_60_HD", "KINDLE_PW_68",
-            "ONYX_LEAF_70", "ONYX_LEAF_7", "NOVA_78", "LARGE_103", "MAX_133",
+            "EINK_60_300", "EINK_78_300", "STANDARD_6", "EINK_60_HD", "EINK_68_300",
+            "EINK_70_300", "LARGE_103", "MAX_133",
             "MONO_EINK", "COLOR_EINK"
         )
         if (preset in einkPresets) return false

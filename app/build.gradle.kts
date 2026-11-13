@@ -15,7 +15,7 @@ android {
 
     defaultConfig {
         applicationId = "com.aether.reader"
-        minSdk = 26          // Luna X is API 30; 26 keeps older LCD tablets
+        minSdk = 26          // API 26 keeps older LCD tablets and E-Ink devices supported
         targetSdk = 30       // Scoped Storage semantics + MANAGE_EXTERNAL_STORAGE on the primary device
         versionCode = 260
         versionName = "2.6"

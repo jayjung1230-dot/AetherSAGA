@@ -5,9 +5,9 @@ import android.graphics.Bitmap
 /** Which family of panel the app is running on. */
 enum class DisplayKind { MONO_EINK, COLOR_EINK, LCD_OLED }
 
-/** Long-side / short-side ratio buckets. Luna X (1448x1072 = 1.351) falls in RATIO_4_3.
- * SQUARE_FOLD (1.10~1.25) covers Galaxy Z Fold 3/4/5/6 and Fold Ultra/SE unfolded main screens.
- * EXTREME_TALL (2.30~2.80) covers Galaxy Z Fold cover screens and Galaxy Z Flip screens. */
+/** Long-side / short-side ratio buckets. 6.0" E-Ink (1448x1072 = 1.351) falls in RATIO_4_3.
+ * SQUARE_FOLD (1.10~1.25) covers unfolded foldable main screens.
+ * EXTREME_TALL (2.30~2.80) covers foldable cover screens and clamshell tall screens. */
 enum class AspectClass(val ratio: Float) {
     SQUARE_FOLD(1.15f), RATIO_4_3(1.333f), RATIO_3_2(1.5f), RATIO_16_10(1.6f), RATIO_16_9(1.778f), ULTRAWIDE(2.0f), EXTREME_TALL(2.5f);
     companion object {
@@ -39,7 +39,7 @@ data class RenderSpec(
     val config: Bitmap.Config,       // ALPHA_8 for mono, RGB_565/ARGB_8888 otherwise
     val grayLevels: Int,             // 2, 16 or 256
     val boldnessLevel: Int,          // 0..10 (font weight booster)
-    val illustrationSaturation: Float, // 1.0 = off, 1.15..1.30 for Kaleido 3
+    val illustrationSaturation: Float, // 1.0 = off, 1.15..1.30 for Color E-Ink
     val illustrationGamma: Float,
     val colorLayerSeparate: Boolean, // text on B/W layer, images on color buffer
     val highlightDithering: Boolean  // pattern-dither the 4 highlight colors
@@ -85,7 +85,7 @@ data class DisplaySettings(
     val boldnessLevel: Int = 0,            // clamp 0..10
     val preferredTransition: PageTransition = PageTransition.SLIDE,
     val forcedKind: DisplayKind? = null,   // user override of auto-detect
-    val devicePreset: String = "AUTO",     // AUTO, ONYX_LEAF_7, LUNA_X_78, STANDARD_6, LARGE_103, GENERIC_TABLET
+    val devicePreset: String = "AUTO",     // AUTO, EINK_70_300, EINK_78_300, STANDARD_6, LARGE_103, GENERIC_TABLET
     val ghostClearEnabled: Boolean = true  // LCD/OLED: user opt-in only
 )
 

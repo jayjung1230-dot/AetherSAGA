@@ -15,8 +15,8 @@ import com.aether.reader.domain.display.PageTransition
 import kotlin.math.abs
 
 /**
- * Draws the engine's bitmap with Paperwhite Carta 1300 aesthetic, Ridi progress line,
- * adaptive Reading Ruler, and clean Kindle footer.
+ * Draws the engine's bitmap with high-contrast E-Ink paper aesthetic, slim progress line,
+ * adaptive Reading Ruler, and clean minimalist footer.
  */
 class ReaderView(ctx: Context) : View(ctx) {
 
@@ -202,7 +202,7 @@ class ReaderView(ctx: Context) : View(ctx) {
             val sRects = rulerSentenceRects
             if (!sRects.isNullOrEmpty()) {
                 if (isEinkDisplay) {
-                    // High-contrast clean E-Ink Carta sentence focus guide:
+                    // High-contrast clean E-Ink sentence focus guide:
                     // Soft background box + crisp underline per sentence segment
                     val isLight = (fg == Color.BLACK || fg == ReaderTheme.EINK_INK)
                     rulerPaint.style = Paint.Style.FILL
@@ -299,7 +299,7 @@ class ReaderView(ctx: Context) : View(ctx) {
             c.drawText(prog, w - marginX, footerY, footerPaintRight)
         }
 
-        // Ridi-style ultra-thin bottom reading progress bar (2dp)
+        // Ultra-thin bottom reading progress bar (2dp)
         val barH = dens * 2f
         progressTrackPaint.color = if (isLight) 0xFFE5E5E0.toInt() else 0xFF28282C.toInt()
         progressFillPaint.color = if (isEinkDisplay) fg else ReaderTheme.ACCENT_PRIMARY_BLUE

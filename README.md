@@ -33,7 +33,7 @@
 
 ## 📖 Overview
 
-**Aether SAGA** is an ultra-lightweight, battery-efficient Android reader engineered specifically for **E-Ink devices** (Carta 1200/1300 & Kaleido 3 color e-paper) as well as modern **Android smartphones, tablets, and foldables** (**Galaxy Z Fold / Fold Ultra / Galaxy Z Flip**).
+**Aether SAGA** is an ultra-lightweight, battery-efficient Android reader engineered specifically for **E-Ink devices** (monochrome & color e-paper) as well as modern **Android smartphones, tablets, and foldables/clamshells**.
 
 Adhering to a strict **Zero Heavy Library Policy** (no Jetpack Compose, no Glide/Coil, no Retrofit/OkHttp, no AppCompat), Aether SAGA delivers lightning-fast cold startups, live fold/unfold responsive repagination, and butter-smooth page turns.
 
@@ -49,9 +49,9 @@ Adhering to a strict **Zero Heavy Library Policy** (no Jetpack Compose, no Glide
 
 Aether SAGA automatically detects display panel physics (reflective e-paper vs. emissive LCD/OLED) and dynamically bifurcates features and UI:
 
-| Feature Category | E-Ink Devices (Monochrome & Kaleido 3 Color) | Smartphones · Tablets · Foldables (LCD / OLED) |
+| Feature Category | E-Ink Devices (Monochrome & Color) | Smartphones · Tablets · Foldables (LCD / OLED) |
 | :--- | :--- | :--- |
-| **Target Hardware & Profiles** | 6"~13.3" E-Ink readers (Carta 1200/1300 monochrome & Kaleido 3 4096-color optimized) | Standard Android phones/tablets, **Galaxy Z Fold / Fold Ultra**, **Galaxy Z Flip (Main 22:9 & Flex Window Cover)** |
+| **Target Hardware & Profiles** | 6"~13.3" E-Ink readers (Monochrome & 4096-color e-paper optimized) | Standard Android phones/tablets, **Foldable Main/Ultra**, **Clamshell Foldable (Main 22:9 & Cover)** |
 | **Reading Color Themes** | **Pure Paper/Ink High-Contrast Locked** (blocks software color tints that degrade reflective contrast) | **4 Eye-Care Themes Supported** (`Natural White` / `Warm Sepia` / `Night Charcoal` / `OLED True Black`) |
 | **Brightness & Lighting** | **Direct Hardware Frontlight (CTM) Integration** (eliminates muddy software dim overlays) | **0–100% In-App Brightness Slider** + **Warm Amber (Blue-Light Filter)** eye-protection overlay |
 | **Anti-Ghosting & Refresh** | **1–30 Page Full-Screen Refresh Cycle** setting exposed + hardware key forced refresh | Refresh menu automatically hidden for zero-ghosting 60–120Hz LCD/OLED panels |
@@ -85,8 +85,8 @@ Aether SAGA automatically detects display panel physics (reflective e-paper vs. 
 * **Official User Guide EPUB Overhaul with Realistic Operational Visuals**:
   * Fully updated user guide featuring authentic app screen mockups illustrating live dialogues, stats dashboards, reading rulers, and social cards.
 
-### 📱 1. Foldable (Galaxy Z Fold / Ultra / Z Flip) Live Responsive Engine (Ver. 2.5)
-* **Galaxy Z Fold (`2176×1812`), Fold Ultra (`2184×1968`) & Galaxy Z Flip (`2640×1080` Main & `748×720` / `512×260` Cover)**: Dedicated resolution profiles automatically adjust margins (`0.85x` compact on narrow cover/Flex Window screens, `1.1x` balanced on wide screens) and enable **2-Column (Dual-Page)** spread views on unfolded tablets.
+### 📱 1. Foldable & Clamshell Live Responsive Engine (Ver. 2.5)
+* **Foldable (`2176×1812` / `2184×1968`) & Clamshell (`2640×1080` Main & `748×720` / `512×260` Cover)**: Dedicated resolution profiles automatically adjust margins (`0.85x` compact on narrow cover screens, `1.1x` balanced on wide screens) and enable **2-Column (Dual-Page)** spread views on unfolded tablets.
 * **Seamless Fold↔Unfold Live Repagination**: Folding or unfolding your device preserves 100% of your exact character offset (`currentRawOffset`) while dynamically reflowing text, high-res inline EPUB images (up to `2800px`), and CBZ/ZIP comic viewports without restarting the activity.
 * **21-Diagram Bundled Official User Guide (`AetherSAGA_User_Guide.epub`)**: Every chapter and subsection (`<h2>`) of the built-in user guide includes a custom high-resolution infographic diagram (21 diagrams total + cover) explaining every feature visually.
 * **Gemini AI Reading Assistant (Beta) In-App 1:1 Multi-Turn Chat**: Discuss books right inside the reader popup with 3-genre context detection (Literature, Tech Tutor, History) and toggle the feature On/Off anytime from both **Main Settings** and **In-Reader Settings**.
@@ -122,14 +122,14 @@ Transform books into seamless audiobooks with real-time visual tracking:
 * **Library Continue Reading 100% Full-Width Track ProgressBar**: Dual-layer progress bar with a full-width light background track (with 1px crisp border on E-ink) showing 0% to 100% progress clearly across both E-ink and LCD while keeping `%` progress text intact. Upgraded the straight line to a true rounded progress bar with background track and clip progress fill while keeping `%` progress text intact.
 Transform books into seamless audiobooks with real-time visual tracking:
 * **Floating TTS Control Panel**: Floating non-intrusive control bar with Play/Pause (`▶`/`❚❚`), Stop (`⏹`), Sentence Back/Forward (`◀◀`/`▶▶`), and 6-level one-touch speed presets (**0.5x ~ 2.0x**).
-* **Live Sentence Highlighting**: Real-time visual tracking on screen—soft warm amber highlight on LCD/OLED, crisp underline and 10% grayscale on E-Ink Carta.
+* **Live Sentence Highlighting**: Real-time visual tracking on screen—soft warm amber highlight on LCD/OLED, crisp underline and 10% grayscale on E-Ink panels.
 * **Tap-to-Speak Sentence Jump**: Tap any sentence in the book while the TTS bar is up to immediately jump and read aloud from that exact point.
 * **Zero Word-Severing Across Page Boundaries**: Segmented sentence pipeline delivers whole utterances to the TTS engine without cutting words mid-sentence, automatically turning pages smoothly.
 * **Airtight Screen-On & Zero Screen Timeout**: Completely prevents device screen timeout, screensavers, and internal idle dimming via triple-protection pipeline (Window FLAG_KEEP_SCREEN_ON + View.keepScreenOn + PowerManager WakeLock) during playback.
 
 ### ⚡ 4. Bifurcation Display Architecture (Hardware-Aware)
 A dual-rendering pipeline that adapts precisely to your display hardware:
-* **E-Ink Mode (E-Ink 고해상도 & Kaleido 3)**:
+* **E-Ink Mode (Mono & Color E-Ink)**:
   * Eliminates software color filters and battery-draining animations to protect raw e-paper contrast.
   * Replaces flat UI borders with specialized **anti-ghosting dotted dividers** (`DashPathEffect([3dp, 3dp])`).
   * Configurable full-screen flash refresh (**1–30 pages**) to wipe residual e-ink particles.

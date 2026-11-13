@@ -183,7 +183,7 @@ class PagingEngineImpl(private val pool: BitmapPoolImpl) : PagingEngine {
         isSubpixelText = true
         letterSpacing = if (t.useDocumentDefaults) 0f else t.letterSpacingEm
         color = fgColor
-        if (t.boldnessLevel > 0) {            // 10-level weight booster for Carta 1300 & LCD
+        if (t.boldnessLevel > 0) {            // 10-level weight booster for E-Ink & LCD
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                 try {
                     val wght = (400 + t.boldnessLevel * 50).coerceIn(100, 950)

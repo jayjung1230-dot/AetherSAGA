@@ -744,8 +744,8 @@ fun Activity.showReadingNotesShareDialog(
                         isSuccess = false,
                         title = L10n.t("이메일 앱 실행 실패", "Failed to Open Email App"),
                         message = L10n.t(
-                            "기기에서 이메일 앱(Gmail, 삼성 이메일 등)을 열 수 없습니다.\n이메일 앱이 설치되어 있고 기본 계정이 설정되어 있는지 확인해주세요.",
-                            "Could not open email app (Gmail, Samsung Email, etc.). Please check that an email app is installed and configured."
+                            "기기에서 이메일 앱을 열 수 없습니다.\n이메일 앱이 설치되어 있고 기본 계정이 설정되어 있는지 확인해주세요.",
+                            "Could not open email app. Please check that an email app is installed and configured."
                         )
                     )
                 }

@@ -4,7 +4,7 @@
 > **기준 일자:** 2026년 11월 13일  
 > **대상 애플리케이션:** Aether SAGA (*journeys through endless stories*)  
 > **관련 문서:** [RELEASE_NOTES.md](./RELEASE_NOTES.md), [README.md](./README.md), [ARCHITECTURE.md](./ARCHITECTURE.md)  
-> **작성 목적:** 구글 플레이스토어(Google Play Store) 및 애플 앱스토어(Apple App Store) 출시 전 법적 리스크 사전 점검, 타사 전자책 앱과의 복제/표절 논쟁(Copycat Dispute) 원천 차단, 특허권·상표권·저작권 및 오픈소스 라이선스 클리어런스(Clearance) 확보를 위한 종합 기술 분석 보고서.
+> **작성 목적:** 안드로이드 앱 마켓 및 글로벌 앱 마켓 출시 전 법적 리스크 사전 점검, 타사 전자책 앱과의 복제/표절 논쟁(Copycat Dispute) 원천 차단, 특허권·상표권·저작권 및 오픈소스 라이선스 클리어런스(Clearance) 확보를 위한 종합 기술 분석 보고서.
 
 ---
 
@@ -12,7 +12,7 @@
 
 | 구분 항목 | 전자종이 단말기 (흑백 / 컬러 E-Ink) | 스마트폰 · 태블릿 · 폴더블 (LCD / OLED) |
 | :--- | :--- | :--- |
-| **대상 기기 및 해상도** | 6"~13.3" E-Ink 리더 (Carta 1200/1300 흑백 및 Kaleido 3 4096색 컬러 최적화) | 일반 스마트폰/태블릿, **갤럭시 Z 폴드/울트라**, **갤럭시 Z 플립(메인 22:9 & 플렉스 윈도우 커버)** |
+| **대상 기기 및 해상도** | 6"~13.3" E-Ink 리더 (고대비 흑백 및 4096색 컬러 E-Ink 최적화) | 일반 스마트폰/태블릿, **폴더블 메인/울트라 디스플레이**, **클램셸 폴더블(메인 22:9 & 외부 커버)** |
 | **독서 화면 테마** | **순수 종이/잉크(Paper/Ink) 고대비 고정** (명암비를 떨어뜨리는 배경 컬러 필터 자동 차단) | **4대 시력보호 독서 테마 지원** (화이트 / 눈 보호 세피아 / 야간 차콜 / OLED 트루 블랙) |
 | **화면 밝기 & 조명** | **기기 하드웨어 프론트라이트(CTM) 직접 연동** (화면을 탁하게 만드는 소프트웨어 딤 오버레이 배제) | **0~100% 인앱 밝기 슬라이더** 및 눈의 피로를 줄이는 **웜 앰버(블루라이트 차단) 필터** 제공 |
 | **잔상 제거 & 주사율** | **1~30페이지 주기 전체 화면 리프레시(Full Refresh)** 설정 노출 및 물리 키 강제 잔상 제거 지원 | 잔상이 없는 LCD/OLED 특성에 맞춰 불필요한 리프레시 메뉴 자동 은닉 및 60~120Hz 고속 렌더링 |
@@ -71,19 +71,19 @@
 6. [타사 앱 복제 논쟁(Copycat Dispute) 회피 근거](#6-타사-앱-복제-논쟁copycat-dispute-회피-근거)
 7. [폰트 저작권 및 폰트 소프트웨어 라이선스 준수](#7-폰트-저작권-및-폰트-소프트웨어-라이선스-준수)
 8. [오픈소스 라이선스 및 GPL 바이럴 오염 방지](#8-오픈소스-라이선스-및-gpl-바이럴-오염-방지)
-9. [구글 플레이스토어 & 애플 앱스토어 심사 가이드라인 점검](#9-구글-플레이스토어--애플-앱스토어-심사-가이드라인-점검)
+9. [안드로이드 & 글로벌 앱 마켓 심사 가이드라인 점검](#9-안드로이드--글로벌-앱-마켓-심사-가이드라인-점검)
 10. [종합 요약 및 마켓 출시 준비 체크리스트](#10-종합-요약-및-마켓-출시-준비-체크리스트)
 
 ---
 
 ## 1. 개요 및 법적 검토 목적
 
-**Aether SAGA (*journeys through endless stories*)**는 E-Ink 리더(Crema Luna X, 6.0"), E-Ink 태블릿(Onyx Boox), 킨들(Kindle) 등 저사양 E-Ink 전자책 단말기와 안드로이드/iOS 태블릿 환경에서 동작하는 초경량 전자책 뷰어입니다.
+**Aether SAGA (*journeys through endless stories*)**는 E-Ink 리더(6.0" 표준), 대화면 E-Ink 태블릿, 전용 전자책 단말기 등 저사양 E-Ink 전자책 단말기와 안드로이드/모바일 태블릿 환경에서 동작하는 초경량 전자책 뷰어입니다.
 
-본 문서는 Aether SAGA의 장기적인 글로벌 앱 마켓(Google Play Store 및 Apple App Store) 정식 출시를 대비하여 작성되었습니다. 전자책 뷰어 생태계는 역사적으로 아마존(Amazon), 애플(Apple), 문리더(Moon+ Reader), 코보(Kobo) 등 기존 대형 플랫폼 및 인기 앱 간의 특허 분쟁(예: 책장 넘김 효과 특허, 동기화 특허)과 UI 저작권 분쟁이 빈번했던 분야입니다. 
+본 문서는 Aether SAGA의 장기적인 글로벌 앱 마켓(안드로이드 앱 마켓 및 글로벌 앱 마켓) 정식 출시를 대비하여 작성되었습니다. 전자책 뷰어 생태계는 역사적으로 글로벌 전자책 플랫폼, 타사 모바일 플랫폼, 기존 상용 뷰어, 해외 전자책 단말기 등 기존 대형 플랫폼 및 인기 앱 간의 특허 분쟁(예: 책장 넘김 효과 특허, 동기화 특허)과 UI 저작권 분쟁이 빈번했던 분야입니다. 
 
 본 문서는 Aether SAGA에 구현된 모든 기능의 기술적 작동 원리를 상세히 기술하고, 다음과 같은 법적 리스크를 사전에 완벽히 소명하고 차단하는 데 목적이 있습니다:
-1. **특허권(Patent) 침해 리스크:** 애플의 3D Page Curl 관련 디자인/실용신안 특허, 아마존의 원클릭/WebDAV 동기화 특허 등과의 비침해성 증명.
+1. **특허권(Patent) 침해 리스크:** 3D Page Curl 디자인 특허 및 독점 동기화 특허 등과의 비침해성 증명.
 2. **복제 및 부정경쟁 논쟁(Copycat Claims):** 타사 전자책 앱의 독점적 UI나 소스코드를 도용하지 않고 클린룸(Clean-Room) 방식으로 독자 개발되었음을 증명.
 3. **폰트 소프트웨어 저작권 (Zero-Bundling 원칙):** 상용 폰트(Calibri, Arial 등) 및 서드파티 폰트의 번들링을 전면 배제하고, 안드로이드 OS 표준 폰트(시스템 명조, 시스템 고딕) 호출 및 SAF(Storage Access Framework)를 통한 사용자 폰트 동적 로드만 지원하여 폰트 저작권 리스크 0%를 달성했음을 소명.
 4. **오픈소스 GPL 오염(Copyleft Infection) 방지:** 독점적인 MuPDF/GPL 코드로 인한 소스코드 공개 의무 발생 가능성을 원천 배제.
@@ -93,7 +93,7 @@
 
 ## 2. 클린룸 독립 아키텍처 원칙 (Clean-Room Architecture)
 
-Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader 등)의 오픈소스 코드나 상용 라이브러리를 포크(Fork)하거나 복제하지 않고, **순수 Android Framework SDK(Android View, Canvas, Paint, Room, Coroutines)만을 사용하여 바닥부터 자체 구축된 클린룸(Clean-Room) 독립 코드베이스**입니다.
+Aether SAGA는 타사 리더 앱(타사 전자책 뷰어 앱)의 오픈소스 코드나 상용 라이브러리를 포크(Fork)하거나 복제하지 않고, **순수 Android Framework SDK(Android View, Canvas, Paint, Room, Coroutines)만을 사용하여 바닥부터 자체 구축된 클린룸(Clean-Room) 독립 코드베이스**입니다.
 
 ### 2.1. 제로 헤비 서드파티 라이브러리 정책 (Zero Heavy Library Policy)
 | 배제된 라이브러리 | 배제 사유 및 법적·기술적 이점 |
@@ -128,14 +128,14 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 - **법적 및 마켓 분석:**
   - **특허 이슈:** 없음. 안드로이드 표준 `Canvas.drawBitmap` 및 텍스트 레이아웃 연산으로 독자 구현됨.
   - **복제 논쟁:** 타사 엔진(WebKit/Blink 기반 웹뷰 리더나 MuPDF)을 사용하지 않고 자체 Canvas 직접 조판을 수행하므로 복제 논쟁 원천 차단.
-  - **마켓 정책:** 구글/애플 가이드라인 100% 준수.
+  - **마켓 정책:** 앱 마켓 가이드라인 100% 준수.
 
 ---
 
 ### 3.2. E-Ink 패널 최적화 & 10단계 외곽선 스트로크 부스터
 
 - **개요 및 목적:**
-  전자잉크(E-Ink 표준/1300, Kaleido 3) 패널의 특성에 맞추어 텍스트 시인성을 극대화하고, 잔상(Ghosting)을 방지하기 위한 하드웨어 연동 기능입니다.
+  전자잉크(E-Ink 표준/1300, 컬러 E-Ink) 패널의 특성에 맞추어 텍스트 시인성을 극대화하고, 잔상(Ghosting)을 방지하기 위한 하드웨어 연동 기능입니다.
 - **구현 파일 및 주요 심볼:**
   - [DisplayStrategy.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/domain/display/DisplayStrategy.kt)
   - [Strategies.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/platform/display/Strategies.kt) (`MonoEInkStrategy`, `ColorEInkStrategy`)
@@ -145,7 +145,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   - 외곽선 스트로크 부스터: OpenType `'wght'` 가변 폰트 제어와 `Paint.Style.FILL_AND_STROKE`를 결합하여 0~10단계 정밀 굵기 보정 제공.
   - 전체 화면 리프레시 주기 제어: 사용자가 지정한 페이지(1~30페이지)마다 `FULL_INVERT` 또는 `FULL_GC16` 패널 반전 신호 송출.
 - **법적 및 마켓 분석:**
-  - E-Ink 하드웨어 벤더(Onyx, Crema 등)의 독점 API에 종속되지 않고 표준 안드로이드 시스템 프로퍼티(`ro.hardware.eink`) 및 범용 프레임워크 기능으로 동작하여 하드웨어 제조사 라이선스 분쟁 없음.
+  - E-Ink 하드웨어 벤더(각 E-Ink 하드웨어 제조사)의 독점 API에 종속되지 않고 표준 안드로이드 시스템 프로퍼티(`ro.hardware.eink`) 및 범용 프레임워크 기능으로 동작하여 하드웨어 제조사 라이선스 분쟁 없음.
 
 ---
 
@@ -158,7 +158,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   - [Strategies.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/platform/display/Strategies.kt) (`LcdOledStrategy`, `resolveTransition = INSTANT`)
   - [ReaderActivity.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/ReaderActivity.kt) (페이지 전환 애니메이션 설정 UI 완전 제거)
 - **법적 및 마켓 분석 (초고위험 특허 회피):**
-  - **애플의 3D Page Curl 디자인/UI 특허(US D670,713 등):** 과거 애플이 iBooks의 실감형 책장 넘김 효과와 관련하여 다수의 특허를 등록하고 소송을 제기한 바 있습니다.
+  - **3D Page Curl 디자인/UI 특허(US D670,713 등):** 실감형 책장 넘김 효과와 관련하여 다수의 특허가 등록되고 소송이 제기된 바 있습니다.
   - **Aether SAGA의 완전 면책:** Aether SAGA는 사용자 요청에 따라 **책장 넘기기 효과(Page Turn Animations) 및 3D 곡면 쉐이딩을 코드베이스에서 완전히 삭제**하였으며, 모든 기기(E-Ink, LCD, OLED)에서 **100% 인스턴트 전환(`PageTransition.INSTANT`)**만을 채택하였습니다. 이로써 책장 넘김 효과와 관련된 어떠한 글로벌 특허 침해 주장도 원천적으로 성립할 수 없습니다.
 
 ---
@@ -176,16 +176,16 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   - **4대 핵심 디스플레이 모드로 단순화:** 개별 기기 해상도 프리셋 선택 시 실제 기기와 해상도가 불일치하여 발생할 수 있는 비트맵 스케일링 왜곡을 방지하고 사용자 혼선을 줄이기 위해 핵심 4대 모드로 단순화:
     1. `자동 감지 (기기 환경에 맞춤 - 권장)` (`AUTO`)
     2. `흑백 E-Ink 모드 강제 적용 (E-Ink 고해상도)` (`MONO_EINK`)
-    3. `컬러 E-Ink 모드 강제 적용 (Kaleido 3)` (`COLOR_EINK`)
+    3. `컬러 E-Ink 모드 강제 적용 (컬러 E-Ink)` (`COLOR_EINK`)
     4. `일반 LCD / OLED 모드 강제 적용 (컬러)` (`LCD_OLED`)
   - **활성 항목 체크 표시 (`✓`):** 사용자가 현재 어떤 디스플레이 모드를 사용 중인지 한눈에 알 수 있도록 활성 항목 앞에 `✓  ` 접두어를 부여하고 미선택 항목은 공백 들여쓰기로 깔끔하게 정렬.
   - **기기별 하드웨어 최적화 종횡비:**
-    - 6.0인치: 루나 X / 사운드업 (1448x1072 E-Ink 표준, 300 PPI), 보급형 E-Ink (1024x758 Carta, 212 PPI)
-    - 6.8인치: 킨들 페이퍼화이트 (1648x1236 E-Ink 표준, 300 PPI)
-    - 7.0인치: 오닉스 리프 / 페이지 (1680x1264 E-Ink 표준, 300 PPI)
-    - 7.8인치: 오닉스 노바 / 코보 포마 (1872x1404 Carta, 300 PPI)
-    - 10.3인치: 오닉스 노트 / 대화면 (1872x1404 Carta, 227 PPI)
-    - 13.3인치: 오닉스 맥스 / 대화면 (2200x1650 Carta, 207 PPI)
+    - 6.0인치: 고해상도 E-Ink 표준 (1448x1072, 300 PPI), 보급형 E-Ink (1024x758, 212 PPI)
+    - 6.8인치: 고해상도 E-Ink (1648x1236, 300 PPI)
+    - 7.0인치: E-Ink 리더 (1680x1264, 300 PPI)
+    - 7.8인치: E-Ink 태블릿 (1872x1404, 300 PPI)
+    - 10.3인치: 대화면 E-Ink 태블릿 (1872x1404, 227 PPI)
+    - 13.3인치: 초대형 E-Ink 태블릿 (2200x1650, 207 PPI)
 - **LCD/OLED 독서 테마 및 E-Ink 순수 대비 보호 (Eye-Care & Night Mode):**
   - **LCD/OLED 전용 독서 테마:** 장시간 스마트폰/태블릿 독서 시 눈의 피로를 최소화하기 위해 4가지 전용 테마를 제공:
     - 📄 기본 화이트 (Natural Paper: `#FBFBF8` / `#111111`)
@@ -193,14 +193,14 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
     - 🌙 야간 독서 다크모드 (Night Charcoal: `#141416` / `#EEEEEE`)
     - ⚫ OLED 트루 블랙 (True Black: `#000000` / `#D0D0D0`)
     - 각 테마 버튼에 현재 적용 상태를 알리는 `✓` 표시 제공.
-  - **E-Ink 화면에서의 테마 UI 은닉:** 반사형 패널인 Carta E-Ink 디바이스에서는 소프트웨어 세피아나 앰버 필터 적용 시 흑백 패널에 불필요한 중간조 디더링이 발생하여 텍스트의 선명도와 콘트라스트가 손상되므로, E-Ink 기기에서는 테마 선택 메뉴를 완전히 숨기고 순수 Carta 종이/잉크로 고정 보호.
+  - **E-Ink 화면에서의 테마 UI 은닉:** 반사형 패널인 흑백 E-Ink 디바이스에서는 소프트웨어 세피아나 앰버 필터 적용 시 흑백 패널에 불필요한 중간조 디더링이 발생하여 텍스트의 선명도와 콘트라스트가 손상되므로, E-Ink 기기에서는 테마 선택 메뉴를 완전히 숨기고 순수 종이/잉크 대비로 고정 보호.
 - **종횡비 호환성 검증:**
-  - **4:3 비율 (비율 1.33~1.35):** 루나 X, 대화면 E-Ink, iPad 계열. `marginScale = 1.1f`, `measure = 38f`. 세로는 1단, 가로는 1600px 이상 대화면에서만 2단 펼침 허용.
-  - **16:10 비율 (비율 1.60):** 갤럭시 탭, 파이어 HD 등 안드로이드 표준 태블릿. `marginScale = 1.0f`, `measure = 42f`. 가로 모드 시 자동 2단 분할.
+  - **4:3 비율 (비율 1.33~1.35):** 6"~10" E-Ink 및 4:3 비율 태블릿. `marginScale = 1.1f`, `measure = 38f`. 세로는 1단, 가로는 1600px 이상 대화면에서만 2단 펼침 허용.
+  - **16:10 비율 (비율 1.60):** 16:10 안드로이드 표준 태블릿. `marginScale = 1.0f`, `measure = 42f`. 가로 모드 시 자동 2단 분할.
   - **16:9 비율 (비율 1.778):** 스마트폰 및 와이드 모니터. `marginScale = 0.95f`, `measure = 44f`.
 - **법적 및 마켓 분석:**
   기기 목록 표기는 하드웨어 해상도 호환성을 돕기 위한 기술적 참조용(Nominative Fair Use)이며, 상표 침해를 구성하지 않습니다.
-  - **비제휴 공식 면책 조항 (Nominative Fair Use Disclaimer):** 본 문서 및 애플리케이션 내에 언급된 크레마(Crema), E-Ink 태블릿(Onyx Boox), 킨들(Kindle), 코보(Kobo) 등 모든 기기명 및 제조사 상표는 해당 권리자의 독점적 재산이며, Aether SAGA는 이들 제조사/플랫폼과 어떠한 공식 제휴, 후원, 대리 또는 보증 관계도 없습니다. 본 표기는 순수하게 해당 하드웨어 패널의 해상도(DPI), 화면비(4:3 등), 흑백 명암비와의 기술적 호환성을 안내하기 위한 상표법상 정당한 식별 사용(Nominative Fair Use) 범위 내에서만 정당하게 사용되었습니다.
+  - **비제휴 공식 면책 조항 (Nominative Fair Use Disclaimer):** 본 문서 및 애플리케이션 내에 언급된 일반 E-Ink 리더기, 대화면 E-Ink 태블릿, 전용 전자책 단말기, 해외 전자책 단말기 등 모든 기기명 및 제조사 상표는 해당 권리자의 독점적 재산이며, Aether SAGA는 이들 제조사/플랫폼과 어떠한 공식 제휴, 후원, 대리 또는 보증 관계도 없습니다. 본 표기는 순수하게 해당 하드웨어 패널의 해상도(DPI), 화면비(4:3 등), 흑백 명암비와의 기술적 호환성을 안내하기 위한 상표법상 정당한 식별 사용(Nominative Fair Use) 범위 내에서만 정당하게 사용되었습니다.
 
 ---
 
@@ -217,7 +217,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   3. `시스템 고딕 (System Sans-serif)`: 안드로이드 OS 표준 `Typeface.SANS_SERIF` 활용.
   4. `사용자 추가 글꼴`: 사용자가 직접 가져온 폰트 파일 동적 로딩.
 - **법적 및 마켓 분석 (폰트 저작권 100% 완전 무결):**
-  - **제3자 폰트 번들링 전면 배제:** 리디바탕(동종 뷰어 업계 경쟁 분쟁), Shippori Mincho(대용량 재배포 고지 의무), 카페24 고운밤(프로모션 활용 특약), Carlito/Arimo(기기 메트릭 복제 이슈) 등 일체의 서드파티 폰트 바이너리를 APK `assets/`에서 전면 제거하였습니다.
+  - **제3자 폰트 번들링 전면 배제:** 상용 뷰어 전용 서체(동종 업계 분쟁 소지), Shippori Mincho(대용량 재배포 고지 의무), 카페24 고운밤(프로모션 활용 특약), Carlito/Arimo(기기 메트릭 복제 이슈) 등 일체의 서드파티 폰트 바이너리를 APK `assets/`에서 전면 제거하였습니다.
   - 앱 설치 용량이 약 13MB 대폭 감소하였으며, OS 표준 내장 Typeface만을 활용하므로 전 세계 어느 마켓에서도 폰트 저작권(DMCA Takedown) 관련 이슈가 0%로 완벽히 해소되었습니다.
 
 ---
@@ -249,7 +249,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   - [PagingEngineImpl.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/engine/PagingEngineImpl.kt) (`currentPageCharRange`)
   - [ReaderActivity.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/ReaderActivity.kt) (`BookmarkRibbonView`, `updateBookmarkIndicator`, `addBookmark`)
 - **기술적 차별성:**
-  - 안드로이드 비트맵 리소스 이미지 대신, 순수 `android.graphics.Path`를 사용하여 E-Ink의 고대비 잉크 색상(`0xFF111111`)과 리디 블루 액센트로 렌더링되는 경량 커스텀 뷰 탑재.
+  - 안드로이드 비트맵 리소스 이미지 대신, 순수 `android.graphics.Path`를 사용하여 E-Ink의 고대비 잉크 색상(`0xFF111111`)과 Primary Blue 액센트로 렌더링되는 경량 커스텀 뷰 탑재.
   - 페이지의 글자 시작 오프셋과 끝 오프셋 범위(`charStart <= bookmark.offset <= charEnd`)를 정밀 비교하여 정확한 페이지에만 노출.
 - **법적 및 마켓 분석:**
   표준적인 서적 메타포(Book Metaphor)의 합리적 활용이며, 상표권이나 독점적 특허에 저촉되지 않음.
@@ -296,7 +296,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   - `showWithOptimalWidth` 확장 함수 내에서 모든 `AlertDialog` 인스턴스의 `buttonPanel`을 검사하여 "닫기" 버튼을 감지(`visibility = View.GONE`)하고, 하단 패널에 더 이상 유효 버튼이 없을 경우 패널 전체를 숨김 처리.
   - 상단 타이틀 바(`title_template` 또는 `topPanel`)에 36dp x 36dp 터치 타깃의 고대비 '✕' 텍스트 뷰를 자동 주입하여 한손 조작 시 상단 우측 탭만으로 즉각 창을 닫을 수 있도록 통일.
 - **법적 및 마켓 분석:**
-  구글 Material 디자인 및 애플 휴먼 인터페이스 가이드라인(HIG)의 모달 시트 규격에 완벽히 부합.
+  모바일 플랫폼 UI/UX 가이드라인의 모달 시트 규격에 완벽히 부합.
 
 ---
 
@@ -428,9 +428,9 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 - **기술적 차별성 및 특허 회피:**
   - **친화적 가이드 UI 탑재:** 단순 URL/계정 입력창만 노출하던 기존 방식에서 벗어나, 상단에 WebDAV의 기능적 목적(Nextcloud, Synology NAS, Koofr 등 개인 클라우드 스토리지를 통한 다기기 동기화)과 장점(기업 서버에 독서 기록이 수집되지 않는 100% 개인정보 보호)을 한눈에 알기 쉽게 설명하는 카드형 안내 배너 제공.
   - **엔드투엔드 로컬 자격 증명 암호화 (Keystore AES-256-GCM):** 사용자의 WebDAV 접속 비밀번호는 Android Keystore 기반의 EncryptedSharedPreferences를 통해 AES-256-GCM으로 로컬에 안전하게 암호화 보관되어 외부 유출 및 기기 내 타 앱 탈취를 원천 차단합니다.
-  - 아마존의 독점 WebDAV 동기화 프로토콜이나 특정 클라우드 벤더의 잠금(Lock-in) API를 사용하지 않고, IETF 표준 **WebDAV (RFC 4918)** HTTP 메소드(PROPFIND, PUT, GET)를 직접 구현하여 동작.
+  - 특정 플랫폼의 독점 동기화 프로토콜이나 특정 클라우드 벤더의 잠금(Lock-in) API를 사용하지 않고, IETF 표준 **WebDAV (RFC 4918)** HTTP 메소드(PROPFIND, PUT, GET)를 직접 구현하여 동작.
 - **법적 및 마켓 분석:**
-  개방형 표준 프로토콜 기반이므로 아마존 특허 비침해 및 프라이버시(Privacy-First) 준수.
+  개방형 표준 프로토콜 기반이므로 타사 동기화 특허 비침해 및 프라이버시(Privacy-First) 준수.
 
 
 ---
@@ -444,13 +444,13 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   - [ReaderActivity.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/ReaderActivity.kt) (`showFrontlightDialog`, `configureEngine`)
 - **기술적 구현 및 이원화 원칙:**
   - **E-Ink 기기 (`strategy.kind != DisplayKind.LCD_OLED`):**
-    - 반사형(Reflective) Carta 전자종이 패널에 안드로이드 소프트웨어 반투명 디밍 오버레이를 덧씌울 경우 화면 전체가 탁한 회색조로 변하고 Carta 본연의 흑백 명암비가 급격히 저하됩니다.
+    - 반사형(Reflective) 전자종이 패널에 안드로이드 소프트웨어 반투명 디밍 오버레이를 덧씌울 경우 화면 전체가 탁한 회색조로 변하고 전자종이 본연의 흑백 명암비가 급격히 저하됩니다.
     - 따라서 E-Ink 단말에서는 앱 내부 소프트웨어 밝기 필터를 **완전 비활성화(Force Disable)**하고, 기기 전용 하드웨어 프론트라이트 LED 컨트롤과 100% 동기화되는 **시스템 조명 따르기 모드**로 고정합니다.
     - 다이얼로그 호출 시 `[ ⚙ 기기 시스템 조명 설정 열기 ]` 단축 버튼(`Settings.ACTION_DISPLAY_SETTINGS`)을 즉시 제공하여 사용자가 단말기 자체 조명 제어판으로 직관적으로 접근하도록 지원합니다.
   - **LCD/OLED 기기 (`strategy.kind == DisplayKind.LCD_OLED`):**
     - 자체 발광 패널의 특성에 맞추어 앱 내부 슬라이더를 통한 0~100% 소프트웨어 밝기 조절 및 앰버 색온도 틴트 오버레이, 4대 시력 보호 독서 테마를 완전 제공합니다.
 - **법적 및 마켓 분석:**
-  하드웨어 제조사의 독점적 프론트라이트 프라이빗 API(예: 오닉스/킨들 NDK)를 리버스 엔지니어링하지 않고, 안드로이드 표준 프레임워크 인텐트(`Settings.ACTION_DISPLAY_SETTINGS`)만을 사용하므로 기기 제조사 약관 및 구글 호환성 정책(CDD)을 100% 준수합니다.
+  하드웨어 제조사의 독점적 프론트라이트 프라이빗 API를 리버스 엔지니어링하지 않고, 안드로이드 표준 프레임워크 인텐트(`Settings.ACTION_DISPLAY_SETTINGS`)만을 사용하므로 기기 제조사 약관 및 안드로이드 호환성 정책(CDD)을 100% 준수합니다.
 
 ---
 
@@ -529,7 +529,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
     - MPAndroidChart 등 수 메가바이트 규모의 외부 차트 라이브러리를 일체 배제하고, 안드로이드 순수 `Canvas.drawPath()`, `drawCircle()`, `drawLine()`만으로 경량 라인 차트 컴포넌트(`StatsLineChartView`)를 독자 구현.
     - 약 555KB의 초경량 APK 용량 예산을 100% 보존하며 메모리 오버헤드가 전무함.
   - **E-Ink vs LCD/OLED 화면 맞춤 렌더링**:
-    - `E-Ink`: Carta 패널의 흑백 특성을 고려하여 2.6dp 고대비 실선과 원형 마커, 점선 수평 격자선(`DashPathEffect`)으로 조판하여 디더링 잔상과 고스팅을 원천 예방.
+    - `E-Ink`: 전자종이 패널의 흑백 특성을 고려하여 2.6dp 고대비 실선과 원형 마커, 점선 수평 격자선(`DashPathEffect`)으로 조판하여 디더링 잔상과 고스팅을 원천 예방.
     - `LCD/OLED`: 은은한 수직 선형 그라데이션 영역 채움(`LinearGradient`)과 세련된 블루/인디고 포인트 컬러 적용.
   - **다차원 지표 및 인사이트 분석**:
     - 기간 선택: `주간 (최근 7일)` · `월간 (최근 4주)` · `연간 (1~12월)`
@@ -544,7 +544,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
       - 연간 모드: 1년 전체 완독 권수 및 각 월별(1월~12월) 완독 권수와 완독 도서 목록을 그룹화하여 일목요연하게 제공.
       - 파일 삭제 독립성: 완독 후 원본 도서 파일을 기기나 책장에서 삭제하더라도 독서 이력(`completed_books` 테이블)은 영구 보존되어 언제든 과거 완독 기록 확인 가능.
 - **법적 및 마켓 분석:**
-  자체 개발된 순수 프레임워크 뷰 및 수학적 통계 집계 모델로 구현되어 타사 뷰어(문리더, 킨들 등)의 특허나 저작권과 무관하며, 완전한 클린룸 독립성을 가집니다.
+  자체 개발된 순수 프레임워크 뷰 및 수학적 통계 집계 모델로 구현되어 기존 타사 전자책 뷰어의 특허나 저작권과 무관하며, 완전한 클린룸 독립성을 가집니다.
 
 ---
 
@@ -592,7 +592,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
     - 저장 완료 시 한글("독서 카드가 사진 보관함(Pictures/AetherSAGA)에 저장되었습니다") 및 영어("Card saved to gallery (Pictures/AetherSAGA)") 토스트 안내 표출.
   - **카카오톡(KakaoTalk) 다이렉트 전송 및 스토어 안내:**
     - 카카오 공식 브랜드 옐로우(`#FEE500`) 및 다크 브라운(`#3C1E1E`) 말풍선 벡터 아이콘을 자체 렌더링.
-    - 카카오톡 설치 시 카드 이미지와 텍스트를 담아 카카오톡 공유 창으로 즉시 전환하며, 미설치 시 구글 플레이스토어로 자동 안내.
+    - 카카오톡 설치 시 카드 이미지와 텍스트를 담아 카카오톡 공유 창으로 즉시 전환하며, 미설치 시 안드로이드 앱 마켓로 자동 안내.
   - **문자 메시지(SMS) 전송 기능 및 스마트폰 기기 감지:**
     - `context.packageManager.hasSystemFeature(PackageManager.FEATURE_TELEPHONY)` 및 기본 SMS 앱 존재 여부를 확인하는 `canSendSms()`를 통해 실제 문자 전송이 가능한 스마트폰/셀룰러 기기에서만 옵션 노출.
   - **정밀한 하드웨어 이원화 (Hardware Bifurcation):**
@@ -601,7 +601,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   - **전면적 이중 언어(한국어/영어) 지원:**
     - 타깃 타이틀("💾 독서 카드 이미지 저장" / "💾 Save Card Image to Gallery", "💬 카카오톡" / "💬 KakaoTalk", "✉️ 문자 메시지" / "✉️ Text Message (SMS)") 및 설치 상태("설치됨" / "Installed", "미설치" / "Not installed")의 완전한 영문화 적용.
 - **법적 및 마켓 분석:**
-  표준 Android ContentProvider/FileProvider와 Scoped Storage 규격을 100% 준수하며 위험 권한(SMS, Storage)을 요구하지 않으므로 Google Play 스토어의 엄격한 권한 심사 및 Apple App Store 개인정보 가이드라인을 원천적으로 통과합니다.
+  표준 Android ContentProvider/FileProvider와 Scoped Storage 규격을 100% 준수하며 위험 권한(SMS, Storage)을 요구하지 않으므로 안드로이드 앱 마켓의 엄격한 권한 심사 및 글로벌 앱 마켓 개인정보 가이드라인을 원천적으로 통과합니다.
 
 ---
 
@@ -660,7 +660,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
   - **Zero-Dependency 초경량 아키텍처**:
     - 외부 다국어 프레임워크나 무거운 번들 라이브러리 없이, 인라인 최적화된 `L10n.t()` 헬퍼를 활용하여 APK 용량 증가(0KB급) 없이 즉시 반응형 렌더링을 구현합니다.
 - **법적 및 마켓 분석:**
-  Google Play 및 Apple App Store의 글로벌 로컬라이제이션 가이드라인을 완전 충족하며, 시스템 언어 폴백을 통해 전 세계 사용자가 진입 장벽 없이 바로 사용할 수 있습니다.
+  Google Play 및 글로벌 앱 마켓의 글로벌 로컬라이제이션 가이드라인을 완전 충족하며, 시스템 언어 폴백을 통해 전 세계 사용자가 진입 장벽 없이 바로 사용할 수 있습니다.
 
 ---
 
@@ -744,7 +744,7 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 ### 3.36. 속도 및 메모리 안정성 최적화 시스템 (Zero-I/O Tab Switching, Bounded LRU & Thread-Safe Engine)
 
 - **개요 및 목적:**
-  저사양 전자잉크 단말기(Carta 1200/1300, 1~2GB RAM)부터 고주사율 플래그십 폴더블 기기까지 일체의 버벅임이나 메모리 누수, 크래시 없이 극도의 쾌적함을 보장하기 위한 전방위 성능 및 안정화 파이프라인입니다.
+  저사양 전자잉크 단말기(고대비 E-Ink, 1~2GB RAM)부터 고주사율 플래그십 폴더블 기기까지 일체의 버벅임이나 메모리 누수, 크래시 없이 극도의 쾌적함을 보장하기 위한 전방위 성능 및 안정화 파이프라인입니다.
 - **구현 파일 및 주요 심볼:**
   - [StatsDashboardDialog.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/app/StatsDashboardDialog.kt) (`pageEstimateCache: ConcurrentHashMap<String, Pair<Int, Int>>`)
   - [PagingEngineImpl.kt](file:///c:/Users/reevo/Desktop/앱개발프로젝트/Android%20e-book%20viewer/app/src/main/java/com/aether/reader/engine/PagingEngineImpl.kt) (`layoutCache.removeEldestEntry { size > 6 }`, `BitmapPoolImpl`)
@@ -763,9 +763,9 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 
 | 대상 특허 / 기술 분야 | 주요 특허권자 | 관련 특허 번호 예시 | Aether SAGA의 구현 방식 및 비침해 분석 결과 |
 |---|---|---|---|
-| **3D 페이지 컬 (Page Curl / Turn Effect)** | Apple Inc. | US D670,713, US 8,869,062 | **비침해 (100% 면책):** Aether SAGA는 3D 책장 넘김 효과, 메시 왜곡, 접힘 쉐이딩 애니메이션을 코드베이스에서 완전히 삭제하고 순수 **즉시 전환(`PageTransition.INSTANT`)**만을 채택함. 특허의 구성요소를 전혀 포함하지 않음. |
-| **WebDAV 동기화 다기기 동기화** | Amazon Technologies, Inc. | US 8,131,883 등 | **비침해:** 아마존의 중앙 집중식 독점 메시징/동기화 아키텍처가 아닌, 표준 IETF RFC 4918 **WebDAV 분산 프로토콜**을 사용하여 사용자의 자체 사설 스토리지와 동기화함. |
-| **1-Click 결제 및 서적 구매** | Amazon.com | US 5,960,411 (만료됨) | **비침해:** Aether SAGA는 도서 판매 기능이나 인앱 결제가 전혀 없는 순수 로컬 뷰어이므로 구매 관련 특허와 무관함. |
+| **3D 페이지 컬 (Page Curl / Turn Effect)** | 타사 특허권자 | US D670,713, US 8,869,062 | **비침해 (100% 면책):** Aether SAGA는 3D 책장 넘김 효과, 메시 왜곡, 접힘 쉐이딩 애니메이션을 코드베이스에서 완전히 삭제하고 순수 **즉시 전환(`PageTransition.INSTANT`)**만을 채택함. 특허의 구성요소를 전혀 포함하지 않음. |
+| **WebDAV 동기화 다기기 동기화** | 타사 특허권자 | US 8,131,883 등 | **비침해:** 특정 플랫폼의 중앙 집중식 독점 메시징/동기화 아키텍처가 아닌, 표준 IETF RFC 4918 **WebDAV 분산 프로토콜**을 사용하여 사용자의 자체 사설 스토리지와 동기화함. |
+| **1-Click 결제 및 서적 구매** | 타사 플랫폼 | US 5,960,411 (만료됨) | **비침해:** Aether SAGA는 도서 판매 기능이나 인앱 결제가 전혀 없는 순수 로컬 뷰어이므로 구매 관련 특허와 무관함. |
 | **인라인 각주 팝오버** | 범용 기술 (다수) | N/A | **비침해:** 선행 기술(Prior Art)이 풍부한 표준 하이퍼링크 기반 오버레이 뷰로 자유 실시 기술임. |
 
 ---
@@ -773,20 +773,20 @@ Aether SAGA는 타사 리더 앱(KOReader, FBReader, CoolReader, Moon+ Reader �
 ## 5. 상표권(Trademark) 및 부정경쟁방지법 검토
 
 1. **앱 브랜드 명칭 `Aether SAGA` (`Aether SAGA, journeys through endless stories`):**
-   - 글로벌 서적/소프트웨어 분류(Nice 분류 제9류 및 제42류)에서 "Aether SAGA"는 독창적인 복합 식별 표장으로 기존 상표들과의 차별성을 확고히 확보하였으며, 특정 전자책 플랫폼(예: Kindle, Kobo, Ridibooks)의 주지·저명 상표와 오인·혼동을 원천 차단합니다.
+   - 글로벌 서적/소프트웨어 분류(Nice 분류 제9류 및 제42류)에서 "Aether SAGA"는 독창적인 복합 식별 표장으로 기존 상표들과의 차별성을 확고히 확보하였으며, 특정 전자책 플랫폼(예: 타사 전자책 플랫폼)의 주지·저명 상표와 오인·혼동을 원천 차단합니다.
    - **단독 명칭 'SAGA' 배제 및 복합 표장 확정 원칙:** 일반 명사적 성격을 띨 수 있는 단독 명칭 'SAGA'의 사용을 엄격히 배제하고, 독창적 수식어가 결합된 공식 복합 표장 'Aether SAGA'만을 대외 표장으로 확정하여 선행 상표 분쟁 가능성을 원천 차단합니다.
 2. **바이오닉 리딩(Bionic Reading) 상표권 리스크 원천 소멸:**
    - 'Bionic Reading'은 해외 특정 상표권자에 의해 등록된 표장입니다.
    - **조치 완료:** Aether SAGA에서는 사용자의 요청 및 법적 안전성 확보를 위해 바이오닉 리딩 기능과 관련 포매터(`BionicTextFormatter.kt`), 설정 플래그, UI 항목 일체를 **코드베이스에서 전면 영구 삭제**하였습니다. 이로써 바이오닉 리딩 상표권 및 특허 분쟁 가능성을 0%로 완전히 소멸시켰습니다.
 3. **타사 기기명 참조 및 비제휴 공식 면책 조항 (Nominative Fair Use & Non-Affiliation Disclaimer):**
-   - 디스플레이 추천 목록의 "E-Ink 리더", "오닉스 리프", "킨들 페이퍼화이트" 등의 표기는 해당 기기와의 해상도 호환성을 안내하기 위한 **상표의 정당한 비침해적 식별 사용(Nominative Fair Use)**에 해당합니다.
-   - **공식 면책 선언:** Aether SAGA는 Crema, Onyx International, Amazon Kindle, Rakuten Kobo 등 언급된 하드웨어 제조사 및 전자책 서비스 제공업체와 어떠한 상업적 제휴, 후원, 대리 또는 보증 관계도 없음을 명백히 밝히며, 해당 상표는 오직 사용자 기기의 하드웨어 디스플레이 특성에 맞춘 조판 최적화 기준을 식별하기 위한 용도로만 제한적으로 사용됨을 공표합니다.
+   - 디스플레이 추천 목록은 특정 제조사 상표가 아닌 화면 크기(인치)와 해상도(PPI) 등 중립적인 기술 규격 명칭만을 사용합니다.
+   - **공식 면책 선언:** Aether SAGA는 다양한 E-Ink 하드웨어 제조사 및 전자책 단말기 등 언급된 하드웨어 제조사 및 전자책 서비스 제공업체와 어떠한 상업적 제휴, 후원, 대리 또는 보증 관계도 없음을 명백히 밝히며, 해당 상표는 오직 사용자 기기의 하드웨어 디스플레이 특성에 맞춘 조판 최적화 기준을 식별하기 위한 용도로만 제한적으로 사용됨을 공표합니다.
 
 ---
 
 ## 6. 타사 앱 복제 논쟁(Copycat Dispute) 회피 근거
 
-전자책 뷰어 시장에서 Moon+ Reader, FBReader, Apple Books 등 선행 앱과의 복제 논쟁을 회피하기 위한 Aether SAGA만의 독창적 아키텍처적 차별점은 다음과 같습니다:
+전자책 뷰어 시장에서 기존 상용 전자책 뷰어 앱과의 복제 논쟁을 회피하기 위한 Aether SAGA만의 독창적 아키텍처적 차별점은 다음과 같습니다:
 
 1. **제로 서드파티 UI 라이브러리:**
    - 대부분의 안드로이드 리더가 웹뷰(Chromium Webview)나 오픈소스 MuPDF 뷰어 래퍼를 복제하여 사용하는 반면, Aether SAGA는 **100% 자체 Canvas 비트맵 래스터라이저(`PagingEngineImpl`)**로 구동됩니다.
@@ -815,7 +815,7 @@ Aether SAGA는 제3자 폰트 번들링으로 인한 잠재적 라이선스 분�
 
 - **용량 최적화 효과:**
   - 불필요한 번들 폰트 바이너리(약 12MB)가 모두 제거되어 최종 배포 APK 크기가 **약 555KB로 약 92% 이상 경량화**되었습니다.
-  - 전 세계 어떤 앱 마켓(Google Play, Apple App Store)에서도 폰트 저작권 침해 클레임(DMCA Takedown)이 발생할 여지가 원천적으로 0%입니다.
+  - 전 세계 어떤 앱 마켓(Google Play, 글로벌 앱 마켓)에서도 폰트 저작권 침해 클레임(DMCA Takedown)이 발생할 여지가 원천적으로 0%입니다.
 
 ---
 
@@ -829,13 +829,13 @@ Aether SAGA는 제3자 폰트 번들링으로 인한 잠재적 라이선스 분�
 
 ---
 
-## 9. 구글 플레이스토어 & 애플 앱스토어 심사 가이드라인 점검
+## 9. 안드로이드 & 글로벌 앱 마켓 심사 가이드라인 점검
 
-### 9.1. 구글 플레이스토어 정책 (Google Play Policy)
+### 9.1. 안드로이드 앱 마켓 정책 (Google Play Policy)
 1. **모든 파일 접근 권한 (`MANAGE_EXTERNAL_STORAGE`) 소명 전략:**
    - **전문 E-Book 및 문서 관리자(Document Manager) 카테고리 입증:** Aether SAGA는 단순한 단일 파일 뷰어가 아니며, 기기 내 분산 저장된 다양한 문서 형식(EPUB, TXT, PDF, CBZ, CBR, ZIP)을 고속으로 일괄 색인하고, 책장 분류, 독서 진행률 영속화, 메타데이터 관리, 커버 썸네일 캐싱을 통합 수행하는 **전문 E-Book/문서 관리자**로서 구글 플레이의 공식 허용 카테고리(Permitted Core Functionality)에 완벽히 부합함을 입증합니다.
    - **저사양 E-Ink 단말기에서의 SAF 한계 및 실측 벤치마크 데이터 소명:**
-     - 크레마, 오닉스 등 저사양 E-Ink 단말(저전력 쿼드코어 CPU, 2GB 이하 RAM, 느린 eMMC 스토리지) 환경에서 안드로이드 SAF(`DocumentFile` 및 DocumentsProvider IPC)를 통해 수천 권의 도서 라이브러리를 순회할 경우, 시스템 IPC 오버헤드와 브로드캐스트 지연으로 인해 **파일 1,000건 색인 시 120초 이상의 극심한 I/O 지연(UI 프리징)과 빈번한 OOM(Out of Memory) 크래시**가 발생합니다.
+     - 각 E-Ink 단말기 제조사 저사양 E-Ink 단말(저전력 쿼드코어 CPU, 2GB 이하 RAM, 느린 eMMC 스토리지) 환경에서 안드로이드 SAF(`DocumentFile` 및 DocumentsProvider IPC)를 통해 수천 권의 도서 라이브러리를 순회할 경우, 시스템 IPC 오버헤드와 브로드캐스트 지연으로 인해 **파일 1,000건 색인 시 120초 이상의 극심한 I/O 지연(UI 프리징)과 빈번한 OOM(Out of Memory) 크래시**가 발생합니다.
      - 반면 표준 Linux 파일 시스템 직접 접근(`File` API)을 가능하게 하는 `MANAGE_EXTERNAL_STORAGE` 권한 사용 시 색인 시간이 1.8초로 60배 이상 단축되며, 저사양 단말기 사용자의 정상적인 서비스 이용을 위해 이 권한이 기술적·물리적으로 필수 불가결함을 심사관 소명 자료로 제출합니다.
    - **권한 거부 시 2중 안전장치 (SAF Fallback):** `MANAGE_EXTERNAL_STORAGE` 권한이 거부되거나 허용되지 않는 기기 환경에서도 SAF 단일/폴더 선택기(`ACTION_OPEN_DOCUMENT_TREE`)를 통해 도서를 안전하게 로드할 수 있는 2중 대체 경로를 완비하고 있습니다.
 2. **데이터 세이프티 (Data Safety):**
@@ -843,7 +843,7 @@ Aether SAGA는 제3자 폰트 번들링으로 인한 잠재적 라이선스 분�
 3. **디지털 상품 판매 수수료 (Google Play Billing 30%):**
    - 자체 서점을 운영하지 않고 사용자가 소장한 파일만을 열람하는 리더 앱이므로 인앱 결제(IAP) 의무가 적용되지 않습니다.
 
-### 9.2. 애플 앱스토어 정책 (Apple App Store Review Guidelines)
+### 9.2. 글로벌 앱 마켓 심사 가이드라인 (Review Guidelines)
 1. **지침 3.1.1 (인앱 구매):**
    - 사용자가 소유한 도서(EPUB, TXT, PDF)를 WebDAV나 파일 공유를 통해 가져와 읽는 '리더(Reader)' 기능은 IAP 구매 강제 조항에서 제외됩니다.
 2. **지침 2.5.4 (백그라운드 실행):**
@@ -857,7 +857,7 @@ Aether SAGA는 제3자 폰트 번들링으로 인한 잠재적 라이선스 분�
 
 | 검토 항목 | Aether SAGA 현황 및 조치 결과 | 적합 여부 |
 |---|---|:---:|
-| **특허권 침해** | 애플 3D Page Curl 등 일체의 전환 효과 삭제 (`INSTANT` 고정), WebDAV 개방형 동기화 채택 | **PASS (완전 면책)** |
+| **특허권 침해** | 3D Page Curl 등 일체의 전환 효과 삭제 (`INSTANT` 고정), WebDAV 개방형 동기화 채택 | **PASS (완전 면책)** |
 | **타사 앱 복제 논쟁** | Zero 서드파티 라이브러리, 순수 Canvas 기반 자체 텍스트 레이아웃 아키텍처 입증 | **PASS (클린룸 독자 구현)** |
 | **폰트 저작권 (Zero-Bundling)** | 상용 및 서드파티 번들 폰트 전면 제거, 순수 AOSP 시스템 폰트 호출 및 SAF 사용자 로드로 폰트 저작권 리스크 0% 달성 | **PASS (저작권 리스크 0%)** |
 | **폰트 언어 및 시스템 연동** | 번들 폰트 일체 배제(Carlito, Arimo 등 미탑재), 기기 OS 표준 폰트 및 다국어 유니코드 CJK 표준 렌더링 파이프라인 활용 | **PASS (OS 표준 연동 완비)** |
@@ -868,7 +868,7 @@ Aether SAGA는 제3자 폰트 번들링으로 인한 잠재적 라이선스 분�
 | **개인정보 보호** | 로컬 전용 처리, 트래킹 제로 (GDPR, CCPA, 국내법 완벽 준수) | **PASS (무결성 확보)** |
 
 ---
-*본 문서는 Aether SAGA 프로젝트의 지식재산권 보호 및 글로벌 앱 마켓(Google Play, Apple App Store)의 정식 검수 등록 시 공식 법적·기술적 소명 자료로 활용할 수 있습니다.*
+*본 문서는 Aether SAGA 프로젝트의 지식재산권 보호 및 글로벌 앱 마켓(Google Play, 글로벌 앱 마켓)의 정식 검수 등록 시 공식 법적·기술적 소명 자료로 활용할 수 있습니다.*
 
 ---
 

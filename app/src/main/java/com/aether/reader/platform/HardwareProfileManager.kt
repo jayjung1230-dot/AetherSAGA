@@ -41,7 +41,7 @@ class HardwareProfileManager(
         val metrics = profileManager.metrics()
         val isEink = metrics.isEinkHint || metrics.isColorEinkHint
 
-        val isLowSpecEink = isEink && ramMb < 3000 // Luna X (2GB RAM)
+        val isLowSpecEink = isEink && ramMb < 3000 // Low-RAM E-Ink devices (< 3GB RAM)
         val isHighSpecEink = isEink && ramMb >= 3000
         val isTablet = !isEink
 

@@ -1750,7 +1750,7 @@ class LibraryActivity : Activity() {
         val presetName = when {
             isAuto -> L10n.t("자동 감지 (기기 맞춤 권장)", "Auto Detect (Recommended)")
             currentKind == DisplayKind.MONO_EINK.name -> L10n.t("흑백 E-Ink 모드", "Mono E-Ink Mode")
-            currentKind == DisplayKind.COLOR_EINK.name -> L10n.t("컬러 E-Ink (Kaleido 3)", "Color E-Ink (Kaleido 3)")
+            currentKind == DisplayKind.COLOR_EINK.name -> L10n.t("컬러 E-Ink", "Color E-Ink")
             currentKind == DisplayKind.LCD_OLED.name -> L10n.t("LCD / OLED 태블릿", "LCD / OLED Tablet")
             else -> L10n.t("자동 감지 (기기 맞춤 권장)", "Auto Detect (Recommended)")
         }
@@ -1766,7 +1766,7 @@ class LibraryActivity : Activity() {
             val modes = listOf(
                 ModeOption("AUTO", "", "AUTO", L10n.t("자동 감지 (기기 환경에 맞춤 - 권장)", "Auto Detect (Recommended for Device)")),
                 ModeOption("MONO_EINK", DisplayKind.MONO_EINK.name, "MONO_EINK", L10n.t("흑백 E-Ink 모드 강제 적용", "Force Mono E-Ink Mode")),
-                ModeOption("COLOR_EINK", DisplayKind.COLOR_EINK.name, "COLOR_EINK", L10n.t("컬러 E-Ink 모드 강제 적용 (Kaleido 3)", "Force Color E-Ink (Kaleido 3)")),
+                ModeOption("COLOR_EINK", DisplayKind.COLOR_EINK.name, "COLOR_EINK", L10n.t("컬러 E-Ink 모드 강제 적용", "Force Color E-Ink")),
                 ModeOption("LCD_OLED", DisplayKind.LCD_OLED.name, "GENERIC_TABLET", L10n.t("일반 LCD / OLED 모드 강제 적용 (컬러)", "Force Standard LCD / OLED (Color)"))
             )
             val labels = modes.map { m ->
@@ -2244,9 +2244,9 @@ class LibraryActivity : Activity() {
             ))
             addSection("🚀 Ver. 2.5 폴더블·플립 반응형 조판, E-Ink vs LCD 이원화 비교표 & 21종 일러스트 가이드", listOf(
                 "공식 사용 설명서 전 항목 21종 일러스트 다이어그램 탑재: 모든 장·항목마다 직관적인 인포그래픽 도표(총 21장)를 수록하고, E-Ink 단말기와 LCD/OLED 기기의 10대 기능 구분 상세 비교표를 추가",
-                "갤럭시 Z 폴드 / 폴드 울트라 / Z 플립 완벽 대응: 메인 펼침 화면(폴드 2176×1812, 울트라 2184×1968, 플립 2640×1080) 및 플립 커버 플렉스 윈도우(748×720 / 512×260) 해상도 전용 프로파일 탑재",
+                "폴더블·클램셸 대화면 완벽 대응: 메인 펼침 화면(2176×1812, 2184×1968, 2640×1080) 및 외부 커버 화면(748×720 / 512×260) 해상도 전용 프로파일 탑재",
                 "폴딩↔언폴딩 실시간 무중단 반응형 조판: 기기를 접거나 펼 때 읽던 글자 오프셋을 100% 유지하며 즉시 본문·이미지·만화(CBZ/ZIP) 뷰포트를 재조판",
-                "카카오톡(KakaoTalk) SNS 다이렉트 공유 복구 & 삼성 디스플레이 감지 정밀화: 갤러리 저장, 카카오톡, 인스타(1:1 피드 / 9:16 스토리), 스레드, X, 페이스북, 문자(SMS) 전 채널 완비",
+                "카카오톡(KakaoTalk) SNS 다이렉트 공유 복구 & 폴더블·OLED 디스플레이 감지 정밀화: 갤러리 저장, 카카오톡, 인스타(1:1 피드 / 9:16 스토리), 스레드, X, 페이스북, 문자(SMS) 전 채널 완비",
                 "Gemini AI 독서 어시스턴트 (Beta) 고도화: LCD/OLED 전용 3대 장르(문학·기술·역사) 자동 감지, 앱 이탈 없는 인앱 1:1 멀티턴 채팅 팝업, 메인 환경설정 및 독서 중 전체 리더 설정 첫 화면 On/Off 토글 지원"
             ))
             addSection("📖 Ver. 2.2 공식 사용 설명서(EPUB) 기본 탑재 & 독서 관리 고도화", listOf(
@@ -2269,7 +2269,7 @@ class LibraryActivity : Activity() {
                 "약 640KB 초경량 설치 패키지(APK) 및 즉각적인 콜드 스타트 기동"
             ))
             addSection("2. E-Ink 및 LCD/OLED 하드웨어 최적화 이원화", listOf(
-                "E-Ink: Carta 1300/1200 최적화, 10단계 엣지 스트로크 부스터, 잔상 제거 전체 리프레시",
+                "E-Ink: 고대비 E-Ink 패널 최적화, 10단계 엣지 스트로크 부스터, 잔상 제거 전체 리프레시",
                 "E-Ink: 환경설정 및 전체 리더 설정·도구 메뉴 묶음과 버튼 외곽선 고대비(2px) 보강",
                 "E-Ink: 글자 스타일, 조명, 보조도구 등 각 메뉴 항목 간 구분선 옅은 점선(Dotted) 적용",
                 "E-Ink: 독서 보조도구 카드 박스 그룹화 (플래시카드 복습 및 통계 대시보드)",
@@ -2327,7 +2327,7 @@ class LibraryActivity : Activity() {
             ))
             addSection("🚀 Ver. 2.5 Foldable/Flip Responsive Layout, E-Ink vs LCD Matrix & 21-Diagram Guide", listOf(
                 "21 High-Res Illustrated Diagrams Across All User Guide Sections: Every chapter & subsection now includes visual infographic diagrams plus a 10-point E-Ink vs. LCD/OLED Feature Comparison Matrix",
-                "Galaxy Z Fold / Fold Ultra / Z Flip Native Support: Dedicated display profiles for unfolded main screens (Fold 2176×1812, Ultra 2184×1968, Flip 2640×1080) and Flip Cover Flex Windows (748×720 / 512×260)",
+                "Foldable & Clamshell Display Native Support: Dedicated display profiles for unfolded main screens (2176×1812, 2184×1968, 2640×1080) and cover screens (748×720 / 512×260)",
                 "Seamless Fold↔Unfold Live Repagination: Preserves exact character offset while dynamically reflowing text, inline EPUB images, and CBZ/ZIP comic viewports on the fly",
                 "KakaoTalk Direct SNS Sharing Restored & Refined Display Detection: Full sharing support across Gallery Save, KakaoTalk, Instagram (1:1 Feed / 9:16 Story), Threads, X, Facebook, and SMS",
                 "Gemini AI Reading Assistant (Beta) Enhanced: Auto-detects 3 genres (Literature, Tech Tutor, History) on LCD/OLED devices, features an in-app 1:1 multi-turn chat popup, and provides On/Off toggles in both Main Settings and Reader Settings"
@@ -2352,7 +2352,7 @@ class LibraryActivity : Activity() {
                 "Ultra-compact ~640KB installation package with instantaneous cold start"
             ))
             addSection("2. Hardware Bifurcation for E-Ink & LCD/OLED", listOf(
-                "E-Ink: Carta 1300/1200 tuning, 10-step Edge Stroke Booster, anti-ghosting full refresh",
+                "E-Ink: High-contrast E-Ink panel tuning, 10-step Edge Stroke Booster, anti-ghosting full refresh",
                 "E-Ink: High-contrast (2px) outlines for settings menu groups, tools, and pill buttons",
                 "E-Ink: Subtle dotted divider lines between items in typography, tools, and settings menus",
                 "E-Ink: Grouped extra tools card container (Flashcards review & Reading Stats dashboard)",

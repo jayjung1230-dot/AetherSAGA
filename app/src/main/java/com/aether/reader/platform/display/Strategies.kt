@@ -9,7 +9,7 @@ import android.graphics.Paint
 import com.aether.reader.domain.display.*
 
 /**
- * Aspect-aware layout: 4:3 panels (Luna X, iPad-class tablets) are "squarer", so
+ * Aspect-aware layout: 4:3 panels (6"~10" E-Ink readers, 4:3 tablets) are "squarer", so
  * they get a slightly larger margin and a 2-column spread only in landscape where
  * each column still holds a comfortable measure. 16:9 / 16:10 / ultrawide
  * landscape always spread; portrait is always a single column.
@@ -72,7 +72,7 @@ class ColorEInkStrategy(
     override val renderSpec = RenderSpec(
         config = Bitmap.Config.ARGB_8888, grayLevels = 16,
         boldnessLevel = s.boldnessLevel.coerceIn(0, 10),
-        illustrationSaturation = 1.25f,   // +15..30% -> Kaleido 3 washes colors out
+        illustrationSaturation = 1.25f,   // +15..30% -> Color E-Ink panels tend to wash colors out
         illustrationGamma = 0.85f,
         colorLayerSeparate = true,         // text -> 300 PPI B/W layer, images -> color layer
         highlightDithering = true
